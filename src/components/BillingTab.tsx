@@ -105,7 +105,7 @@ ${invoiceData.customer.email}
 ${invoiceData.customer.address}
 
 Items:
-${invoiceData.items.map((item: any) =>
+${invoiceData.items.map((item: { description: string; quantity: number; unitPrice: number; amount: number; }) =>
   `${item.description} - Qty: ${item.quantity} - Unit Price: $${item.unitPrice.toFixed(2)} - Amount: $${item.amount.toFixed(2)}`
 ).join('\n')}
 

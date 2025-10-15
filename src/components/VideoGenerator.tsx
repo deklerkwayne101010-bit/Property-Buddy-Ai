@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 
 interface VideoGeneratorProps {
   onGenerate?: (images: File[], description: string) => Promise<void>;
@@ -234,10 +235,11 @@ export default function VideoGenerator({ onGenerate }: VideoGeneratorProps) {
                   <div key={index} className="relative group animate-in zoom-in-95 duration-300" style={{ animationDelay: `${index * 50}ms` }}>
                     <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100">
                       <div className="relative aspect-square">
-                        <img
+                        <Image
                           src={URL.createObjectURL(image)}
                           alt={`Property image ${index + 1}`}
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          fill
+                          className="object-cover transition-transform duration-300 group-hover:scale-105"
                           loading="lazy"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
