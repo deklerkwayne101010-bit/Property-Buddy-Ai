@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ElevenLabs } from '@elevenlabs/elevenlabs-js';
+import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import {
   checkRateLimit,
   validateRequestSize,
@@ -38,23 +38,22 @@ async function generateVoiceover(
     similarity_boost: number;
     style?: number;
     use_speaker_boost?: boolean;
-  };
+  }
 ): Promise<Buffer> {
   const elevenLabsKey = process.env.ELEVENLABS_API_KEY;
   if (!elevenLabsKey) {
     throw new Error('ElevenLabs API key not configured');
   }
 
-  const elevenlabs = new ElevenLabs({
+  const elevenlabs = new ElevenLabsClient({
     apiKey: elevenLabsKey,
   });
 
   try {
-    const audioStream = await elevenlabs.textToSpeech.generate({
-      voice: voiceId,
+    const audioStream = await elevenlabs.textToSpeech.convert(voiceId, {
       text: text,
-      model_id: modelId,
-      voice_settings: voiceSettings || {
+      modelId: modelId,
+      voiceSettings: voiceSettings || {
         stability: 0.5,
         similarity_boost: 0.5,
         style: 0.0,
@@ -63,13 +62,13 @@ async function generateVoiceover(
     });
 
     // Convert stream to buffer
-    const chunks: Uint8Array[] = [];
+    const chunks: Buffer[] = [];
     const reader = audioStream.getReader();
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      chunks.push(value);
+      chunks.push(Buffer.from(value));
     }
 
     return Buffer.concat(chunks);
