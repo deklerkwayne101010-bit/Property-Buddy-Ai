@@ -41,7 +41,17 @@ interface ResultsDisplayProps {
   onSelectVariant?: (platform: string, variantIndex: number) => void;
   isLoading?: boolean;
   userId?: string;
-  propertyData?: any; // For CRM integration
+  propertyData?: {
+    title?: string;
+    address?: string;
+    suburb?: string;
+    city?: string;
+    price?: string;
+    beds?: string;
+    baths?: string;
+    garages?: string;
+    keyFeatures?: string[];
+  };
 }
 
 export default function ResultsDisplay({

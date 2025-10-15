@@ -5,6 +5,20 @@ export interface PromptTemplate {
   template: string;
 }
 
+export interface TemplateData {
+  title: string;
+  shortSummary: string;
+  address: string;
+  suburb: string;
+  city: string;
+  price: string | number;
+  beds: number;
+  baths: number;
+  garages: number;
+  keyFeatures: string[] | string;
+  length: 'Short' | 'Medium' | 'Long';
+}
+
 export const promptTemplates: PromptTemplate[] = [
   // Property24
   {
@@ -234,7 +248,7 @@ export function getPromptTemplate(platform: string, tone: string, length: 'Short
   ) || null;
 }
 
-export function buildPrompt(template: PromptTemplate, propertyData: Record<string, any>): string {
+export function buildPrompt(template: PromptTemplate, propertyData: Record<string, unknown>): string {
   let prompt = template.template;
 
   // Replace placeholders with actual data
@@ -247,7 +261,7 @@ export function buildPrompt(template: PromptTemplate, propertyData: Record<strin
       value = value.join(', ');
     }
 
-    prompt = prompt.replace(new RegExp(placeholder, 'g'), value || '');
+    prompt = prompt.replace(new RegExp(placeholder, 'g'), String(value || ''));
   });
 
   return prompt;

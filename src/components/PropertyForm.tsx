@@ -59,42 +59,42 @@ export default function PropertyForm({ onChange, templates = [], onLoadTemplate 
 
   const languages = useMemo(() => ['English', 'Afrikaans', 'Zulu'], []);
 
-  const validateField = (field: keyof PropertyFormData, value: any): string => {
+  const validateField = (field: keyof PropertyFormData, value: string | string[] | File[]): string => {
     switch (field) {
       case 'title':
-        if (!value.trim()) return 'Title is required';
+        if (typeof value !== 'string' || !value.trim()) return 'Title is required';
         if (value.length < 10) return 'Title must be at least 10 characters';
         break;
       case 'shortSummary':
-        if (!value.trim()) return 'Short summary is required';
+        if (typeof value !== 'string' || !value.trim()) return 'Short summary is required';
         if (value.length < 20) return 'Short summary must be at least 20 characters';
         break;
       case 'address':
-        if (!value.trim()) return 'Address is required';
+        if (typeof value !== 'string' || !value.trim()) return 'Address is required';
         break;
       case 'suburb':
-        if (!value.trim()) return 'Suburb is required';
+        if (typeof value !== 'string' || !value.trim()) return 'Suburb is required';
         break;
       case 'city':
-        if (!value.trim()) return 'City is required';
+        if (typeof value !== 'string' || !value.trim()) return 'City is required';
         break;
       case 'price':
-        if (!value) return 'Price is required';
+        if (typeof value !== 'string' || !value) return 'Price is required';
         const priceNum = parseInt(value);
         if (isNaN(priceNum) || priceNum <= 0) return 'Please enter a valid price';
         break;
       case 'beds':
-        if (!value) return 'Number of bedrooms is required';
+        if (typeof value !== 'string' || !value) return 'Number of bedrooms is required';
         const bedsNum = parseInt(value);
         if (isNaN(bedsNum) || bedsNum < 0) return 'Please enter a valid number of bedrooms';
         break;
       case 'baths':
-        if (!value) return 'Number of bathrooms is required';
+        if (typeof value !== 'string' || !value) return 'Number of bathrooms is required';
         const bathsNum = parseInt(value);
         if (isNaN(bathsNum) || bathsNum < 0) return 'Please enter a valid number of bathrooms';
         break;
       case 'garages':
-        if (value) {
+        if (typeof value === 'string' && value) {
           const garagesNum = parseInt(value);
           if (isNaN(garagesNum) || garagesNum < 0) return 'Please enter a valid number of garages';
         }
@@ -103,7 +103,7 @@ export default function PropertyForm({ onChange, templates = [], onLoadTemplate 
     return '';
   };
 
-  const updateFormData = useCallback((field: keyof PropertyFormData, value: any) => {
+  const updateFormData = useCallback((field: keyof PropertyFormData, value: string | string[] | File[]) => {
     const updatedData = { ...formData, [field]: value };
     setFormData(updatedData);
 

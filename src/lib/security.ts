@@ -140,7 +140,7 @@ export function filterContent(content: string): { filtered: string; flagged: boo
   };
 }
 
-export function validatePropertyData(data: Record<string, any>): { isValid: boolean; errors: string[] } {
+export function validatePropertyData(data: Record<string, unknown>): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
 
   // Enhanced validation with security checks
@@ -186,7 +186,7 @@ export function validatePropertyData(data: Record<string, any>): { isValid: bool
     errors.push('Bathrooms must be a valid number between 0 and 50');
   }
 
-  if (data.garages && data.garages.trim().length > 0) {
+  if (data.garages && typeof data.garages === 'string' && data.garages.trim().length > 0) {
     if (!/^[0-9]+$/.test(data.garages) || parseInt(data.garages) < 0 || parseInt(data.garages) > 20) {
       errors.push('Garages must be a valid number between 0 and 20');
     }
@@ -206,7 +206,7 @@ export function validatePropertyData(data: Record<string, any>): { isValid: bool
     if (data.keyFeatures.length > 20) {
       errors.push('Maximum 20 key features allowed');
     }
-    data.keyFeatures.forEach((feature: any, index: number) => {
+    data.keyFeatures.forEach((feature: string, index: number) => {
       if (typeof feature !== 'string') {
         errors.push(`Key feature ${index + 1} must be a string`);
       } else if (feature.length > 200) {
@@ -237,7 +237,7 @@ export function createSecurityHeaders(): Record<string, string> {
   };
 }
 
-export function logSecurityEvent(event: string, details: Record<string, any>) {
+export function logSecurityEvent(event: string, details: Record<string, unknown>) {
   const timestamp = new Date().toISOString();
   console.log(`[SECURITY ${timestamp}] ${event}:`, details);
 }

@@ -1,7 +1,22 @@
 'use client';
 
+interface PropertyFormData {
+  title: string;
+  shortSummary: string;
+  address: string;
+  suburb: string;
+  city: string;
+  price: string;
+  beds: string;
+  baths: string;
+  garages: string;
+  keyFeatures: string[];
+  photos: File[];
+  language: string;
+}
+
 interface QuickExamplesProps {
-  onSelectExample: (example: any) => void;
+  onSelectExample: (example: Partial<PropertyFormData>) => void;
 }
 
 export default function QuickExamples({ onSelectExample }: QuickExamplesProps) {

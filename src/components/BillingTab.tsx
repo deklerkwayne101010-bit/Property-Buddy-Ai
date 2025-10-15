@@ -71,7 +71,27 @@ export default function BillingTab() {
     }
   };
 
-  const generateInvoiceText = (invoiceData: any) => {
+  const generateInvoiceText = (invoiceData: {
+    invoiceNumber: string;
+    date: string;
+    dueDate: string;
+    customer: {
+      name: string;
+      email: string;
+      address: string;
+    };
+    items: Array<{
+      description: string;
+      quantity: number;
+      unitPrice: number;
+      amount: number;
+    }>;
+    subtotal: number;
+    tax: number;
+    total: number;
+    paymentMethod: string;
+    status: string;
+  }) => {
     return `
 INVOICE
 =======
@@ -202,7 +222,7 @@ Status: ${invoiceData.status}
           <div className="flex space-x-3">
             <select
               value={filter}
-              onChange={(e) => setFilter(e.target.value as any)}
+              onChange={(e) => setFilter(e.target.value as 'all' | 'subscription' | 'credit_purchase' | 'refund')}
               className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="all">All Types</option>
@@ -213,7 +233,7 @@ Status: ${invoiceData.status}
 
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'paid' | 'pending' | 'failed')}
               className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="all">All Status</option>

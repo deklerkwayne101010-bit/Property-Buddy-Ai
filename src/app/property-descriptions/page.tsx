@@ -158,7 +158,7 @@ export default function PropertyDescriptions() {
     }
   };
 
-  const handleSelectExample = (exampleData: any) => {
+  const handleSelectExample = (exampleData: Partial<PropertyFormData>) => {
     setFormData(prev => ({ ...prev, ...exampleData }));
   };
 
@@ -194,7 +194,15 @@ export default function PropertyDescriptions() {
     });
   };
 
-  const handleSaveTemplate = async (templateData: any) => {
+  const handleSaveTemplate = async (templateData: {
+    name: string;
+    content: string;
+    category: string;
+    platform: string;
+    tone: string;
+    length: string;
+    userId: string;
+  }) => {
     try {
       const response = await fetch('/api/templates', {
         method: 'POST',
