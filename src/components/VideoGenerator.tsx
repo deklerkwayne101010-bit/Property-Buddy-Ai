@@ -177,7 +177,7 @@ export default function VideoGenerator({ onGenerate }: VideoGeneratorProps) {
               e.preventDefault();
               e.currentTarget.classList.remove('border-primary-500', 'bg-primary-50');
               const files = Array.from(e.dataTransfer.files);
-              handleFileUpload({ target: { files } } as any);
+              handleFileUpload({ target: { files } } as unknown as React.ChangeEvent<HTMLInputElement>);
             }}
           >
             <input
@@ -238,6 +238,7 @@ export default function VideoGenerator({ onGenerate }: VideoGeneratorProps) {
                           src={URL.createObjectURL(image)}
                           alt={`Property image ${index + 1}`}
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          loading="lazy"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <button
