@@ -41,7 +41,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-all duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col transform transition-all duration-300 ease-in-out lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -49,7 +49,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 opacity-95"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-blue-600/20 via-transparent to-purple-600/20"></div>
         <div className="absolute inset-0 backdrop-blur-xl border-r border-white/10 shadow-2xl"></div>
-        <div className="relative flex items-center justify-between p-6 border-b border-white/10">
+
+        {/* Header */}
+        <div className="relative flex items-center justify-between p-6 border-b border-white/10 flex-shrink-0">
           <h2 className="text-xl font-bold text-white bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-lg">
             AI Photo Editor
           </h2>
@@ -63,8 +65,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
           </button>
         </div>
 
-        <nav className="relative mt-8">
-          <ul className="space-y-2 px-6">
+        {/* Navigation */}
+        <nav className="relative flex flex-col flex-1">
+          {/* Menu items */}
+          <ul className="space-y-2 px-6 py-6 flex-shrink-0">
             {menuItems.map((item, index) => (
               <li key={item.href} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
                 <Link
@@ -101,8 +105,11 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
             ))}
           </ul>
 
+          {/* Spacer to push bottom section down */}
+          <div className="flex-1"></div>
+
           {/* Account and Logout buttons */}
-          <div className="absolute bottom-6 left-6 right-6 space-y-3">
+          <div className="px-6 pb-6 space-y-3 flex-shrink-0">
             <Link
               href="/account"
               className={`group relative flex items-center w-full px-4 py-4 rounded-xl transition-all duration-300 ease-out transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:ring-offset-2 focus:ring-offset-slate-900 overflow-hidden ${
