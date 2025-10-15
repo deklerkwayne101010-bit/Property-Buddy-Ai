@@ -13,13 +13,14 @@ A Next.js + React + Tailwind web application that allows real estate agents to u
 - Download buttons for edited images
 
 ### Backend Features
-- **`/api/refine-prompt`** - Uses Hugging Face LLM to convert agent instructions into polished AI prompts
-- **`/api/edit`** - Uses Replicate API for high-quality image editing with models like `bytedance/seedream-4`
+- **`/api/refine-prompt`** - Uses Replicate LLM to convert agent instructions into polished AI prompts
+- **`/api/edit`** - Uses Replicate API for high-quality image editing with FLUX models
+- **`/api/generate`** - Uses Replicate API for property description generation
 - Image storage via Supabase Storage with public URLs
 - Comprehensive logging and error handling
 
 ### AI Models
-- **Hugging Face**: `Mistralai/Mistral-7B-Instruct-v0.3` for prompt refinement
+- **Replicate**: `mistralai/mistral-7b-v0.1` for property description generation
 - **Replicate**: `black-forest-labs/flux-kontext-pro` for photorealistic image editing
 
 ## Tech Stack
@@ -29,7 +30,7 @@ A Next.js + React + Tailwind web application that allows real estate agents to u
 - **Backend**: Next.js API Routes
 - **Database**: Supabase (PostgreSQL)
 - **Storage**: Supabase Storage
-- **AI Services**: Hugging Face Inference API, Replicate API
+- **AI Services**: Replicate API (Property Descriptions & Image Editing)
 - **Authentication**: Supabase Auth
 
 ## Getting Started
@@ -37,8 +38,7 @@ A Next.js + React + Tailwind web application that allows real estate agents to u
 ### Prerequisites
 
 1. **Supabase Project**: Create a project at [supabase.com](https://supabase.com)
-2. **Hugging Face Token**: Get an API token from [Hugging Face](https://huggingface.co/settings/tokens)
-3. **Replicate Token**: Get an API token from [Replicate](https://replicate.com/account/api-tokens)
+2. **Replicate Token**: Get an API token from [Replicate](https://replicate.com/account/api-tokens)
 
 ### Installation
 
@@ -66,14 +66,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
 # AI Services
-HF_API_TOKEN=your_hugging_face_token
 REPLICATE_API_TOKEN=your_replicate_token
 ```
 
 4. Set up Supabase Storage:
    - Go to your Supabase project dashboard
    - Navigate to Storage
-   - Create a new bucket named `ai-editor-images`
+   - Create a new bucket named `images`
    - Make it public and allow these MIME types: `image/jpeg`, `image/png`, `image/webp`, `image/gif`
    - Or run the SQL script in `supabase-setup.sql` in your Supabase SQL Editor
 
@@ -177,7 +176,7 @@ npm run build
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | ✅ |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key | ✅ |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key | ✅ |
-| `HF_API_TOKEN` | Hugging Face API token | ✅ |
+| `REPLICATE_API_TOKEN` | Replicate API token (used for both property descriptions and image editing) | ✅ |
 | `REPLICATE_API_TOKEN` | Replicate API token | ✅ |
 
 ## Contributing

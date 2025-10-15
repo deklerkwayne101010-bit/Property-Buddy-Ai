@@ -41,22 +41,23 @@ interface GenerationRequest {
   seoKeywords?: string;
 }
 
-async function callHuggingFaceAPI(prompt: string): Promise<string> {
-  const hfToken = process.env.HF_API_TOKEN;
-  if (!hfToken) {
-    throw new Error('Hugging Face API token not configured');
+async function callReplicateAPI(prompt: string): Promise<string> {
+  const replicateToken = process.env.REPLICATE_API_TOKEN;
+  if (!replicateToken) {
+    throw new Error('Replicate API token not configured');
   }
 
-  const response = await fetch('https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3', {
+  const response = await fetch('https://api.replicate.com/v1/predictions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${hfToken}`,
+      'Authorization': `Bearer ${replicateToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      inputs: prompt,
-      parameters: {
-        max_new_tokens: 500,
+      version: 'mistralai/mistral-7b-v0.1',
+      input: {
+        prompt: prompt,
+        max_tokens: 500,
         temperature: 0.7,
         top_p: 0.9,
         do_sample: true,
@@ -66,11 +67,31 @@ async function callHuggingFaceAPI(prompt: string): Promise<string> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Hugging Face API error: ${response.status} - ${errorText}`);
+    throw new Error(`Replicate API error: ${response.status} - ${errorText}`);
   }
 
-  const data = await response.json();
-  return data[0]?.generated_text || '';
+  const prediction = await response.json();
+
+  // Poll for completion
+  let result;
+  while (true) {
+    const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+      headers: {
+        'Authorization': `Bearer ${replicateToken}`,
+      },
+    });
+
+    result = await statusResponse.json();
+
+    if (result.status === 'succeeded') {
+      return result.output.join(''); // Join array of text chunks
+    } else if (result.status === 'failed') {
+      throw new Error(`Replicate generation failed: ${result.error}`);
+    }
+
+    // Wait 1 second before checking again
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -164,7 +185,7 @@ Features: ${propertyData.keyFeatures.join(', ')}
 
 ${seoKeywords ? `Include SEO keywords: ${seoKeywords}` : ''}`;
 
-            const description = await callHuggingFaceAPI(fallbackPrompt);
+            const description = await callReplicateAPI(fallbackPrompt);
             results[platform].push(description);
           } else {
             // Build the prompt using the template
@@ -174,7 +195,7 @@ ${seoKeywords ? `Include SEO keywords: ${seoKeywords}` : ''}`;
               seoKeywords: seoKeywords || ''
             });
 
-            const rawDescription = await callHuggingFaceAPI(prompt);
+            const rawDescription = await callReplicateAPI(prompt);
 
             // Filter content for inappropriate material
             const filtered = filterContent(rawDescription);
