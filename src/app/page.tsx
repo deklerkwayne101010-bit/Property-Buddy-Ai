@@ -9,15 +9,12 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function LandingPage() {
   const [isVisible, setIsVisible] = useState(false);
-  const { user, loading } = useAuth();
-  const router = useRouter();
+  const { user } = useAuth();
 
   useEffect(() => {
     setIsVisible(true);
-    if (!loading && user) {
-      router.push('/dashboard');
-    }
-  }, [user, loading, router]);
+    // Don't auto-redirect - let users see the landing page
+  }, []);
 
   return (
     <motion.div

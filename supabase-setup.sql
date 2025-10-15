@@ -4,8 +4,16 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Drop tables if they exist (in reverse dependency order)
+DROP TABLE IF EXISTS usage_tracking;
+DROP TABLE IF EXISTS billing_history;
+DROP TABLE IF EXISTS templates;
+DROP TABLE IF EXISTS properties;
+DROP TABLE IF EXISTS leads;
+DROP TABLE IF EXISTS profiles;
+
 -- Create leads table
-CREATE TABLE IF NOT EXISTS leads (
+CREATE TABLE leads (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   contact_number TEXT,
@@ -80,15 +88,44 @@ CREATE TABLE IF NOT EXISTS usage_tracking (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_leads_stage ON leads(lead_stage);
-CREATE INDEX IF NOT EXISTS idx_leads_created ON leads(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_properties_lead ON properties(lead_id);
-CREATE INDEX IF NOT EXISTS idx_properties_created ON properties(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_templates_user ON templates(user_id);
-CREATE INDEX IF NOT EXISTS idx_billing_user ON billing_history(user_id);
-CREATE INDEX IF NOT EXISTS idx_usage_user ON usage_tracking(user_id);
-CREATE INDEX IF NOT EXISTS idx_usage_feature ON usage_tracking(feature);
+-- Create indexes for better performance (only if they don't exist)
+-- Note: CREATE INDEX IF NOT EXISTS is not directly supported in some Supabase versions
+-- So we'll use a more compatible approach
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_leads_stage') THEN
+        CREATE INDEX idx_leads_stage ON leads(lead_stage);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_leads_created') THEN
+        CREATE INDEX idx_leads_created ON leads(created_at DESC);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_properties_lead') THEN
+        CREATE INDEX idx_properties_lead ON properties(lead_id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_properties_created') THEN
+        CREATE INDEX idx_properties_created ON properties(created_at DESC);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_templates_user') THEN
+        CREATE INDEX idx_templates_user ON templates(user_id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_billing_user') THEN
+        CREATE INDEX idx_billing_user ON billing_history(user_id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_usage_user') THEN
+        CREATE INDEX idx_usage_user ON usage_tracking(user_id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_usage_feature') THEN
+        CREATE INDEX idx_usage_feature ON usage_tracking(feature);
+    END IF;
+END $$;
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
@@ -102,6 +139,11 @@ ALTER TABLE usage_tracking ENABLE ROW LEVEL SECURITY;
 -- For now, allowing authenticated users to access their own data
 -- You can modify these policies based on your business requirements
 
+-- Drop existing policies if they exist (to avoid conflicts)
+DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
+
 -- Profiles: Users can only access their own profile
 CREATE POLICY "Users can view own profile" ON profiles
   FOR SELECT USING (auth.uid() = id);
@@ -111,6 +153,14 @@ CREATE POLICY "Users can update own profile" ON profiles
 
 CREATE POLICY "Users can insert own profile" ON profiles
   FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- Drop existing policies if they exist (to avoid conflicts)
+DROP POLICY IF EXISTS "Users can view own templates" ON templates;
+DROP POLICY IF EXISTS "Users can insert own templates" ON templates;
+DROP POLICY IF EXISTS "Users can update own templates" ON templates;
+DROP POLICY IF EXISTS "Users can delete own templates" ON templates;
+DROP POLICY IF EXISTS "Users can view own billing" ON billing_history;
+DROP POLICY IF EXISTS "Users can view own usage" ON usage_tracking;
 
 -- Templates: Users can only access their own templates
 CREATE POLICY "Users can view own templates" ON templates
@@ -132,6 +182,16 @@ CREATE POLICY "Users can view own billing" ON billing_history
 -- Usage tracking: Users can only access their own usage data
 CREATE POLICY "Users can view own usage" ON usage_tracking
   FOR SELECT USING (auth.uid() = user_id);
+
+-- Drop existing policies if they exist (to avoid conflicts)
+DROP POLICY IF EXISTS "Authenticated users can view leads" ON leads;
+DROP POLICY IF EXISTS "Authenticated users can insert leads" ON leads;
+DROP POLICY IF EXISTS "Authenticated users can update leads" ON leads;
+DROP POLICY IF EXISTS "Authenticated users can delete leads" ON leads;
+DROP POLICY IF EXISTS "Authenticated users can view properties" ON properties;
+DROP POLICY IF EXISTS "Authenticated users can insert properties" ON properties;
+DROP POLICY IF EXISTS "Authenticated users can update properties" ON properties;
+DROP POLICY IF EXISTS "Authenticated users can delete properties" ON properties;
 
 -- For leads and properties, you might want different policies
 -- For now, allowing authenticated users to access all (you can restrict this later)
@@ -169,10 +229,41 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Create trigger to automatically create profile on user signup
-CREATE OR REPLACE TRIGGER on_auth_user_created
+-- Drop trigger if exists and create new one
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Create storage bucket for images (if not exists)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'images',
+  'images',
+  true,
+  52428800, -- 50MB limit
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+) ON CONFLICT (id) DO NOTHING;
+
+-- Drop existing policies if they exist (to avoid conflicts)
+DROP POLICY IF EXISTS "Authenticated users can upload images" ON storage.objects;
+DROP POLICY IF EXISTS "Public can view images" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own images" ON storage.objects;
+
+-- Create storage policy to allow authenticated users to upload images
+CREATE POLICY "Authenticated users can upload images" ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'images');
+
+-- Create storage policy to allow public access to view images
+CREATE POLICY "Public can view images" ON storage.objects
+  FOR SELECT TO public
+  USING (bucket_id = 'images');
+
+-- Create storage policy to allow users to delete their own images
+CREATE POLICY "Users can delete own images" ON storage.objects
+  FOR DELETE TO authenticated
+  USING (bucket_id = 'images');
 
 -- Insert some sample data (optional - remove in production)
 -- Sample lead

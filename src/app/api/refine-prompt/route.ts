@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import Replicate from 'replicate';
 import {
   checkRateLimit,
   validateRequestSize,
@@ -64,48 +65,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const hfToken = process.env.HF_API_TOKEN;
-    if (!hfToken) {
-      return NextResponse.json({ error: 'Hugging Face API token not configured' }, { status: 500 });
-    }
-
-    // Customize prompt based on context
-    let systemPrompt = '';
-    if (context === 'property_description') {
-      systemPrompt = `Refine this agent instruction for generating compelling property descriptions. Make it more specific, engaging, and optimized for real estate marketing. Focus on highlighting key property features, location benefits, and creating emotional appeal for potential buyers or tenants.`;
-    } else if (context === 'image_generation') {
-      systemPrompt = `Refine this prompt for AI image generation. Make it more descriptive and suitable for image editing, focusing on visual details, composition, lighting, and style.`;
-    } else {
-      systemPrompt = `Refine this instruction to be more clear, specific, and effective.`;
-    }
-
-    const response = await fetch('https://api-inference.huggingface.co/models/Mistralai/Mistral-7B-Instruct-v0.3', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${hfToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        inputs: `${systemPrompt}\n\nOriginal instruction: "${agent_instruction}"\n\nRefined instruction:`,
-        parameters: {
-          max_new_tokens: 200,
-          temperature: 0.7,
-          top_p: 0.9,
-          do_sample: true,
-        },
-      }),
+    // Initialize Replicate client
+    const replicate = new Replicate({
+      auth: process.env.REPLICATE_API_TOKEN,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Hugging Face API error: ${response.status} - ${errorText}`);
-    }
+    // Call Replicate API for prompt refinement using meta/llama-2-7b-chat
+    const output = await replicate.run(
+      "meta/llama-2-7b-chat",
+      {
+        input: {
+          prompt: `You are an expert at refining AI image generation prompts for real estate photography. Take the following user instruction and refine it into a detailed, professional prompt that would work well with AI image generation models like Stable Diffusion. Focus on making it more descriptive, adding relevant details for ${context}, and ensuring it's optimized for high-quality real estate images.
 
-    const data = await response.json();
-    const generatedText = data[0]?.generated_text || '';
+User instruction: "${agent_instruction}"
 
-    // Clean up the response (remove the prompt echo if present)
-    const refinedPrompt = generatedText.replace(/^Refined instruction:\s*/i, '').trim() || agent_instruction;
+Refined prompt:`,
+          max_new_tokens: 500,
+          temperature: 0.7,
+          top_p: 0.9,
+          repetition_penalty: 1.1
+        }
+      }
+    );
+
+    // Extract the refined prompt from the output
+    const refinedPrompt = Array.isArray(output) ? output.join('') : String(output);
 
     return NextResponse.json({
       refined_prompt: refinedPrompt,
@@ -121,9 +105,23 @@ export async function POST(request: NextRequest) {
       ip: clientIP
     });
 
+    // Handle specific Replicate errors
+    let statusCode = 500;
+    let errorMessage = 'Failed to refine prompt';
+
+    if (error instanceof Error) {
+      if (error.message.includes('Replicate API error')) {
+        statusCode = 502; // Bad Gateway
+        errorMessage = 'AI service temporarily unavailable';
+      } else if (error.message.includes('Prediction failed') || error.message.includes('timed out')) {
+        statusCode = 503; // Service Unavailable
+        errorMessage = 'AI processing timeout';
+      }
+    }
+
     return NextResponse.json({
-      error: 'Failed to refine prompt',
+      error: errorMessage,
       details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500, headers: createSecurityHeaders() });
+    }, { status: statusCode, headers: createSecurityHeaders() });
   }
 }

@@ -1,10 +1,20 @@
 'use client';
 
-import { useState, useRef, DragEvent, ChangeEvent } from 'react';
+import { useState, useRef, DragEvent, ChangeEvent, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import DashboardLayout from '../../components/DashboardLayout';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
+
+interface UploadedImage {
+  id: string;
+  url: string;
+  filename: string;
+  uploadedAt: string;
+}
 
 export default function PhotoEditor() {
+  const { user } = useAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [agentInstruction, setAgentInstruction] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -12,7 +22,78 @@ export default function PhotoEditor() {
   const [loadingStep, setLoadingStep] = useState('');
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [editedImage, setEditedImage] = useState<string | null>(null);
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load uploaded images on component mount
+  useEffect(() => {
+    loadUploadedImages();
+  }, []);
+
+  const loadUploadedImages = async () => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('images')
+        .list('', {
+          limit: 20,
+          sortBy: { column: 'created_at', order: 'desc' }
+        });
+
+      if (error) {
+        console.error('Error loading images:', error);
+        return;
+      }
+
+      const images: UploadedImage[] = data.map(file => ({
+        id: file.id || file.name,
+        url: supabase.storage.from('images').getPublicUrl(file.name).data.publicUrl,
+        filename: file.name,
+        uploadedAt: file.created_at || new Date().toISOString()
+      }));
+
+      setUploadedImages(images);
+    } catch (error) {
+      console.error('Error loading uploaded images:', error);
+    }
+  };
+
+  const handleImageUpload = async (file: File) => {
+    setIsUploading(true);
+    try {
+      const timestamp = Date.now();
+      const fileName = `upload-${timestamp}-${file.name}`;
+
+      const { data, error } = await supabase.storage
+        .from('images')
+        .upload(fileName, file, {
+          contentType: file.type,
+          cacheControl: '3600',
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      // Refresh the uploaded images list
+      await loadUploadedImages();
+
+      // Set the uploaded image as preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setOriginalImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+
+      setIsUploading(false);
+      alert('Image uploaded successfully! You can now select it from the gallery below.');
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Failed to upload image. Please try again.');
+      setIsUploading(false);
+    }
+  };
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -24,12 +105,7 @@ export default function PhotoEditor() {
     if (files.length > 0) {
       const file = files[0];
       if (file.type === 'image/jpeg' || file.type === 'image/png') {
-        setSelectedFile(file);
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setOriginalImage(e.target?.result as string);
-        };
-        reader.readAsDataURL(file);
+        handleImageUpload(file);
       }
     }
   };
@@ -39,66 +115,50 @@ export default function PhotoEditor() {
     if (files && files.length > 0) {
       const file = files[0];
       if (file.type === 'image/jpeg' || file.type === 'image/png') {
-        setSelectedFile(file);
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setOriginalImage(e.target?.result as string);
-        };
-        reader.readAsDataURL(file);
+        handleImageUpload(file);
       }
     }
   };
 
+  const selectImage = (image: UploadedImage) => {
+    setSelectedImageUrl(image.url);
+    setOriginalImage(image.url);
+  };
+
   const handleEnhancePhoto = async () => {
-    if (!selectedFile || !agentInstruction) return;
+    if (!selectedImageUrl || !agentInstruction) return;
 
     setIsLoading(true);
     setLoadingProgress(0);
-    setLoadingStep('Analyzing your instructions...');
+    setLoadingStep('Sending to AI for enhancement...');
 
     try {
-      // Step 1: Refine the prompt
-      setLoadingProgress(20);
-      setLoadingStep('Refining your AI instructions...');
+      setLoadingProgress(30);
+      setLoadingStep('AI is enhancing your photo...');
 
-      const refineResponse = await fetch('/api/refine-prompt', {
+      // Send the Supabase URL directly to the API
+      const response = await fetch('/api/edit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ agent_instruction: agentInstruction }),
+        body: JSON.stringify({
+          imageUrl: selectedImageUrl,
+          prompt: agentInstruction,
+        }),
       });
 
-      if (!refineResponse.ok) {
-        throw new Error('Failed to refine prompt');
-      }
-
-      const { refined_prompt } = await refineResponse.json();
-
-      // Step 2: Upload and process image
-      setLoadingProgress(50);
-      setLoadingStep('Uploading your image...');
-
-      const formData = new FormData();
-      formData.append('image', selectedFile);
-      formData.append('refined_prompt', refined_prompt);
-
-      setLoadingProgress(70);
-      setLoadingStep('AI is enhancing your photo...');
-
-      const editResponse = await fetch('/api/edit', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!editResponse.ok) {
+      if (!response.ok) {
         throw new Error('Failed to edit image');
       }
 
+      setLoadingProgress(70);
+      setLoadingStep('Processing your image...');
+
+      const { edited_image_url } = await response.json();
+
       setLoadingProgress(90);
       setLoadingStep('Finalizing your enhanced image...');
-
-      const { edited_image_url } = await editResponse.json();
 
       setLoadingProgress(100);
       setLoadingStep('Complete!');
@@ -128,6 +188,21 @@ export default function PhotoEditor() {
     link.click();
     document.body.removeChild(link);
   };
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -260,6 +335,74 @@ export default function PhotoEditor() {
             </div>
           </div>
 
+          {/* Image Gallery Section Card */}
+          {uploadedImages.length > 0 && (
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/20 hover:scale-[1.02]">
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 sm:px-8 py-6 border-b border-slate-100">
+                <h2 className="text-xl font-semibold text-slate-800 flex items-center">
+                  <svg className="w-6 h-6 mr-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  Your Uploaded Images
+                </h2>
+                <p className="text-sm text-slate-600 mt-1">Select an image to edit</p>
+              </div>
+
+              <div className="p-6 sm:p-8">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {uploadedImages.map((image) => (
+                    <div
+                      key={image.id}
+                      onClick={() => selectImage(image)}
+                      className={`relative group cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-300 hover:scale-105 ${
+                        selectedImageUrl === image.url
+                          ? 'border-blue-500 shadow-lg shadow-blue-500/30'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <img
+                        src={image.url}
+                        alt={image.filename}
+                        className="w-full h-24 sm:h-32 object-cover"
+                      />
+                      <div className={`absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 ${
+                        selectedImageUrl === image.url ? 'bg-blue-500/10' : ''
+                      }`}>
+                        {selectedImageUrl === image.url && (
+                          <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                        <p className="text-white text-xs truncate">{image.filename}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {selectedImageUrl && (
+                  <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        <span className="text-blue-800 font-medium">Selected Image</span>
+                      </div>
+                      <button
+                        onClick={() => setSelectedImageUrl(null)}
+                        className="text-blue-600 hover:text-blue-800 text-sm underline"
+                      >
+                        Clear Selection
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Instructions Section Card */}
           <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/20 hover:scale-[1.02]">
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 sm:px-8 py-6 border-b border-slate-100">
@@ -361,7 +504,7 @@ export default function PhotoEditor() {
                 <>
                   <button
                     onClick={handleEnhancePhoto}
-                    disabled={!selectedFile || !agentInstruction || isLoading}
+                    disabled={!selectedImageUrl || !agentInstruction || isLoading}
                     className="group relative bg-gradient-to-r from-slate-600 via-blue-600 to-indigo-600 hover:from-slate-700 hover:via-blue-700 hover:to-indigo-700 disabled:from-slate-400 disabled:via-slate-400 disabled:to-slate-400 text-white font-bold py-3 px-8 sm:py-4 sm:px-12 rounded-2xl transition-all duration-500 transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed shadow-lg hover:shadow-xl disabled:shadow-none overflow-hidden text-sm sm:text-lg"
                   >
                     <div className="relative z-10 flex items-center justify-center">
@@ -375,11 +518,11 @@ export default function PhotoEditor() {
                     )}
                   </button>
 
-                  {(!selectedFile || !agentInstruction) && (
+                  {(!selectedImageUrl || !agentInstruction) && (
                     <div className="mt-4 text-xs sm:text-sm text-slate-500">
-                      {!selectedFile && !agentInstruction && "Please upload an image and add instructions"}
-                      {!selectedFile && agentInstruction && "Please upload an image first"}
-                      {selectedFile && !agentInstruction && "Please add instructions for the AI"}
+                      {!selectedImageUrl && !agentInstruction && "Please select an image and add instructions"}
+                      {!selectedImageUrl && agentInstruction && "Please select an image first"}
+                      {selectedImageUrl && !agentInstruction && "Please add instructions for the AI"}
                     </div>
                   )}
                 </>

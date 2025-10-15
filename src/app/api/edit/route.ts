@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export const config = {
   api: {
@@ -8,13 +9,16 @@ export const config = {
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
-    const imageFile = formData.get('image') as File;
-    const refinedPrompt = formData.get('refined_prompt') as string;
-    const maskFile = formData.get('mask') as File | null;
+    const body = await request.json();
+    const { imageUrl, prompt } = body;
 
-    if (!imageFile || !refinedPrompt) {
-      return NextResponse.json({ error: 'image and refined_prompt are required' }, { status: 400 });
+    // Detailed logging for input parameters
+    console.log('=== Replicate API Edit Request ===');
+    console.log('Image URL:', imageUrl);
+    console.log('Prompt:', prompt);
+
+    if (!imageUrl || !prompt) {
+      return NextResponse.json({ error: 'imageUrl and prompt are required' }, { status: 400 });
     }
 
     const replicateToken = process.env.REPLICATE_API_TOKEN;
@@ -22,68 +26,95 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Replicate API token not configured' }, { status: 500 });
     }
 
-    // Convert files to base64
-    const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
-    const imageBase64 = imageBuffer.toString('base64');
+    // Use the provided image URL directly (already uploaded to Supabase)
+    const imagePublicUrl = imageUrl;
+    console.log('Using provided image URL:', imagePublicUrl);
 
-    let maskBase64: string | undefined;
-    if (maskFile) {
-      const maskBuffer = Buffer.from(await maskFile.arrayBuffer());
-      maskBase64 = maskBuffer.toString('base64');
-    }
+    // Prepare Replicate API request body with public URLs
+    // Using the correct format for FLUX models
+    const requestBody = {
+      input: {
+        prompt: prompt,
+        input_image: imagePublicUrl,
+        aspect_ratio: "match_input_image",
+        output_format: "jpg",
+        safety_tolerance: 2,
+        prompt_upsampling: false
+      }
+    };
+
+    console.log('Replicate API request body:', JSON.stringify(requestBody, null, 2));
 
     // Call Replicate API
-    const replicateResponse = await fetch('https://api.replicate.com/v1/predictions', {
+    const replicateResponse = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions', {
       method: 'POST',
       headers: {
-        'Authorization': `Token ${replicateToken}`,
+        'Authorization': `Bearer ${replicateToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        version: 'asiryan/realistic-vision-v6.0-b1',
-        input: {
-          image: `data:${imageFile.type};base64,${imageBase64}`,
-          prompt: refinedPrompt,
-          mask: maskBase64 ? `data:${maskFile!.type};base64,${maskBase64}` : undefined,
-          inpainting: !!maskBase64,
-        },
-      }),
+      body: JSON.stringify(requestBody),
     });
 
+    console.log('Replicate API response status:', replicateResponse.status);
+    console.log('Replicate API response headers:', Object.fromEntries(replicateResponse.headers.entries()));
+
     if (!replicateResponse.ok) {
-      throw new Error(`Replicate API error: ${replicateResponse.statusText}`);
+      const errorText = await replicateResponse.text();
+      console.error('Replicate API error response body:', errorText);
+      throw new Error(`Replicate API error: ${replicateResponse.status} ${replicateResponse.statusText} - ${errorText}`);
     }
 
     const prediction = await replicateResponse.json();
+    console.log('Replicate prediction response:', JSON.stringify(prediction, null, 2));
 
     // Poll for completion
     let result;
+    let pollCount = 0;
     while (true) {
+      pollCount++;
+      console.log(`Polling attempt ${pollCount} for prediction ${prediction.id}`);
+
       const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
         headers: {
-          'Authorization': `Token ${replicateToken}`,
+          'Authorization': `Bearer ${replicateToken}`,
         },
       });
 
+      console.log(`Status check response status: ${statusResponse.status}`);
+
       if (!statusResponse.ok) {
-        throw new Error(`Replicate status check error: ${statusResponse.statusText}`);
+        const errorText = await statusResponse.text();
+        console.error('Status check error response body:', errorText);
+        throw new Error(`Replicate status check error: ${statusResponse.status} ${statusResponse.statusText} - ${errorText}`);
       }
 
       result = await statusResponse.json();
+      console.log(`Prediction status: ${result.status}`);
 
       if (result.status === 'succeeded') {
+        console.log('Prediction succeeded, output:', result.output);
         break;
       } else if (result.status === 'failed') {
-        throw new Error('Image editing failed');
+        console.error('Prediction failed, error details:', result.error);
+        throw new Error(`Image editing failed: ${result.error || 'Unknown error'}`);
+      } else if (result.status === 'cancelled') {
+        console.error('Prediction was cancelled');
+        throw new Error('Image editing was cancelled');
       }
 
       // Wait 2 seconds before checking again
+      console.log('Waiting 2 seconds before next poll...');
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
+    console.log('=== Edit operation completed successfully ===');
     return NextResponse.json({ edited_image_url: result.output });
   } catch (error) {
-    console.error('Error editing image:', error);
-    return NextResponse.json({ error: 'Failed to edit image' }, { status: 500 });
+    console.error('=== Error editing image ===');
+    console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('Error message:', error instanceof Error ? error.message : String(error));
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace available');
+    console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+    return NextResponse.json({ error: 'Failed to edit image', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
