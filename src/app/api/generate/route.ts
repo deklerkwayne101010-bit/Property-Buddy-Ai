@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate property data
-    const validation = validatePropertyData(propertyData);
+    const validation = validatePropertyData(propertyData as unknown as Record<string, unknown>);
     if (!validation.isValid) {
       return NextResponse.json(
         { error: 'Invalid property data', details: validation.errors },
