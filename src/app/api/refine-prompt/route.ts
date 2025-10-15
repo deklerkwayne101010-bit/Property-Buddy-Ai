@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       systemPrompt = `Refine this instruction to be more clear, specific, and effective.`;
     }
 
-    const response = await fetch('https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3', {
+    const response = await fetch('https://api-inference.huggingface.co/models/Mistralai/Mistral-7B-Instruct-v0.3', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${hfToken}`,
