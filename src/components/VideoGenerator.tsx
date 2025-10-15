@@ -401,7 +401,7 @@ export default function VideoGenerator({ onGenerate }: VideoGeneratorProps) {
                   <div>
                     <p className="text-primary-800 font-medium text-sm">Please keep this page open</p>
                     <p className="text-primary-700 text-sm mt-1">
-                      Video generation typically takes 2-5 minutes. You&apos;ll be notified when it's ready.
+                      Video generation typically takes 2-5 minutes. You&apos;ll be notified when it&apos;s ready.
                     </p>
                   </div>
                 </div>
