@@ -26,7 +26,7 @@ interface VoiceoverRequest {
     similarity_boost: number;
     style?: number;
     use_speaker_boost?: boolean;
-  }
+  };
 }
 
 async function generateVoiceover(
