@@ -1,27 +1,28 @@
 // Animation utilities and components for smooth transitions
+import { easeOut, easeInOut, anticipate } from "framer-motion";
 
 export const fadeInUp = {
   initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4, ease: "easeOut" }
+  transition: { duration: 0.4, ease: easeOut }
 };
 
 export const fadeInLeft = {
   initial: { opacity: 0, x: -16 },
   animate: { opacity: 1, x: 0 },
-  transition: { duration: 0.4, ease: "easeOut" }
+  transition: { duration: 0.4, ease: easeOut }
 };
 
 export const fadeInRight = {
   initial: { opacity: 0, x: 16 },
   animate: { opacity: 1, x: 0 },
-  transition: { duration: 0.4, ease: "easeOut" }
+  transition: { duration: 0.4, ease: easeOut }
 };
 
 export const scaleIn = {
   initial: { opacity: 0, scale: 0.95 },
   animate: { opacity: 1, scale: 1 },
-  transition: { duration: 0.3, ease: "easeOut" }
+  transition: { duration: 0.3, ease: easeOut }
 };
 
 export const staggerContainer = {
@@ -35,13 +36,13 @@ export const staggerContainer = {
 export const staggerItem = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.3, ease: "easeOut" }
+  transition: { duration: 0.3, ease: easeOut }
 };
 
 // Loading spinner animation
 export const spin = {
   animate: { rotate: 360 },
-  transition: { duration: 1, repeat: Infinity, ease: "linear" }
+  transition: { duration: 1, repeat: Infinity }
 };
 
 // Pulse animation for loading states
@@ -53,7 +54,7 @@ export const pulse = {
   transition: {
     duration: 1.5,
     repeat: Infinity,
-    ease: "easeInOut"
+    ease: easeInOut
   }
 };
 
@@ -65,7 +66,7 @@ export const bounce = {
   },
   transition: {
     duration: 0.6,
-    ease: "easeOut"
+    ease: easeOut
   }
 };
 
@@ -92,8 +93,8 @@ export const pageVariants = {
 };
 
 export const pageTransition = {
-  type: "tween",
-  ease: "anticipate",
+  type: "tween" as const,
+  ease: anticipate,
   duration: 0.5
 };
 
@@ -117,17 +118,17 @@ export const optimizedVariants = {
   fadeIn: {
     initial: { opacity: 0 },
     animate: { opacity: 1 },
-    transition: { duration: 0.15, ease: "easeOut" }
+    transition: { duration: 0.15, ease: easeOut }
   },
   slideIn: {
     initial: { opacity: 0, x: -8 },
     animate: { opacity: 1, x: 0 },
-    transition: { duration: 0.2, ease: "easeOut" }
+    transition: { duration: 0.2, ease: easeOut }
   },
   scaleIn: {
     initial: { opacity: 0, scale: 0.98 },
     animate: { opacity: 1, scale: 1 },
-    transition: { duration: 0.15, ease: "easeOut" }
+    transition: { duration: 0.15, ease: easeOut }
   },
   staggerContainer: {
     animate: {
@@ -139,7 +140,7 @@ export const optimizedVariants = {
   staggerItem: {
     initial: { opacity: 0, y: 8 },
     animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.2, ease: "easeOut" }
+    transition: { duration: 0.2, ease: easeOut }
   }
 };
 

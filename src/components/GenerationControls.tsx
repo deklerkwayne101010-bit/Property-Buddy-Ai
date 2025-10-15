@@ -76,7 +76,7 @@ export default function GenerationControls({ onGenerate }: GenerationControlsPro
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      {...hoverGlow}
+      whileHover={hoverGlow.whileHover}
     >
       <div className="flex items-center space-x-3 mb-6">
         <motion.div
@@ -267,8 +267,8 @@ export default function GenerationControls({ onGenerate }: GenerationControlsPro
         className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-blue-700 hover:from-blue-700 hover:via-purple-700 hover:to-blue-800 disabled:from-gray-400 disabled:via-gray-500 disabled:to-gray-400 text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl shadow-lg disabled:transform-none disabled:shadow-none disabled:cursor-not-allowed relative overflow-hidden group"
         whileHover={{ scale: 1.02, y: -2 }}
         whileTap={{ scale: 0.98 }}
+        animate={bounce.animate}
         transition={{ duration: 0.2 }}
-        {...bounce}
       >
         <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
         <div className="relative flex items-center justify-center space-x-3">
