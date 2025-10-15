@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
 
     // Validate each property
     for (let i = 0; i < properties.length; i++) {
-      const validation = validatePropertyData(properties[i]);
+      const validation = validatePropertyData(properties[i] as unknown as Record<string, unknown>);
       if (!validation.isValid) {
         return NextResponse.json(
           { error: `Invalid property data for property ${i + 1}`, details: validation.errors },
