@@ -3,8 +3,9 @@ import { supabase } from '../../../../../lib/supabase';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -12,7 +13,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const transactionId = params.id;
+    const transactionId = id;
 
     // Mock invoice data - in a real app, this would generate a PDF
     const invoiceData = {
