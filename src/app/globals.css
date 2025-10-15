@@ -24,3 +24,38 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Image Comparison Slider Styles */
+.before-slider-after {
+  transition: none !important;
+}
+
+.slider-handle {
+  user-select: none;
+  transition: opacity 0.2s ease;
+}
+
+.slider-handle:hover {
+  opacity: 0.8;
+}
+
+.slider-handle:active {
+  opacity: 1;
+}
+
+/* Smooth cursor transitions */
+.cursor-ew-resize {
+  cursor: ew-resize;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+  .slider-handle {
+    width: 2px;
+  }
+
+  .slider-handle > div {
+    width: 6px;
+    height: 6px;
+  }
+}
