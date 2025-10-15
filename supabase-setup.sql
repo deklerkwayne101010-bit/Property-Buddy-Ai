@@ -1,0 +1,195 @@
+-- AI Photo Editor for Agents - Database Schema
+-- Run this SQL in your Supabase SQL Editor
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Create leads table
+CREATE TABLE IF NOT EXISTS leads (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  contact_number TEXT,
+  email TEXT,
+  source TEXT CHECK (source IN ('Facebook', 'Walk-in', 'Referral', 'Website', 'Other')),
+  lead_stage TEXT CHECK (lead_stage IN ('New', 'Contacted', 'Viewing', 'Offer Made', 'Closed', 'Lost')),
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create properties table
+CREATE TABLE IF NOT EXISTS properties (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  address TEXT NOT NULL,
+  listing_price DECIMAL(12,2),
+  property_type TEXT CHECK (property_type IN ('House', 'Apartment', 'Vacant Land', 'Commercial')),
+  bedrooms INTEGER,
+  bathrooms INTEGER,
+  parking INTEGER,
+  size_sqm DECIMAL(8,2),
+  description TEXT,
+  photos TEXT[], -- Array of photo URLs
+  lead_id UUID REFERENCES leads(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create profiles table (extends Supabase auth.users)
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  full_name TEXT,
+  company_name TEXT,
+  subscription_tier TEXT DEFAULT 'starter' CHECK (subscription_tier IN ('starter', 'pro', 'elite')),
+  credits_balance INTEGER DEFAULT 100,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create templates table
+CREATE TABLE IF NOT EXISTS templates (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  content TEXT NOT NULL,
+  category TEXT DEFAULT 'General',
+  platform TEXT,
+  tone TEXT,
+  is_shared BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create billing_history table
+CREATE TABLE IF NOT EXISTS billing_history (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  amount DECIMAL(8,2) NOT NULL,
+  currency TEXT DEFAULT 'ZAR',
+  status TEXT DEFAULT 'completed',
+  description TEXT,
+  invoice_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create usage_tracking table
+CREATE TABLE IF NOT EXISTS usage_tracking (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  feature TEXT NOT NULL, -- 'photo_edit', 'description_gen', 'video_gen', etc.
+  credits_used INTEGER DEFAULT 1,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_leads_stage ON leads(lead_stage);
+CREATE INDEX IF NOT EXISTS idx_leads_created ON leads(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_properties_lead ON properties(lead_id);
+CREATE INDEX IF NOT EXISTS idx_properties_created ON properties(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_templates_user ON templates(user_id);
+CREATE INDEX IF NOT EXISTS idx_billing_user ON billing_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_usage_user ON usage_tracking(user_id);
+CREATE INDEX IF NOT EXISTS idx_usage_feature ON usage_tracking(feature);
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE properties ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE billing_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE usage_tracking ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies (basic policies - you may want to customize these)
+-- For now, allowing authenticated users to access their own data
+-- You can modify these policies based on your business requirements
+
+-- Profiles: Users can only access their own profile
+CREATE POLICY "Users can view own profile" ON profiles
+  FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile" ON profiles
+  FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert own profile" ON profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- Templates: Users can only access their own templates
+CREATE POLICY "Users can view own templates" ON templates
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own templates" ON templates
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own templates" ON templates
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own templates" ON templates
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Billing history: Users can only access their own billing records
+CREATE POLICY "Users can view own billing" ON billing_history
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- Usage tracking: Users can only access their own usage data
+CREATE POLICY "Users can view own usage" ON usage_tracking
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- For leads and properties, you might want different policies
+-- For now, allowing authenticated users to access all (you can restrict this later)
+CREATE POLICY "Authenticated users can view leads" ON leads
+  FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Authenticated users can insert leads" ON leads
+  FOR INSERT TO authenticated WITH CHECK (true);
+
+CREATE POLICY "Authenticated users can update leads" ON leads
+  FOR UPDATE TO authenticated USING (true);
+
+CREATE POLICY "Authenticated users can delete leads" ON leads
+  FOR DELETE TO authenticated USING (true);
+
+CREATE POLICY "Authenticated users can view properties" ON properties
+  FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Authenticated users can insert properties" ON properties
+  FOR INSERT TO authenticated WITH CHECK (true);
+
+CREATE POLICY "Authenticated users can update properties" ON properties
+  FOR UPDATE TO authenticated USING (true);
+
+CREATE POLICY "Authenticated users can delete properties" ON properties
+  FOR DELETE TO authenticated USING (true);
+
+-- Create function to handle profile creation on user signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, full_name)
+  VALUES (NEW.id, NEW.raw_user_meta_data->>'full_name');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger to automatically create profile on user signup
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Insert some sample data (optional - remove in production)
+-- Sample lead
+INSERT INTO leads (name, contact_number, email, source, lead_stage, notes)
+VALUES ('John Smith', '+27 82 123 4567', 'john.smith@email.com', 'Facebook', 'New', 'Interested in 3-bedroom house in Sandton');
+
+-- Sample property
+INSERT INTO properties (title, address, listing_price, property_type, bedrooms, bathrooms, parking, size_sqm, description, photos)
+VALUES (
+  'Modern 3-Bedroom House',
+  '123 Oak Street, Sandton, Johannesburg',
+  2500000.00,
+  'House',
+  3,
+  2,
+  2,
+  250.5,
+  'Beautiful modern home with open plan living, perfect for families.',
+  ARRAY['https://example.com/photo1.jpg', 'https://example.com/photo2.jpg']
+);
