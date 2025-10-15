@@ -1,0 +1,99 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+interface SidebarProps {
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
+  const pathname = usePathname();
+
+  const menuItems = [
+    { href: '/dashboard', label: 'Dashboard', icon: '🏠' },
+    { href: '/photo-editor', label: 'AI Photo Editor', icon: '🖼️' },
+    { href: '/video-generator', label: 'AI Video Generator', icon: '🎥' },
+    { href: '/property-descriptions', label: 'AI Property Descriptions', icon: '📝' },
+    { href: '/crm', label: 'CRM', icon: '👥' },
+    { href: '/account', label: 'Account', icon: '👤' },
+  ];
+
+  return (
+    <>
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden animate-fade-in"
+          onClick={onToggle}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div
+        className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-all duration-300 ease-in-out lg:translate-x-0 ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* Modern gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 opacity-95"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-blue-600/20 via-transparent to-purple-600/20"></div>
+        <div className="absolute inset-0 backdrop-blur-xl border-r border-white/10 shadow-2xl"></div>
+        <div className="relative flex items-center justify-between p-6 border-b border-white/10">
+          <h2 className="text-xl font-bold text-white bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-lg">
+            AI Photo Editor
+          </h2>
+          <button
+            onClick={onToggle}
+            className="lg:hidden p-2 rounded-lg hover:bg-white/10 transition-all duration-200 hover:scale-105 backdrop-blur-sm"
+          >
+            <svg className="w-6 h-6 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <nav className="relative mt-8">
+          <ul className="space-y-2 px-6">
+            {menuItems.map((item, index) => (
+              <li key={item.href} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                <Link
+                  href={item.href}
+                  className={`group relative flex items-center px-4 py-4 rounded-xl transition-all duration-300 ease-out transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:ring-offset-2 focus:ring-offset-slate-900 overflow-hidden ${
+                    pathname === item.href
+                      ? 'bg-gradient-to-r from-blue-600/90 to-purple-600/90 text-white shadow-lg shadow-blue-500/25 backdrop-blur-sm border border-white/20'
+                      : 'text-white/80 hover:text-white hover:bg-white/10 hover:shadow-lg hover:shadow-white/5 backdrop-blur-sm border border-transparent hover:border-white/10'
+                  }`}
+                  onClick={() => {
+                    if (window.innerWidth < 1024) onToggle(); // Close on mobile after click
+                  }}
+                  aria-current={pathname === item.href ? 'page' : undefined}
+                >
+                  {/* Hover glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+
+                  <span className={`relative mr-4 text-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 ${
+                    pathname === item.href ? 'animate-pulse text-blue-300' : 'group-hover:text-blue-300'
+                  }`}>
+                    {item.icon}
+                  </span>
+                  <span className="relative font-medium">{item.label}</span>
+                  {pathname === item.href && (
+                    <div className="relative ml-auto w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full animate-scale-in shadow-lg shadow-blue-400/50"></div>
+                  )}
+
+                  {/* Active indicator line */}
+                  {pathname === item.href && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-blue-400 to-purple-400 rounded-r-full animate-pulse"></div>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+    </>
+  );
+}
