@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -11,6 +13,13 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { signOut, user } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/');
+  };
 
   const menuItems = [
     { href: '/dashboard', label: 'Dashboard', icon: '🏠' },
@@ -18,7 +27,6 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     { href: '/video-generator', label: 'AI Video Generator', icon: '🎥' },
     { href: '/property-descriptions', label: 'AI Property Descriptions', icon: '📝' },
     { href: '/crm', label: 'CRM', icon: '👥' },
-    { href: '/account', label: 'Account', icon: '👤' },
   ];
 
   return (
@@ -92,6 +100,53 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
               </li>
             ))}
           </ul>
+
+          {/* Account and Logout buttons */}
+          <div className="absolute bottom-6 left-6 right-6 space-y-3">
+            <Link
+              href="/account"
+              className={`group relative flex items-center w-full px-4 py-4 rounded-xl transition-all duration-300 ease-out transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:ring-offset-2 focus:ring-offset-slate-900 overflow-hidden ${
+                pathname === '/account'
+                  ? 'bg-gradient-to-r from-blue-600/90 to-purple-600/90 text-white shadow-lg shadow-blue-500/25 backdrop-blur-sm border border-white/20'
+                  : 'text-white/80 hover:text-white hover:bg-white/10 hover:shadow-lg hover:shadow-white/5 backdrop-blur-sm border border-transparent hover:border-white/10'
+              }`}
+              onClick={() => {
+                if (window.innerWidth < 1024) onToggle(); // Close on mobile after click
+              }}
+              aria-current={pathname === '/account' ? 'page' : undefined}
+            >
+              {/* Hover glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+
+              <span className={`relative mr-4 text-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 ${
+                pathname === '/account' ? 'animate-pulse text-blue-300' : 'group-hover:text-blue-300'
+              }`}>
+                👤
+              </span>
+              <span className="relative font-medium">Account</span>
+              {pathname === '/account' && (
+                <div className="relative ml-auto w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full animate-scale-in shadow-lg shadow-blue-400/50"></div>
+              )}
+
+              {/* Active indicator line */}
+              {pathname === '/account' && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-blue-400 to-purple-400 rounded-r-full animate-pulse"></div>
+              )}
+            </Link>
+
+            <button
+              onClick={handleSignOut}
+              className="group relative flex items-center w-full px-4 py-4 rounded-xl transition-all duration-300 ease-out transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-red-400/50 focus:ring-offset-2 focus:ring-offset-slate-900 overflow-hidden text-white/80 hover:text-white hover:bg-red-500/20 hover:shadow-lg hover:shadow-red-500/10 backdrop-blur-sm border border-transparent hover:border-red-500/30"
+            >
+              {/* Hover glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-pink-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+
+              <span className="relative mr-4 text-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:text-red-300">
+                🚪
+              </span>
+              <span className="relative font-medium">Sign Out</span>
+            </button>
+          </div>
         </nav>
       </div>
     </>

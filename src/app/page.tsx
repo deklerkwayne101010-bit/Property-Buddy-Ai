@@ -1,16 +1,23 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { fadeInUp, staggerContainer, staggerItem } from '@/components/animations';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LandingPage() {
   const [isVisible, setIsVisible] = useState(false);
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     setIsVisible(true);
-  }, []);
+    if (!loading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, loading, router]);
 
   return (
     <motion.div

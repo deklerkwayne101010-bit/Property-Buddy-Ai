@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import DashboardLayout from '../../components/DashboardLayout';
+import ProtectedRoute from '../../components/ProtectedRoute';
 
 export default function DashboardPage() {
   const [stats] = useState({
@@ -45,8 +46,9 @@ export default function DashboardPage() {
   ];
 
   return (
-    <DashboardLayout>
-      <div className="space-y-8">
+    <ProtectedRoute>
+      <DashboardLayout>
+        <div className="space-y-8">
         {/* Welcome Section */}
         <motion.div
           className="text-center py-8"
@@ -154,7 +156,8 @@ export default function DashboardPage() {
             <p className="text-slate-600">Your recent activity will appear here</p>
           </div>
         </motion.div>
-      </div>
-    </DashboardLayout>
+        </div>
+      </DashboardLayout>
+    </ProtectedRoute>
   );
 }
