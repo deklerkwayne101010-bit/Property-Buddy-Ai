@@ -33,7 +33,12 @@ async function generateVoiceover(
   text: string,
   voiceId: string = '21m00Tcm4TlvDq8ikWAM', // Default voice (Rachel)
   modelId: string = 'eleven_monolingual_v1',
-  voiceSettings?: any
+  voiceSettings?: {
+    stability: number;
+    similarity_boost: number;
+    style?: number;
+    use_speaker_boost?: boolean;
+  };
 ): Promise<Buffer> {
   const elevenLabsKey = process.env.ELEVENLABS_API_KEY;
   if (!elevenLabsKey) {
