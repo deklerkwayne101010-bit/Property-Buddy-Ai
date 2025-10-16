@@ -1,512 +1,645 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import Image from 'next/image';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
-interface VideoGeneratorProps {
-  onGenerate?: (images: File[], description: string) => Promise<void>;
+interface UserMedia {
+  id: string;
+  media_type: 'image' | 'voice' | 'voice_clone' | 'avatar_video';
+  file_name: string;
+  file_url: string;
+  file_size: number;
+  created_at: string;
 }
 
-export default function VideoGenerator({ onGenerate }: VideoGeneratorProps) {
-  const [images, setImages] = useState<File[]>([]);
-  const [description, setDescription] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+export default function VideoGenerator() {
+  const { user } = useAuth();
+  const [userImage, setUserImage] = useState<UserMedia | null>(null);
+  const [userVoice, setUserVoice] = useState<UserMedia | null>(null);
+  const [voiceClone, setVoiceClone] = useState<UserMedia | null>(null);
+  const [avatarVideo, setAvatarVideo] = useState<UserMedia | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isGeneratingVoice, setIsGeneratingVoice] = useState(false);
+  const [isGeneratingAvatar, setIsGeneratingAvatar] = useState(false);
+  const [scriptText, setScriptText] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const validFiles = files.filter(file => {
-      // Check file type
-      if (!file.type.startsWith('image/') || (!file.type.includes('jpeg') && !file.type.includes('png'))) {
-        alert(`${file.name} is not a valid image file. Only JPEG and PNG are allowed.`);
-        return false;
-      }
-      // Check file size (max 10MB per file)
-      if (file.size > 10 * 1024 * 1024) {
-        alert(`${file.name} is too large. Maximum file size is 10MB.`);
-        return false;
-      }
-      return true;
-    });
-
-    // Check total count (max 10 images)
-    const totalImages = images.length + validFiles.length;
-    if (totalImages > 10) {
-      alert(`You can upload a maximum of 10 images. You currently have ${images.length} images.`);
-      return;
+  // Load existing user media on component mount
+  useEffect(() => {
+    if (user) {
+      loadUserMedia();
     }
+  }, [user]);
 
-    if (validFiles.length > 0) {
-      setImages(prev => [...prev, ...validFiles]);
-      setError(null);
+  // Add useEffect to handle auth state changes
+  useEffect(() => {
+    if (!user) {
+      setUserImage(null);
+      setUserVoice(null);
+      setVoiceClone(null);
+      setAvatarVideo(null);
+      setLoading(false);
     }
+  }, [user]);
 
-    // Reset input
-    e.target.value = '';
-  };
-
-  const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const handleGenerate = async () => {
-    if (images.length === 0) {
-      setError('Please upload at least one image.');
-      return;
-    }
-
-    setIsGenerating(true);
-    setProgress(0);
-    setError(null);
-
+  const loadUserMedia = async () => {
     try {
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return prev;
-          }
-          return prev + 10;
-        });
-      }, 1000);
+      const { data, error } = await supabase
+        .from('user_media')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
 
-      if (onGenerate) {
-        await onGenerate(images, description);
-      } else {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 5000));
+      if (error) {
+        console.error('Supabase error:', error);
+        // If table doesn't exist, show a helpful message
+        if (error.message.includes('relation "public.user_media" does not exist')) {
+          console.log('user_media table not found. Please run the supabase-setup.sql script in your Supabase SQL Editor.');
+        }
+        return;
       }
 
-      setProgress(100);
-      // Simulate video URL (in real implementation, this would come from the API)
-      setGeneratedVideo('https://example.com/generated-video.mp4');
+      // Set the most recent image, voice, voice clone, and avatar video
+      const image = data?.find(item => item.media_type === 'image');
+      const voice = data?.find(item => item.media_type === 'voice');
+      const clone = data?.find(item => item.media_type === 'voice_clone');
+      const avatar = data?.find(item => item.media_type === 'avatar_video');
 
-      clearInterval(progressInterval);
-    } catch (err) {
-      setError('Failed to generate video. Please try again.');
-      console.error('Video generation error:', err);
+      setUserImage(image || null);
+      setUserVoice(voice || null);
+      setVoiceClone(clone || null);
+      setAvatarVideo(avatar || null);
+    } catch (error) {
+      console.error('Error loading user media:', error);
     } finally {
-      setIsGenerating(false);
+      setLoading(false);
     }
   };
 
-  const handleDownload = () => {
-    if (!generatedVideo) return;
+  const uploadFile = async (file: File, mediaType: 'image' | 'voice') => {
+    if (!user) return;
 
-    // In a real implementation, this would download the actual video file
-    const link = document.createElement('a');
-    link.href = generatedVideo;
-    link.download = 'property-video.mp4';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    setIsUploading(true);
+    try {
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${mediaType}_${Date.now()}.${fileExt}`;
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('video-assets')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('video-assets')
+        .getPublicUrl(fileName);
+
+      // Save to database
+      const { error: dbError } = await supabase
+        .from('user_media')
+        .insert({
+          user_id: user.id,
+          media_type: mediaType,
+          file_name: file.name,
+          file_url: urlData.publicUrl,
+          file_size: file.size,
+        });
+
+      if (dbError) throw dbError;
+
+      // Reload media
+      await loadUserMedia();
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert('Error uploading file. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
-  const resetForm = () => {
-    setImages([]);
-    setDescription('');
-    setGeneratedVideo(null);
-    setProgress(0);
-    setError(null);
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      uploadFile(file, 'image');
+    } else {
+      alert('Please select a valid image file.');
+    }
   };
+
+  const handleVoiceUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && (file.type.startsWith('audio/') || file.type === 'video/webm')) {
+      uploadFile(file, 'voice');
+    } else {
+      alert('Please select a valid audio file.');
+    }
+  };
+
+  const generateVoiceClone = async () => {
+    if (!userVoice || !scriptText.trim()) {
+      alert('Please upload a voice recording and enter a script first.');
+      return;
+    }
+
+    setIsGeneratingVoice(true);
+    try {
+      const response = await fetch('/api/voice-clone', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          scriptText: scriptText.trim(),
+          speakerUrl: userVoice.file_url,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate voice clone');
+      }
+
+      const data = await response.json();
+      console.log('Voice clone API response:', data);
+
+      if (!data.voiceCloneUrl) {
+        throw new Error('No voice clone URL received from API');
+      }
+
+      // Save the voice clone to database
+      console.log('Attempting to save to database...');
+      const { data: insertData, error: dbError } = await supabase
+        .from('user_media')
+        .insert({
+          user_id: user?.id,
+          media_type: 'voice_clone',
+          file_name: `voice_clone_${Date.now()}.wav`,
+          file_url: data.voiceCloneUrl,
+          file_size: 0, // We'll get this from the API response if available
+        })
+        .select();
+
+      if (dbError) {
+        console.error('Database insert error:', dbError);
+        console.error('Error code:', dbError.code);
+        console.error('Error message:', dbError.message);
+        console.error('Error details:', dbError.details);
+        throw new Error(`Database error: ${dbError.message}`);
+      }
+
+      console.log('Voice clone saved to database successfully:', insertData);
+
+      // Reload media to show the new voice clone
+      await loadUserMedia();
+      setScriptText(''); // Clear the script input
+    } catch (error) {
+      console.error('Error generating voice clone:', error);
+      // More detailed error logging
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
+        alert(`Error generating voice clone: ${error.message}`);
+      } else {
+        console.error('Unknown error:', error);
+        alert('Error generating voice clone. Please try again.');
+      }
+    } finally {
+      setIsGeneratingVoice(false);
+    }
+  };
+
+  const generateAvatarVideo = async () => {
+    if (!userImage || !voiceClone) {
+      alert('Please upload an image and generate a voice clone first.');
+      return;
+    }
+
+    setIsGeneratingAvatar(true);
+    try {
+      const response = await fetch('/api/avatar-generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageUrl: userImage.file_url,
+          audioUrl: voiceClone.file_url,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate avatar video');
+      }
+
+      const data = await response.json();
+      console.log('Avatar generation response:', data);
+
+      if (!data.avatarVideoUrl) {
+        throw new Error('No avatar video URL received from API');
+      }
+
+      // Save the avatar video to database
+      console.log('Attempting to save avatar video to database...');
+      const { data: insertData, error: dbError } = await supabase
+        .from('user_media')
+        .insert({
+          user_id: user?.id,
+          media_type: 'avatar_video',
+          file_name: `avatar_video_${Date.now()}.mp4`,
+          file_url: data.avatarVideoUrl,
+          file_size: 0, // We'll get this from the API response if available
+        })
+        .select();
+
+      if (dbError) {
+        console.error('Database insert error:', dbError);
+        console.error('Error code:', dbError.code);
+        console.error('Error message:', dbError.message);
+        console.error('Error details:', dbError.details);
+        throw new Error(`Database error: ${dbError.message}`);
+      }
+
+      console.log('Avatar video saved to database successfully:', insertData);
+
+      // Reload media to show the new avatar video
+      await loadUserMedia();
+    } catch (error) {
+      console.error('Error generating avatar video:', error);
+      // More detailed error logging
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
+        alert(`Error generating avatar video: ${error.message}`);
+      } else {
+        console.error('Unknown error:', error);
+        alert('Error generating avatar video. Please try again.');
+      }
+    } finally {
+      setIsGeneratingAvatar(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Enhanced Header */}
-        <div className="text-center relative">
-          <div className="absolute inset-0 -z-10">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary-600/10 to-secondary-600/10 rounded-3xl blur-3xl"></div>
-          </div>
-          <div className="relative bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-8 border border-white/20">
-            <div className="flex items-center justify-center mb-4">
-              <div className="bg-gradient-to-r from-primary-600 to-secondary-600 p-3 rounded-2xl shadow-lg">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-              </div>
-            </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary-600 via-secondary-600 to-primary-800 bg-clip-text text-transparent mb-4">
-              AI Video Generator
-            </h1>
-            <p className="text-lg sm:text-xl text-neutral-600 max-w-2xl mx-auto leading-relaxed">
-              Transform your property photos into stunning promotional videos with AI-powered storytelling
-            </p>
-            <div className="flex items-center justify-center mt-6 space-x-2">
-              <div className="flex -space-x-2">
-                <div className="w-8 h-8 bg-primary-500 rounded-full border-2 border-white"></div>
-                <div className="w-8 h-8 bg-secondary-500 rounded-full border-2 border-white"></div>
-                <div className="w-8 h-8 bg-success-500 rounded-full border-2 border-white"></div>
-              </div>
-              <span className="text-sm text-neutral-500 ml-3">Trusted by 10,000+ real estate professionals</span>
-            </div>
-          </div>
-        </div>
+    <div className="max-w-4xl mx-auto p-6 space-y-8">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Video Generator</h1>
+        <p className="text-gray-600">Step 1: Upload your personal media</p>
+      </div>
 
-        {/* Enhanced Upload Section */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl p-6 sm:p-8 lg:p-10 border border-white/20">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 flex items-center">
-              <div className="bg-gradient-to-r from-primary-600 to-secondary-600 p-2 rounded-xl mr-3">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      {/* Image Upload Section */}
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <h2 className="text-xl font-semibold mb-4 flex items-center">
+          <span className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">1</span>
+          Upload Your Photo
+        </h2>
+
+        {userImage ? (
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <img
+                src={userImage.file_url}
+                alt="Your uploaded image"
+                className="w-24 h-24 object-cover rounded-lg border"
+              />
+              <div className="flex-1">
+                <p className="font-medium">{userImage.file_name}</p>
+                <p className="text-sm text-gray-500">
+                  {(userImage.file_size / 1024 / 1024).toFixed(2)} MB
+                </p>
+                <p className="text-sm text-gray-500">
+                  Uploaded: {new Date(userImage.created_at).toLocaleDateString()}
+                </p>
+                <div className="mt-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Public URL:
+                  </label>
+                  <input
+                    type="text"
+                    value={userImage.file_url}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm font-mono"
+                    onClick={(e) => e.currentTarget.select()}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => document.getElementById('image-upload')?.click()}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                disabled={isUploading}
+              >
+                {isUploading ? 'Uploading...' : 'Replace Image'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+            <div className="space-y-4">
+              <div className="text-gray-400">
+                <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              Upload Property Images
-            </h2>
-            <div className="text-sm text-neutral-500 bg-neutral-50 px-3 py-1 rounded-full">
-              {images.length}/10 images
+              <div>
+                <p className="text-lg font-medium text-gray-900">No image uploaded yet</p>
+                <p className="text-gray-500">Upload a photo of yourself for the video avatar</p>
+              </div>
+              <button
+                onClick={() => document.getElementById('image-upload')?.click()}
+                className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                disabled={isUploading}
+              >
+                {isUploading ? 'Uploading...' : 'Upload Image'}
+              </button>
             </div>
           </div>
+        )}
 
-          {/* Enhanced File Upload Area with Drag & Drop */}
-          <div
-            className="relative border-2 border-dashed border-neutral-300 rounded-2xl p-8 sm:p-12 text-center hover:border-primary-400 hover:bg-primary-50/50 transition-all duration-300 mb-6 touch-manipulation group cursor-pointer"
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.currentTarget.classList.add('border-primary-500', 'bg-primary-50');
-            }}
-            onDragLeave={(e) => {
-              e.preventDefault();
-              e.currentTarget.classList.remove('border-primary-500', 'bg-primary-50');
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              e.currentTarget.classList.remove('border-primary-500', 'bg-primary-50');
-              const files = Array.from(e.dataTransfer.files);
-              handleFileUpload({ target: { files } } as unknown as React.ChangeEvent<HTMLInputElement>);
-            }}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/jpeg,image/png"
-              onChange={handleFileUpload}
-              className="hidden"
-              id="image-upload"
-            />
-            <label htmlFor="image-upload" className="cursor-pointer block">
-              <div className="flex flex-col items-center">
-                <div className="bg-gradient-to-r from-primary-100 to-secondary-100 p-4 rounded-2xl mb-4 group-hover:scale-110 transition-transform duration-300">
-                  <svg className="w-12 h-12 sm:w-16 sm:h-16 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                </div>
-                <p className="text-lg sm:text-xl text-neutral-700 font-medium mb-2">
-                  Drag & drop your property images here
+        <input
+          id="image-upload"
+          type="file"
+          accept="image/*"
+          onChange={handleImageUpload}
+          className="hidden"
+        />
+      </div>
+
+      {/* Voice Upload Section */}
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <h2 className="text-xl font-semibold mb-4 flex items-center">
+          <span className="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">2</span>
+          Upload Your Voice Recording
+        </h2>
+
+        {userVoice ? (
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <div className="w-24 h-24 bg-green-100 rounded-lg flex items-center justify-center">
+                <svg className="w-12 h-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="font-medium">{userVoice.file_name}</p>
+                <p className="text-sm text-gray-500">
+                  {(userVoice.file_size / 1024 / 1024).toFixed(2)} MB
                 </p>
-                <p className="text-base text-neutral-600 mb-4">or click to browse</p>
-                <div className="flex flex-wrap justify-center gap-2 text-sm text-neutral-500">
-                  <span className="bg-white px-3 py-1 rounded-full border">JPEG/PNG only</span>
-                  <span className="bg-white px-3 py-1 rounded-full border">Max 10 images</span>
-                  <span className="bg-white px-3 py-1 rounded-full border">Up to 10MB each</span>
+                <p className="text-sm text-gray-500">
+                  Uploaded: {new Date(userVoice.created_at).toLocaleDateString()}
+                </p>
+                <div className="mt-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Public URL:
+                  </label>
+                  <input
+                    type="text"
+                    value={userVoice.file_url}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm font-mono"
+                    onClick={(e) => e.currentTarget.select()}
+                  />
                 </div>
               </div>
-            </label>
-          </div>
-
-          {/* Enhanced Image Preview Grid */}
-          {images.length > 0 && (
-            <div className="mb-6 animate-in slide-in-from-bottom-4 duration-500">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  Selected Images ({images.length}/10)
-                </h3>
-                <button
-                  onClick={() => setImages([])}
-                  className="text-sm text-red-600 hover:text-red-800 hover:bg-red-50 px-3 py-1 rounded-lg transition-colors duration-200 flex items-center"
-                >
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  Clear all
-                </button>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
-                {images.map((image, index) => (
-                  <div key={index} className="relative group animate-in zoom-in-95 duration-300" style={{ animationDelay: `${index * 50}ms` }}>
-                    <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100">
-                      <div className="relative aspect-square">
-                        <Image
-                          src={URL.createObjectURL(image)}
-                          alt={`Property image ${index + 1}`}
-                          fill
-                          className="object-cover transition-transform duration-300 group-hover:scale-105"
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        <button
-                          onClick={() => removeImage(index)}
-                          className="absolute top-2 right-2 bg-error-500 hover:bg-error-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110 touch-manipulation"
-                          aria-label={`Remove image ${index + 1}`}
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                        <div className="absolute top-2 left-2 bg-primary-600 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-md">
-                          {index + 1}
-                        </div>
-                        <div className="absolute bottom-2 left-2 right-2">
-                          <div className="bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 text-xs text-neutral-700 truncate">
-                            {image.name}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
-          )}
+            <div className="flex space-x-2">
+              <button
+                onClick={() => document.getElementById('voice-upload')?.click()}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                disabled={isUploading}
+              >
+                {isUploading ? 'Uploading...' : 'Replace Voice'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+            <div className="space-y-4">
+              <div className="text-gray-400">
+                <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-lg font-medium text-gray-900">No voice recording uploaded yet</p>
+                <p className="text-gray-500">Upload an audio recording of your voice for voice cloning</p>
+              </div>
+              <button
+                onClick={() => document.getElementById('voice-upload')?.click()}
+                className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                disabled={isUploading}
+              >
+                {isUploading ? 'Uploading...' : 'Upload Voice'}
+              </button>
+            </div>
+          </div>
+        )}
 
-          {/* Enhanced Property Description */}
-          <div className="mb-6">
-            <label className="block text-sm font-semibold text-neutral-700 mb-3 flex items-center">
-              <svg className="w-4 h-4 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Property Description
-              <span className="text-neutral-400 text-xs ml-2">(Optional)</span>
-            </label>
-            <div className="relative">
+        <input
+          id="voice-upload"
+          type="file"
+          accept="audio/*,video/webm"
+          onChange={handleVoiceUpload}
+          className="hidden"
+        />
+      </div>
+
+      {/* Step 2: Voice Cloning */}
+      {(userImage && userVoice) && (
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center">
+            <span className="bg-purple-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">2</span>
+            Generate Voice Clone
+          </h2>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Script Text (what you want your AI voice to say):
+              </label>
               <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe your property to create a more personalized and engaging video. Include key features, location highlights, or special amenities..."
-                className="w-full px-4 py-4 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none text-sm sm:text-base min-h-[100px] sm:min-h-[120px] bg-neutral-50/50 focus:bg-white transition-all duration-200 placeholder:text-neutral-400"
+                value={scriptText}
+                onChange={(e) => setScriptText(e.target.value)}
+                placeholder="Enter the script text that will be spoken in your voice..."
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                 rows={4}
               />
-              <div className="absolute bottom-3 right-3 text-xs text-neutral-400">
-                {description.length}/500
-              </div>
             </div>
-          </div>
 
-          {/* Enhanced Error Message */}
-          {error && (
-            <div className="mb-6 p-4 bg-error-50 border border-error-200 rounded-xl animate-in slide-in-from-top-2 duration-300">
-              <div className="flex items-start">
-                <svg className="w-5 h-5 text-error-400 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  <p className="text-error-800 font-medium text-sm">Error</p>
-                  <p className="text-error-700 text-sm mt-1">{error}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Enhanced Generate Button */}
-          <div className="text-center">
             <button
-              onClick={handleGenerate}
-              disabled={images.length === 0 || isGenerating}
-              className="group relative px-8 sm:px-12 py-5 sm:py-6 bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-700 hover:to-secondary-700 disabled:from-neutral-400 disabled:to-neutral-500 text-white font-bold text-lg sm:text-xl rounded-2xl transition-all duration-300 disabled:cursor-not-allowed w-full sm:w-auto touch-manipulation min-h-[56px] shadow-xl hover:shadow-2xl transform hover:scale-105 disabled:hover:scale-100 overflow-hidden"
-              aria-label={isGenerating ? 'Generating video, please wait' : 'Generate property video'}
+              onClick={generateVoiceClone}
+              disabled={isGeneratingVoice || !scriptText.trim()}
+              className="px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-              <div className="relative flex items-center justify-center">
-                {isGenerating ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-6 w-6 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Generating Video...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.586a1 1 0 01.707.293l.707.707A1 1 0 0012.414 11H15m2 0h1.586a1 1 0 01.707.293l.707.707A1 1 0 0021 12.414V15m0 2a2 2 0 01-2 2h-1.586a1 1 0 01-.707-.293l-.707-.707A1 1 0 0016.586 16H14m-2 2H9a2 2 0 01-2-2v-1.586a1 1 0 01.293-.707l.707-.707A1 1 0 019.414 12V9" />
-                    </svg>
-                    Generate Property Video
-                  </>
-                )}
-              </div>
+              {isGeneratingVoice ? 'Generating Voice Clone...' : 'Generate Voice Clone'}
             </button>
+
+            {/* Voice Clone Preview */}
+            {isGeneratingVoice && (
+              <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-500"></div>
+                  <span className="text-purple-700 font-medium">Generating your voice clone...</span>
+                </div>
+              </div>
+            )}
           </div>
-      </div>
+        </div>
+      )}
 
-        {/* Enhanced Progress Indicator */}
-        {isGenerating && (
-          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl p-6 sm:p-8 lg:p-10 border border-white/20 animate-in slide-in-from-bottom-4 duration-500">
-            <div className="text-center">
-              <div className="flex items-center justify-center mb-6">
-                <div className="bg-gradient-to-r from-primary-600 to-secondary-600 p-3 rounded-2xl shadow-lg">
-                  <svg className="w-6 h-6 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.586a1 1 0 01.707.293l.707.707A1 1 0 0012.414 11H15m2 0h1.586a1 1 0 01.707.293l.707.707A1 1 0 0021 12.414V15m0 2a2 2 0 01-2 2h-1.586a1 1 0 01-.707-.293l-.707-.707A1 1 0 0016.586 16H14m-2 2H9a2 2 0 01-2-2v-1.586a1 1 0 01.293-.707l.707-.707A1 1 0 019.414 12V9" />
+      {/* Voice Clone Result */}
+      {voiceClone && (
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center">
+            <span className="bg-purple-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">✓</span>
+            Voice Clone Generated
+          </h2>
+
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                   </svg>
                 </div>
-              </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-neutral-900 mb-2">
-                AI is Crafting Your Video
-              </h3>
-              <p className="text-neutral-600 text-base sm:text-lg mb-8">
-                Our AI is analyzing your images and creating a stunning promotional video
-              </p>
-
-              {/* Step-by-step progress visualization */}
-              <div className="max-w-md mx-auto mb-8">
-                <div className="flex items-center justify-between mb-4">
-                  {[
-                    { step: 1, label: 'Analyzing', icon: '🔍' },
-                    { step: 2, label: 'Processing', icon: '⚡' },
-                    { step: 3, label: 'Generating', icon: '🎬' },
-                    { step: 4, label: 'Finalizing', icon: '✨' }
-                  ].map((step, index) => {
-                    const isActive = progress >= (index + 1) * 25;
-                    const isCompleted = progress > (index + 1) * 25;
-                    return (
-                      <div key={step.step} className="flex flex-col items-center">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold mb-2 transition-all duration-300 ${
-                          isCompleted ? 'bg-success-500 text-white shadow-lg' :
-                          isActive ? 'bg-primary-500 text-white shadow-lg animate-pulse' :
-                          'bg-neutral-200 text-neutral-400'
-                        }`}>
-                          {isCompleted ? '✓' : step.icon}
-                        </div>
-                        <span className={`text-xs font-medium ${isActive || isCompleted ? 'text-neutral-900' : 'text-neutral-400'}`}>
-                          {step.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Progress bar */}
-                <div className="w-full bg-neutral-200 rounded-full h-3 mb-4 overflow-hidden">
-                  <div
-                    className="bg-gradient-to-r from-primary-500 to-secondary-500 h-3 rounded-full transition-all duration-1000 ease-out shadow-sm"
-                    style={{ width: `${progress}%` }}
-                  ></div>
-                </div>
-                <p className="text-neutral-700 text-lg font-semibold">{progress}% complete</p>
-              </div>
-
-              <div className="bg-primary-50 rounded-xl p-4 border border-primary-200">
-                <div className="flex items-start">
-                  <svg className="w-5 h-5 text-primary-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div>
-                    <p className="text-primary-800 font-medium text-sm">Please keep this page open</p>
-                    <p className="text-primary-700 text-sm mt-1">
-                      Video generation typically takes 2-5 minutes. You&apos;ll be notified when it&apos;s ready.
-                    </p>
-                  </div>
+                <div>
+                  <p className="font-medium text-purple-900">Voice Clone Preview</p>
+                  <p className="text-sm text-purple-600">
+                    Generated: {new Date(voiceClone.created_at).toLocaleDateString()}
+                  </p>
                 </div>
               </div>
+              <button
+                onClick={() => window.open(voiceClone.file_url, '_blank')}
+                className="px-3 py-1 bg-purple-500 text-white text-sm rounded hover:bg-purple-600 transition-colors"
+              >
+                Download
+              </button>
+            </div>
+
+            <div className="mt-4">
+              <audio controls className="w-full">
+                <source src={voiceClone.file_url} type="audio/wav" />
+                Your browser does not support the audio element.
+              </audio>
+            </div>
+
+            <div className="mt-3">
+              <label className="block text-xs font-medium text-purple-700 mb-1">
+                Voice Clone URL:
+              </label>
+              <input
+                type="text"
+                value={voiceClone.file_url}
+                readOnly
+                className="w-full px-2 py-1 border border-purple-300 rounded text-xs font-mono bg-white"
+                onClick={(e) => e.currentTarget.select()}
+              />
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Enhanced Video Preview and Download */}
-        {generatedVideo && (
-          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl p-6 sm:p-8 lg:p-10 border border-white/20 animate-in slide-in-from-bottom-4 duration-500">
-            <div className="text-center">
-              <div className="flex items-center justify-center mb-6">
-                <div className="bg-gradient-to-r from-success-500 to-emerald-500 p-3 rounded-2xl shadow-lg">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      {/* Avatar Video Result */}
+      {avatarVideo && (
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center">
+            <span className="bg-indigo-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">✓</span>
+            Avatar Video Generated
+          </h2>
+
+          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                 </div>
-              </div>
-              <h3 className="text-2xl sm:text-3xl font-bold text-neutral-900 mb-2">
-                🎉 Your Property Video is Ready!
-              </h3>
-              <p className="text-neutral-600 text-lg mb-8">
-                Your stunning promotional video has been created successfully
-              </p>
-
-              {/* Enhanced Video Preview */}
-              <div className="mb-8">
-                <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-2xl p-6 sm:p-8 lg:p-10 flex items-center justify-center min-h-[250px] sm:min-h-[300px] border-2 border-dashed border-neutral-200 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary-500/5 to-secondary-500/5"></div>
-                  <div className="relative text-center">
-                    <div className="bg-gradient-to-r from-primary-100 to-secondary-100 p-6 rounded-3xl mb-6 inline-block">
-                      <svg className="w-16 h-16 sm:w-20 sm:h-20 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <p className="text-neutral-700 mb-3 text-xl font-semibold">Video Generated Successfully!</p>
-                    <p className="text-neutral-500 text-base max-w-md mx-auto leading-relaxed">
-                      Your professional property video is ready for download. Click the button below to save it to your device.
-                    </p>
-                    <div className="flex items-center justify-center mt-4 space-x-4 text-sm text-neutral-400">
-                      <span className="flex items-center">
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Just created
-                      </span>
-                      <span className="flex items-center">
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 0h10m-9 0V1m10 3V1m0 3l1 1v16a2 2 0 01-2 2H6a2 2 0 01-2-2V5l1-1z" />
-                        </svg>
-                        MP4 format
-                      </span>
-                    </div>
-                  </div>
+                <div>
+                  <p className="font-medium text-indigo-900">Avatar Video Preview</p>
+                  <p className="text-sm text-indigo-600">
+                    Generated: {new Date(avatarVideo.created_at).toLocaleDateString()}
+                  </p>
                 </div>
               </div>
+              <button
+                onClick={() => window.open(avatarVideo.file_url, '_blank')}
+                className="px-3 py-1 bg-indigo-500 text-white text-sm rounded hover:bg-indigo-600 transition-colors"
+              >
+                Download
+              </button>
+            </div>
 
-              {/* Enhanced Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button
-                  onClick={handleDownload}
-                  className="group relative px-8 sm:px-10 py-5 sm:py-6 bg-gradient-to-r from-success-500 to-emerald-600 hover:from-success-600 hover:to-emerald-700 text-white font-bold text-lg rounded-2xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105 overflow-hidden touch-manipulation min-h-[56px]"
-                  aria-label="Download generated video"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                  <div className="relative flex items-center justify-center">
-                    <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Download Video
-                  </div>
-                </button>
-                <button
-                  onClick={resetForm}
-                  className="px-8 sm:px-10 py-5 sm:py-6 bg-white hover:bg-neutral-50 text-neutral-700 font-bold text-lg rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-neutral-200 touch-manipulation min-h-[56px]"
-                  aria-label="Create another video"
-                >
-                  <div className="flex items-center justify-center">
-                    <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Create Another
-                  </div>
-                </button>
-              </div>
+            <div className="mt-4">
+              <video controls className="w-full rounded-lg">
+                <source src={avatarVideo.file_url} type="video/mp4" />
+                Your browser does not support the video element.
+              </video>
+            </div>
 
-              {/* Success message */}
-              <div className="mt-8 bg-success-50 rounded-xl p-4 border border-success-200">
-                <div className="flex items-start">
-                  <svg className="w-5 h-5 text-success-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div>
-                    <p className="text-success-800 font-medium text-sm">Video created successfully!</p>
-                    <p className="text-success-700 text-sm mt-1">
-                      Your video is now ready to share with potential buyers or showcase on your listings.
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div className="mt-3">
+              <label className="block text-xs font-medium text-indigo-700 mb-1">
+                Avatar Video URL:
+              </label>
+              <input
+                type="text"
+                value={avatarVideo.file_url}
+                readOnly
+                className="w-full px-2 py-1 border border-indigo-300 rounded text-xs font-mono bg-white"
+                onClick={(e) => e.currentTarget.select()}
+              />
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Step 3: Avatar Video Generation - Last Step */}
+      {(userImage && userVoice && voiceClone) && (
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center">
+            <span className="bg-indigo-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">3</span>
+            Generate Avatar Video
+          </h2>
+
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Create an animated avatar video using your photo and voice clone.
+            </p>
+
+            <button
+              onClick={generateAvatarVideo}
+              disabled={isGeneratingAvatar}
+              className="px-6 py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+            >
+              {isGeneratingAvatar ? 'Generating Avatar Video...' : 'Generate Avatar Video'}
+            </button>
+
+            {/* Avatar Video Preview */}
+            {isGeneratingAvatar && (
+              <div className="mt-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500"></div>
+                  <span className="text-indigo-700 font-medium">Generating your avatar video...</span>
+                </div>
+                <p className="text-sm text-indigo-600 mt-2">
+                  This may take several minutes as the AI creates your animated avatar.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

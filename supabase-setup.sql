@@ -88,6 +88,18 @@ CREATE TABLE IF NOT EXISTS usage_tracking (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create user_media table for storing user uploads (images and voice recordings)
+CREATE TABLE IF NOT EXISTS user_media (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  media_type TEXT NOT NULL CHECK (media_type IN ('image', 'voice', 'voice_clone', 'avatar_video')),
+  file_name TEXT NOT NULL,
+  file_url TEXT NOT NULL,
+  file_size INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create indexes for better performance (only if they don't exist)
 -- Note: CREATE INDEX IF NOT EXISTS is not directly supported in some Supabase versions
 -- So we'll use a more compatible approach
@@ -134,6 +146,7 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE billing_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE usage_tracking ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_media ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies (basic policies - you may want to customize these)
 -- For now, allowing authenticated users to access their own data
@@ -182,6 +195,19 @@ CREATE POLICY "Users can view own billing" ON billing_history
 -- Usage tracking: Users can only access their own usage data
 CREATE POLICY "Users can view own usage" ON usage_tracking
   FOR SELECT USING (auth.uid() = user_id);
+
+-- User media: Users can only access their own media files
+CREATE POLICY "Users can view own media" ON user_media
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own media" ON user_media
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own media" ON user_media
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own media" ON user_media
+  FOR DELETE USING (auth.uid() = user_id);
 
 -- Drop existing policies if they exist (to avoid conflicts)
 DROP POLICY IF EXISTS "Authenticated users can view leads" ON leads;
@@ -235,35 +261,35 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- Create storage bucket for images (if not exists)
+-- Create storage bucket for video assets (if not exists)
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
-  'images',
-  'images',
+  'video-assets',
+  'video-assets',
   true,
   52428800, -- 50MB limit
-  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'audio/wav', 'audio/mpeg', 'video/mp4']
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Drop existing policies if they exist (to avoid conflicts)
-DROP POLICY IF EXISTS "Authenticated users can upload images" ON storage.objects;
-DROP POLICY IF EXISTS "Public can view images" ON storage.objects;
-DROP POLICY IF EXISTS "Users can delete own images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can upload video assets" ON storage.objects;
+DROP POLICY IF EXISTS "Public can view video assets" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own video assets" ON storage.objects;
 
--- Create storage policy to allow authenticated users to upload images
-CREATE POLICY "Authenticated users can upload images" ON storage.objects
+-- Create storage policy to allow authenticated users to upload video assets
+CREATE POLICY "Authenticated users can upload video assets" ON storage.objects
   FOR INSERT TO authenticated
-  WITH CHECK (bucket_id = 'images');
+  WITH CHECK (bucket_id = 'video-assets');
 
--- Create storage policy to allow public access to view images
-CREATE POLICY "Public can view images" ON storage.objects
+-- Create storage policy to allow public access to view video assets
+CREATE POLICY "Public can view video assets" ON storage.objects
   FOR SELECT TO public
-  USING (bucket_id = 'images');
+  USING (bucket_id = 'video-assets');
 
--- Create storage policy to allow users to delete their own images
-CREATE POLICY "Users can delete own images" ON storage.objects
+-- Create storage policy to allow users to delete their own video assets
+CREATE POLICY "Users can delete own video assets" ON storage.objects
   FOR DELETE TO authenticated
-  USING (bucket_id = 'images');
+  USING (bucket_id = 'video-assets');
 
 -- Insert some sample data (optional - remove in production)
 -- Sample lead

@@ -27,7 +27,7 @@ To set up the storage bucket for image uploads:
 2. Navigate to Storage in the sidebar
 3. Click "New bucket"
 4. Set the following:
-   - Name: images
+   - Name: video-assets
    - Public bucket: ✅ Enabled
    - File size limit: 50 MB
    - Allowed MIME types: image/jpeg, image/png, image/webp, image/gif

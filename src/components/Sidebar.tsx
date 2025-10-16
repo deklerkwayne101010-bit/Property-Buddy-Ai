@@ -29,6 +29,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     { href: '/crm', label: 'CRM', icon: '👥' },
   ];
 
+  // Check if video generator page exists
+  const videoGeneratorExists = true; // We'll assume it exists for now
+
   return (
     <>
       {/* Mobile overlay */}

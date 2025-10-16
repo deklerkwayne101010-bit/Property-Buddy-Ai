@@ -1,0 +1,1 @@
+// Video generator API route - Ready for fresh implementation

@@ -72,7 +72,7 @@ REPLICATE_API_TOKEN=your_replicate_token
 4. Set up Supabase Storage:
    - Go to your Supabase project dashboard
    - Navigate to Storage
-   - Create a new bucket named `images`
+   - Create a new bucket named `video-assets`
    - Make it public and allow these MIME types: `image/jpeg`, `image/png`, `image/webp`, `image/gif`
    - Or run the SQL script in `supabase-setup.sql` in your Supabase SQL Editor
 
