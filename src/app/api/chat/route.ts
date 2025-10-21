@@ -22,12 +22,27 @@ interface ChatMessage {
   timestamp: string;
 }
 
+interface Property {
+  id: string;
+  address: string;
+  price: number;
+  type: string;
+  status: string;
+}
+
+interface Activity {
+  id: string;
+  type: string;
+  description: string;
+  timestamp: string;
+}
+
 interface ChatRequest {
   message: string;
   conversationHistory?: ChatMessage[];
   context?: {
-    userProperties?: any[];
-    recentActivity?: any[];
+    userProperties?: Property[];
+    recentActivity?: Activity[];
   };
 }
 
