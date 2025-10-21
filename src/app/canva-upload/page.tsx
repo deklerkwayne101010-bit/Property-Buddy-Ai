@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import DashboardLayout from '../../components/DashboardLayout';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { CanvaTemplate, EditableZone } from '../../types/template';
@@ -27,7 +28,6 @@ export default function CanvaUploadPage() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [showZoneModal, setShowZoneModal] = useState(false);
   const [editingZone, setEditingZone] = useState<EditableZone | null>(null);
 
   // Handle image upload
@@ -72,7 +72,7 @@ export default function CanvaUploadPage() {
       setTemplate(prev => ({ ...prev, backgroundImage: imageUrl }));
 
       // Try to get image dimensions
-      const img = new Image();
+      const img = new window.Image();
       img.onload = () => {
         setTemplate(prev => ({
           ...prev,
@@ -220,7 +220,7 @@ export default function CanvaUploadPage() {
                     </label>
                     <select
                       value={template.category}
-                      onChange={(e) => setTemplate(prev => ({ ...prev, category: e.target.value as any }))}
+                      onChange={(e) => setTemplate(prev => ({ ...prev, category: e.target.value as 'brochure' | 'flyer' | 'social-media' | 'email' | 'presentation' }))}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="brochure">📄 Property Brochures</option>
@@ -298,9 +298,11 @@ export default function CanvaUploadPage() {
                 {uploadedImage ? (
                   <div className="relative border border-slate-300 rounded-lg overflow-hidden bg-slate-50">
                     {/* Background Image */}
-                    <img
+                    <Image
                       src={uploadedImage}
                       alt="Template background"
+                      width={template.canvasWidth || 800}
+                      height={template.canvasHeight || 600}
                       className="w-full h-auto"
                       style={{
                         maxWidth: '100%',
