@@ -15,7 +15,8 @@ export default function AccountPage() {
     const [usageStats, setUsageStats] = useState({
       photoEdits: { used: 450, total: 1000 },
       videoGeneration: { used: 200, total: 500 },
-      propertyDescriptions: { used: 100, total: 200 }
+      propertyDescriptions: { used: 100, total: 200 },
+      aiChat: { used: 50, total: 100 }
     });
    const [profileData, setProfileData] = useState({
      firstName: '',
@@ -68,12 +69,20 @@ export default function AccountPage() {
      const loadCreditsAndUsage = async () => {
        try {
          const response = await fetch('/api/usage');
-         const usageData = await response.json();
-
-         setUserCredits(usageData.credits || 0);
-         setUsageStats(usageData.usageStats);
+         if (response.ok) {
+           const usageData = await response.json();
+           setUserCredits(usageData.credits || 0);
+           setUsageStats(prevStats => ({
+             ...prevStats,
+             ...usageData.usageStats
+           }));
+         } else {
+           // API failed, keep default values
+           console.warn('Usage API unavailable, using default values');
+         }
        } catch (error) {
          console.error('Error loading credits and usage:', error);
+         // Keep default values on error
        }
      };
 
@@ -83,8 +92,6 @@ export default function AccountPage() {
 
   const tabs = [
     { id: 'profile', label: 'Profile', icon: '👤' },
-    { id: 'subscription', label: 'Subscription', icon: '💎' },
-    { id: 'credits', label: 'Credits', icon: '💰' },
     { id: 'preferences', label: 'Preferences', icon: '⚙️' },
     { id: 'billing', label: 'Billing', icon: '📄' },
     { id: 'security', label: 'Security', icon: '🔒' },
@@ -167,36 +174,46 @@ export default function AccountPage() {
   const handlePurchase = async (packageId: string) => {
     setIsPurchasing(true);
     try {
+      // Get current user or use guest checkout
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        alert('Please log in to purchase credits');
+      const userId = user?.id || 'guest';
+
+      // Get package details for YOCO payment
+      const packages = {
+        '100': { credits: 100, price: 19900, currency: 'ZAR' }, // R199.00 in cents
+        '500': { credits: 500, price: 79900, currency: 'ZAR' }, // R799.00 in cents
+        '1000': { credits: 1000, price: 139900, currency: 'ZAR' } // R1399.00 in cents
+      };
+
+      const selectedPackage = packages[packageId as keyof typeof packages];
+      if (!selectedPackage) {
+        alert('Invalid package selected');
         return;
       }
 
-      const response = await fetch('/api/credits', {
+      // Create YOCO checkout session
+      const checkoutResponse = await fetch('/api/yoco/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          packageId,
-          userId: user.id,
+          amount: selectedPackage.price,
+          currency: selectedPackage.currency,
+          credits: selectedPackage.credits,
+          userId: userId,
+          description: `${selectedPackage.credits} AI Credits Purchase`
         }),
       });
 
-      const result = await response.json();
+      const checkoutData = await checkoutResponse.json();
 
-      if (result.success) {
-         alert(`Successfully purchased credits! You now have ${result.credits} credits.`);
-         setUserCredits(result.credits);
-         // Update usage stats if needed
-         setUsageStats(prev => ({
-           ...prev,
-           // Reset usage counters for new billing cycle if applicable
-         }));
-       } else {
-         alert('Purchase failed: ' + result.error);
-       }
+      if (checkoutData.success && checkoutData.checkoutUrl) {
+        // Redirect to YOCO payment page
+        window.location.href = checkoutData.checkoutUrl;
+      } else {
+        alert('Failed to create payment session: ' + (checkoutData.error || 'Unknown error'));
+      }
     } catch (error) {
       console.error('Purchase error:', error);
       alert('An error occurred during purchase. Please try again.');
@@ -361,305 +378,54 @@ export default function AccountPage() {
         );
       case 'subscription':
         return (
-          <div className="space-y-8">
-            {/* Current Plan Overview */}
+          <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
-              <h3 className="text-xl font-semibold text-slate-900 mb-4">Current Plan</h3>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">💎</span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-slate-900">Pro Plan</h4>
-                    <p className="text-slate-600 text-sm">$29/month • Next billing: Nov 15, 2024</p>
-                  </div>
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 </div>
-                <div className="flex space-x-3">
-                  <button className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
-                    Change Plan
-                  </button>
-                  <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-                    Cancel Plan
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-2">Choose Your Plan</h3>
-              <p className="text-slate-600">Select the perfect plan for your real estate business needs</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {subscriptionTiers.map((tier) => (
-                <motion.div
-                  key={tier.id}
-                  className={`relative bg-white rounded-2xl shadow-lg border-2 overflow-hidden transition-all duration-300 hover:shadow-xl ${
-                    tier.current
-                      ? 'border-blue-500 ring-2 ring-blue-200'
-                      : tier.popular
-                      ? 'border-purple-300'
-                      : 'border-slate-200'
-                  }`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: subscriptionTiers.indexOf(tier) * 0.1 }}
+                <h4 className="text-lg font-medium text-slate-900 mb-2">Subscription Management Moved</h4>
+                <p className="text-slate-600 mb-6 max-w-md mx-auto">
+                  Subscription plans and billing are now managed through our dedicated payment page for better user experience.
+                </p>
+                <a
+                  href="/payment"
+                  className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
                 >
-                  {tier.current && (
-                    <div className="absolute top-4 right-4 bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                      Current Plan
-                    </div>
-                  )}
-                  {tier.popular && !tier.current && (
-                    <div className="absolute top-4 right-4 bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                      Most Popular
-                    </div>
-                  )}
-
-                  <div className={`bg-gradient-to-r ${tier.gradient} p-6 text-white`}>
-                    <div className="flex items-center space-x-3 mb-4">
-                      <span className="text-3xl">{tier.icon}</span>
-                      <div>
-                        <h4 className="text-xl font-bold">{tier.name}</h4>
-                        <p className="text-white/80 text-sm">{tier.description}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-baseline">
-                      <span className="text-4xl font-bold">{tier.price}</span>
-                      <span className="text-white/80 ml-1">{tier.period}</span>
-                    </div>
-                  </div>
-
-                  <div className="p-6">
-                    <div className="space-y-4 mb-6">
-                      <h5 className="font-semibold text-slate-900">Features</h5>
-                      <ul className="space-y-3">
-                        {tier.features.map((feature, index) => (
-                          <li key={index} className="flex items-center space-x-3">
-                            <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                              <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                            </div>
-                            <span className="text-slate-700 text-sm">{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="space-y-3 mb-6">
-                      <h5 className="font-semibold text-slate-900">Limits</h5>
-                      <div className="grid grid-cols-1 gap-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-slate-600">Photo edits:</span>
-                          <span className="font-medium text-slate-900">{tier.limits.photos}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-600">Video generation:</span>
-                          <span className="font-medium text-slate-900">{tier.limits.videos}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-600">Properties:</span>
-                          <span className="font-medium text-slate-900">{tier.limits.properties}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      {tier.current ? (
-                        <button className="w-full bg-slate-100 text-slate-500 py-3 px-4 rounded-lg font-semibold cursor-not-allowed">
-                          Current Plan
-                        </button>
-                      ) : (
-                        <div className="space-y-2">
-                          <button className={`w-full bg-gradient-to-r ${tier.gradient} text-white py-3 px-4 rounded-lg font-semibold hover:opacity-90 transition-opacity`}>
-                            {subscriptionTiers.findIndex(t => t.current) > subscriptionTiers.indexOf(tier) ? 'Downgrade' : 'Upgrade'} to {tier.name}
-                          </button>
-                          <button className="w-full border border-slate-300 text-slate-700 py-2 px-4 rounded-lg font-medium hover:bg-slate-50 transition-colors text-sm">
-                            Compare Plans
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-semibold text-slate-900">Need a custom plan?</h4>
-                  <p className="text-slate-600 text-sm">Contact our sales team for enterprise solutions</p>
-                </div>
-                <button className="bg-slate-900 text-white px-6 py-2 rounded-lg hover:bg-slate-800 transition-colors">
-                  Contact Sales
-                </button>
+                  Go to Payment Page
+                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </a>
               </div>
             </div>
           </div>
         );
       case 'credits':
         return (
-          <div className="space-y-8">
-            {/* Credit Balance */}
+          <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
-              <h3 className="text-xl font-semibold text-slate-900 mb-4">Credit Balance</h3>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-3xl font-bold text-slate-900">{userCredits.toLocaleString()}</p>
-                  <p className="text-slate-600">Available credits</p>
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                  </svg>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-slate-500">Credits reset monthly</p>
-                  <p className="text-sm text-slate-500">Used this month: {(usageStats.photoEdits.used + usageStats.videoGeneration.used + usageStats.propertyDescriptions.used).toLocaleString()}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Credit Usage Statistics */}
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
-              <h3 className="text-xl font-semibold text-slate-900 mb-4">Credit Usage</h3>
-              <div className="space-y-4">
-                {[
-                  { service: 'Photo Enhancement', used: usageStats.photoEdits.used, total: usageStats.photoEdits.total },
-                  { service: 'Video Generation', used: usageStats.videoGeneration.used, total: usageStats.videoGeneration.total },
-                  { service: 'Property Descriptions', used: usageStats.propertyDescriptions.used, total: usageStats.propertyDescriptions.total },
-                ].map((item, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-700">{item.service}</span>
-                      <span className="text-slate-500">{item.used}/{item.total}</span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full"
-                        style={{ width: `${(item.used / item.total) * 100}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Credit Packages */}
-            <div>
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">Purchase Credits</h3>
-                <p className="text-slate-600">Buy additional credits to continue using our AI services</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {[
-                  {
-                    id: '100',
-                    name: '100 Credits',
-                    price: '$9.99',
-                    credits: 100,
-                    description: 'Perfect for occasional use',
-                    icon: '💰',
-                    gradient: 'from-green-400 to-blue-500',
-                    popular: false,
-                    savings: null
-                  },
-                  {
-                    id: '500',
-                    name: '500 Credits',
-                    price: '$39.99',
-                    credits: 500,
-                    description: 'Great value for regular users',
-                    icon: '💎',
-                    gradient: 'from-blue-500 to-purple-600',
-                    popular: true,
-                    savings: 'Save 20%'
-                  },
-                  {
-                    id: '1000',
-                    name: '1000 Credits',
-                    price: '$69.99',
-                    credits: 1000,
-                    description: 'Best value for power users',
-                    icon: '🏆',
-                    gradient: 'from-purple-600 to-pink-600',
-                    popular: false,
-                    savings: 'Save 30%'
-                  }
-                ].map((pkg) => (
-                  <motion.div
-                    key={pkg.id}
-                    className={`relative bg-white rounded-2xl shadow-lg border-2 overflow-hidden transition-all duration-300 hover:shadow-xl ${
-                      pkg.popular
-                        ? 'border-purple-300 ring-2 ring-purple-200'
-                        : 'border-slate-200'
-                    }`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: ['100', '500', '1000'].indexOf(pkg.id) * 0.1 }}
-                  >
-                    {pkg.popular && (
-                      <div className="absolute top-4 right-4 bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                        Most Popular
-                      </div>
-                    )}
-                    {pkg.savings && (
-                      <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                        {pkg.savings}
-                      </div>
-                    )}
-
-                    <div className={`bg-gradient-to-r ${pkg.gradient} p-6 text-white`}>
-                      <div className="flex items-center space-x-3 mb-4">
-                        <span className="text-3xl">{pkg.icon}</span>
-                        <div>
-                          <h4 className="text-xl font-bold">{pkg.name}</h4>
-                          <p className="text-white/80 text-sm">{pkg.description}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-baseline">
-                        <span className="text-4xl font-bold">{pkg.price}</span>
-                        <span className="text-white/80 ml-1">one-time</span>
-                      </div>
-                      <div className="mt-2 text-white/90 text-sm">
-                        {pkg.credits} credits included
-                      </div>
-                    </div>
-
-                    <div className="p-6">
-                      <div className="space-y-4 mb-6">
-                        <div className="text-center">
-                          <p className="text-2xl font-bold text-slate-900">{pkg.credits}</p>
-                          <p className="text-slate-600 text-sm">Credits</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-slate-700 text-sm">
-                            ${(parseFloat(pkg.price.replace('$', '')) / pkg.credits * 100).toFixed(2)} per 100 credits
-                          </p>
-                        </div>
-                      </div>
-
-                      <button
-                        className={`w-full bg-gradient-to-r ${pkg.gradient} text-white py-3 px-4 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed`}
-                        disabled={isPurchasing}
-                        onClick={() => handlePurchase(pkg.id)}
-                      >
-                        {isPurchasing ? 'Processing...' : 'Purchase Now'}
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-
-              <div className="mt-8 bg-slate-50 rounded-xl p-6 border border-slate-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-semibold text-slate-900">Need more credits?</h4>
-                    <p className="text-slate-600 text-sm">Contact our sales team for bulk pricing</p>
-                  </div>
-                  <button className="bg-slate-900 text-white px-6 py-2 rounded-lg hover:bg-slate-800 transition-colors">
-                    Contact Sales
-                  </button>
-                </div>
+                <h4 className="text-lg font-medium text-slate-900 mb-2">Credits Management Moved</h4>
+                <p className="text-slate-600 mb-6 max-w-md mx-auto">
+                  Credit purchases and management are now handled through our dedicated payment page for better user experience.
+                </p>
+                <a
+                  href="/payment"
+                  className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                >
+                  Go to Payment Page
+                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </a>
               </div>
             </div>
           </div>
@@ -866,7 +632,7 @@ export default function AccountPage() {
             <div>
               <h1 className="text-3xl font-bold mb-2">Account Settings</h1>
               <p className="text-blue-100 text-lg">
-                Manage your subscription, credits, and account preferences
+                Manage your credits, preferences, billing, and security settings
               </p>
             </div>
             <div className="hidden md:block">

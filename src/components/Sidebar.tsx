@@ -30,6 +30,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     { href: '/templates', label: 'Templates', icon: '📋' },
     { href: '/marketing-materials', label: 'Marketing Materials', icon: '📢' },
     { href: '/crm', label: 'CRM', icon: '👥' },
+    { href: '/payment', label: 'Pricing & Payments', icon: '💳' },
   ];
 
   // Check if video generator page exists

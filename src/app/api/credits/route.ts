@@ -14,11 +14,11 @@ export async function POST(request: NextRequest) {
 
     const supabase = supabaseAdmin;
 
-    // Get package details
+    // Get package details (prices in ZAR cents for YOCO)
     const packages = {
-      '100': { credits: 100, price: 9.99 },
-      '500': { credits: 500, price: 39.99 },
-      '1000': { credits: 1000, price: 69.99 }
+      '100': { credits: 100, price: 19900, currency: 'ZAR' }, // R199.00
+      '500': { credits: 500, price: 79900, currency: 'ZAR' }, // R799.00
+      '1000': { credits: 1000, price: 139900, currency: 'ZAR' } // R1399.00
     };
 
     const selectedPackage = packages[packageId as keyof typeof packages];
