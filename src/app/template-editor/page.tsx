@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import DashboardLayout from '../../components/DashboardLayout';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { Template, TemplateElement, TEMPLATE_CATEGORIES } from '../../types/template';
@@ -182,7 +183,7 @@ export default function TemplateEditorPage() {
             <div className="flex items-center space-x-3">
               <select
                 value={template.category}
-                onChange={(e) => setTemplate(prev => ({ ...prev, category: e.target.value as any }))}
+                onChange={(e) => setTemplate(prev => ({ ...prev, category: e.target.value as 'brochure' | 'flyer' | 'social-media' | 'email' | 'presentation' }))}
                 className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 {TEMPLATE_CATEGORIES.map(cat => (
@@ -377,9 +378,11 @@ export default function TemplateEditorPage() {
                       {element.type === 'image' && (
                         <div className="w-full h-full bg-slate-200 flex items-center justify-center">
                           {element.content ? (
-                            <img
+                            <Image
                               src={element.content}
                               alt="Template image"
+                              width={element.width}
+                              height={element.height}
                               className="w-full h-full object-cover"
                             />
                           ) : (
