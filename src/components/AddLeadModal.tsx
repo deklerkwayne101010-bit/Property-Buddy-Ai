@@ -57,14 +57,18 @@ export default function AddLeadModal({
       newErrors.name = 'Name is required';
     }
 
-    if (!formData.contactNumber.trim()) {
-      newErrors.contactNumber = 'Contact number is required';
+    // Contact number is now optional
+    if (formData.contactNumber.trim() && formData.contactNumber.length > 20) {
+      newErrors.contactNumber = 'Contact number must be less than 20 characters';
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+    // Email is now optional, but if provided, validate format
+    if (formData.email.trim()) {
+      if (!/\S+@\S+\.\S+/.test(formData.email)) {
+        newErrors.email = 'Email is invalid';
+      } else if (formData.email.length > 100) {
+        newErrors.email = 'Email must be less than 100 characters';
+      }
     }
 
     setErrors(newErrors);
@@ -150,7 +154,7 @@ export default function AddLeadModal({
               {/* Contact Number Field */}
               <div className="group">
                 <label className="block text-sm font-semibold text-gray-800 mb-2">
-                  Contact Number <span className="text-red-500">*</span>
+                  Contact Number
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -183,7 +187,7 @@ export default function AddLeadModal({
               {/* Email Field */}
               <div className="group">
                 <label className="block text-sm font-semibold text-gray-800 mb-2">
-                  Email Address <span className="text-red-500">*</span>
+                  Email Address
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

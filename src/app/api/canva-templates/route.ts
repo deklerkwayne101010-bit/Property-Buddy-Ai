@@ -8,7 +8,7 @@ import {
   logSecurityEvent,
   sanitizeInput
 } from '../../../lib/security';
-import { Template, TEMPLATE_CATEGORIES } from '../../../types/template';
+import { CanvaTemplate, TEMPLATE_CATEGORIES } from '../../../types/template';
 
 // Rate limiting: 20 requests per minute per IP for template operations
 const RATE_LIMIT_CONFIG = {
@@ -18,7 +18,7 @@ const RATE_LIMIT_CONFIG = {
   rateLimitMax: 20,
 };
 
-function validateTemplateData(data: Partial<Template>): { isValid: boolean; errors: string[] } {
+function validateCanvaTemplateData(data: Partial<CanvaTemplate>): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
 
   if (!data.name || typeof data.name !== 'string' || data.name.trim().length === 0) {
@@ -37,12 +37,16 @@ function validateTemplateData(data: Partial<Template>): { isValid: boolean; erro
     errors.push('Valid template category is required');
   }
 
-  if (!data.elements || !Array.isArray(data.elements)) {
-    errors.push('Template elements are required');
-  } else if (data.elements.length === 0) {
-    errors.push('Template must have at least one element');
-  } else if (data.elements.length > 50) {
-    errors.push('Template cannot have more than 50 elements');
+  if (!data.backgroundImage || typeof data.backgroundImage !== 'string') {
+    errors.push('Background image URL is required');
+  }
+
+  if (!data.editableZones || !Array.isArray(data.editableZones)) {
+    errors.push('Editable zones are required');
+  } else if (data.editableZones.length === 0) {
+    errors.push('Template must have at least one editable zone');
+  } else if (data.editableZones.length > 20) {
+    errors.push('Template cannot have more than 20 editable zones');
   }
 
   if (!data.canvasWidth || typeof data.canvasWidth !== 'number' || data.canvasWidth <= 0) {
@@ -56,7 +60,7 @@ function validateTemplateData(data: Partial<Template>): { isValid: boolean; erro
   return { isValid: errors.length === 0, errors };
 }
 
-// GET /api/templates - Get all public templates
+// GET /api/canva-templates - Get all public Canva templates
 export async function GET(request: NextRequest) {
   const clientIP = getClientIP(request);
 
@@ -64,7 +68,7 @@ export async function GET(request: NextRequest) {
     // Security checks
     const rateLimitResult = checkRateLimit(clientIP, RATE_LIMIT_CONFIG);
     if (!rateLimitResult.allowed) {
-      logSecurityEvent('RATE_LIMIT_EXCEEDED', { ip: clientIP, endpoint: '/api/templates' });
+      logSecurityEvent('RATE_LIMIT_EXCEEDED', { ip: clientIP, endpoint: '/api/canva-templates' });
       return NextResponse.json(
         {
           error: 'Rate limit exceeded',
@@ -87,7 +91,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
 
     let query = supabase
-      .from('templates')
+      .from('canva_templates')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -105,7 +109,7 @@ export async function GET(request: NextRequest) {
     const { data: templates, error, count } = await query;
 
     if (error) {
-      console.error('Error fetching templates:', error);
+      console.error('Error fetching Canva templates:', error);
       logSecurityEvent('DATABASE_ERROR', { error: error.message, ip: clientIP });
       return NextResponse.json(
         { error: 'Failed to fetch templates' },
@@ -125,9 +129,9 @@ export async function GET(request: NextRequest) {
     }, { headers: createSecurityHeaders() });
 
   } catch (error) {
-    console.error('Error in GET /api/templates:', error);
+    console.error('Error in GET /api/canva-templates:', error);
     logSecurityEvent('API_ERROR', {
-      endpoint: '/api/templates',
+      endpoint: '/api/canva-templates',
       method: 'GET',
       error: error instanceof Error ? error.message : 'Unknown error',
       ip: clientIP
@@ -140,7 +144,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/templates - Create a new template (admin only)
+// POST /api/canva-templates - Create a new Canva template
 export async function POST(request: NextRequest) {
   const clientIP = getClientIP(request);
 
@@ -148,7 +152,7 @@ export async function POST(request: NextRequest) {
     // Security checks
     const rateLimitResult = checkRateLimit(clientIP, RATE_LIMIT_CONFIG);
     if (!rateLimitResult.allowed) {
-      logSecurityEvent('RATE_LIMIT_EXCEEDED', { ip: clientIP, endpoint: '/api/templates' });
+      logSecurityEvent('RATE_LIMIT_EXCEEDED', { ip: clientIP, endpoint: '/api/canva-templates' });
       return NextResponse.json(
         {
           error: 'Rate limit exceeded',
@@ -165,14 +169,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (!validateRequestSize(request)) {
-      logSecurityEvent('REQUEST_TOO_LARGE', { ip: clientIP, endpoint: '/api/templates' });
+      logSecurityEvent('REQUEST_TOO_LARGE', { ip: clientIP, endpoint: '/api/canva-templates' });
       return NextResponse.json(
         { error: 'Request too large' },
         { status: 413, headers: createSecurityHeaders() }
       );
     }
 
-    // Check if user is admin (you'll need to implement proper admin check)
+    // Check if user is authenticated
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json(
@@ -181,25 +185,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // For now, allow all authenticated users to create templates
-    // In production, check if user has admin role
-
     const body = await request.json();
-    const templateData: Partial<Template> = {
+    const templateData: Partial<CanvaTemplate> = {
       name: sanitizeInput(body.name || ''),
       description: sanitizeInput(body.description || ''),
       category: body.category,
-      thumbnail: body.thumbnail || '',
-      elements: body.elements || [],
+      canvaDesignId: body.canvaDesignId,
+      backgroundImage: body.backgroundImage,
+      editableZones: body.editableZones || [],
       canvasWidth: body.canvasWidth || 800,
       canvasHeight: body.canvasHeight || 600,
       createdBy: user.id,
-      isPublic: true, // For now, all templates are public
+      isPublic: true, // All Canva templates are public for agents
       tags: body.tags || []
     };
 
     // Validate input
-    const validation = validateTemplateData(templateData);
+    const validation = validateCanvaTemplateData(templateData);
     if (!validation.isValid) {
       return NextResponse.json(
         { error: 'Invalid template data', details: validation.errors },
@@ -215,13 +217,13 @@ export async function POST(request: NextRequest) {
     };
 
     const { data, error } = await supabase
-      .from('templates')
+      .from('canva_templates')
       .insert([newTemplate])
       .select()
       .single();
 
     if (error) {
-      console.error('Error creating template:', error);
+      console.error('Error creating Canva template:', error);
       logSecurityEvent('DATABASE_ERROR', { error: error.message, ip: clientIP });
       return NextResponse.json(
         { error: 'Failed to create template' },
@@ -229,7 +231,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    logSecurityEvent('TEMPLATE_CREATED', { templateId: data.id, ip: clientIP });
+    logSecurityEvent('CANVA_TEMPLATE_CREATED', { templateId: data.id, ip: clientIP });
 
     return NextResponse.json({
       success: true,
@@ -237,9 +239,9 @@ export async function POST(request: NextRequest) {
     }, { status: 201, headers: createSecurityHeaders() });
 
   } catch (error) {
-    console.error('Error in POST /api/templates:', error);
+    console.error('Error in POST /api/canva-templates:', error);
     logSecurityEvent('API_ERROR', {
-      endpoint: '/api/templates',
+      endpoint: '/api/canva-templates',
       method: 'POST',
       error: error instanceof Error ? error.message : 'Unknown error',
       ip: clientIP

@@ -27,18 +27,22 @@ function validateLeadData(data: Partial<Lead>): { isValid: boolean; errors: stri
     errors.push('Name must be less than 100 characters');
   }
 
-  if (!data.contactNumber || typeof data.contactNumber !== 'string' || data.contactNumber.trim().length === 0) {
-    errors.push('Contact number is required');
-  } else if (data.contactNumber.length > 20) {
-    errors.push('Contact number must be less than 20 characters');
+  // Contact number is now optional
+  if (data.contactNumber && typeof data.contactNumber === 'string') {
+    if (data.contactNumber.length > 20) {
+      errors.push('Contact number must be less than 20 characters');
+    }
   }
 
-  if (!data.email || typeof data.email !== 'string' || data.email.trim().length === 0) {
-    errors.push('Email is required');
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
-    errors.push('Invalid email format');
-  } else if (data.email.length > 100) {
-    errors.push('Email must be less than 100 characters');
+  // Email is now optional
+  if (data.email && typeof data.email === 'string') {
+    if (data.email.trim().length === 0) {
+      // Allow empty email
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+      errors.push('Invalid email format');
+    } else if (data.email.length > 100) {
+      errors.push('Email must be less than 100 characters');
+    }
   }
 
   if (!data.source || !LEAD_SOURCES.includes(data.source as typeof LEAD_SOURCES[number])) {
@@ -92,7 +96,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('leads')
       .select('*', { count: 'exact' })
-      .order('createdAt', { ascending: false })
+      .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
     // Apply filters

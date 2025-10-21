@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('properties')
       .select('*', { count: 'exact' })
-      .order('createdAt', { ascending: false })
+      .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
     // Apply filters

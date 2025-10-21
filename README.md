@@ -11,11 +11,13 @@ A Next.js + React + Tailwind web application that allows real estate agents to u
 - Before/After preview of edited images side-by-side
 - Loading spinner during AI processing
 - Download buttons for edited images
+- **AI Chat Assistant**: Real-time conversational AI for real estate advice and property-related questions
 
 ### Backend Features
 - **`/api/refine-prompt`** - Uses Replicate LLM to convert agent instructions into polished AI prompts
 - **`/api/edit`** - Uses Replicate API for high-quality image editing with FLUX models
 - **`/api/generate`** - Uses Replicate API for property description generation
+- **`/api/chat`** - AI-powered conversational assistant for real estate advice and property-related questions
 - Image storage via Supabase Storage with public URLs
 - Comprehensive logging and error handling
 
@@ -104,9 +106,11 @@ ai-photo-editor-for-agents/
 ├── src/
 │   ├── app/
 │   │   ├── api/
+│   │   │   ├── chat/           # AI chat assistant API route
 │   │   │   ├── edit/           # Main image editing API route
 │   │   │   ├── refine-prompt/  # Prompt refinement API route
 │   │   │   └── ...             # Other API routes
+│   │   ├── ai-chat/            # AI chat interface page
 │   │   ├── photo-editor/       # Photo editor page
 │   │   └── ...                 # Other pages
 │   ├── components/             # Reusable React components
@@ -131,6 +135,35 @@ Edits an uploaded image using AI based on text instructions.
 ```json
 {
   "edited_image_url": "https://replicate.delivery/..."
+}
+```
+
+### POST `/api/chat`
+Provides AI-powered conversational assistance for real estate professionals.
+
+**Request Body:**
+```json
+{
+  "message": "How do I price a property competitively?",
+  "conversationHistory": [
+    {
+      "role": "user",
+      "content": "Previous message",
+      "timestamp": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": {
+    "role": "assistant",
+    "content": "To price a property competitively...",
+    "timestamp": "2024-01-01T00:00:00.000Z"
+  }
 }
 ```
 

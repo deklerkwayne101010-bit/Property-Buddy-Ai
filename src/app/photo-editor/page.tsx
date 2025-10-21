@@ -63,6 +63,7 @@ export default function PhotoEditor() {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedEditType, setSelectedEditType] = useState<'object-remover' | 'image-enhancer' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load uploaded images on component mount
@@ -164,17 +165,17 @@ export default function PhotoEditor() {
   };
 
   const handleEnhancePhoto = async () => {
-    if (!selectedImageUrl || !agentInstruction) return;
+    if (!selectedImageUrl || !agentInstruction || !selectedEditType) return;
 
     setIsLoading(true);
     setLoadingProgress(0);
-    setLoadingStep('Sending to AI for enhancement...');
+    setLoadingStep('Sending to AI for processing...');
 
     try {
       setLoadingProgress(30);
-      setLoadingStep('AI is enhancing your photo...');
+      setLoadingStep(selectedEditType === 'image-enhancer' ? 'AI is enhancing your photo...' : 'AI is removing objects...');
 
-      // Send the Supabase URL directly to the API
+      // Send the Supabase URL directly to the API with edit type
       const response = await fetch('/api/edit', {
         method: 'POST',
         headers: {
@@ -183,6 +184,7 @@ export default function PhotoEditor() {
         body: JSON.stringify({
           imageUrl: selectedImageUrl,
           prompt: agentInstruction,
+          editType: selectedEditType,
         }),
       });
 
@@ -441,6 +443,101 @@ export default function PhotoEditor() {
             </div>
           )}
 
+          {/* Edit Type Selection Section Card */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/20 hover:scale-[1.02]">
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-6 sm:px-8 py-6 border-b border-slate-100">
+              <h2 className="text-xl font-semibold text-slate-800 flex items-center">
+                <svg className="w-6 h-6 mr-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Choose Edit Type
+              </h2>
+              <p className="text-sm text-slate-600 mt-1">Select the type of AI editing you want to perform</p>
+            </div>
+
+            <div className="p-6 sm:p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Object Remover Option */}
+                <div
+                  onClick={() => setSelectedEditType('object-remover')}
+                  className={`relative p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 ${
+                    selectedEditType === 'object-remover'
+                      ? 'border-red-500 bg-red-50 shadow-lg shadow-red-500/20'
+                      : 'border-slate-200 bg-slate-50/50 hover:border-red-300 hover:bg-red-50/50'
+                  }`}
+                >
+                  <div className="flex items-start space-x-4">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                      selectedEditType === 'object-remover'
+                        ? 'bg-red-500 text-white'
+                        : 'bg-red-100 text-red-600'
+                    }`}>
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-slate-800 mb-2">Object Remover</h3>
+                      <p className="text-sm text-slate-600 mb-3">Remove unwanted objects, people, or elements from your image using AI</p>
+                      <div className="text-xs text-slate-500">
+                        Uses: Qwen Image Editor on Replicate
+                      </div>
+                    </div>
+                  </div>
+                  {selectedEditType === 'object-remover' && (
+                    <div className="absolute top-4 right-4 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+
+                {/* Image Enhancer Option */}
+                <div
+                  onClick={() => setSelectedEditType('image-enhancer')}
+                  className={`relative p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 ${
+                    selectedEditType === 'image-enhancer'
+                      ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/20'
+                      : 'border-slate-200 bg-slate-50/50 hover:border-blue-300 hover:bg-blue-50/50'
+                  }`}
+                >
+                  <div className="flex items-start space-x-4">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                      selectedEditType === 'image-enhancer'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-blue-100 text-blue-600'
+                    }`}>
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-slate-800 mb-2">Image Enhancer</h3>
+                      <p className="text-sm text-slate-600 mb-3">Enhance, modify, or transform your image with advanced AI editing</p>
+                      <div className="text-xs text-slate-500">
+                        Uses: FLUX Pro on Replicate
+                      </div>
+                    </div>
+                  </div>
+                  {selectedEditType === 'image-enhancer' && (
+                    <div className="absolute top-4 right-4 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {!selectedEditType && (
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-slate-500">Please select an edit type to continue</p>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Instructions Section Card */}
           <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/20 hover:scale-[1.02]">
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 sm:px-8 py-6 border-b border-slate-100">
@@ -460,7 +557,10 @@ export default function PhotoEditor() {
                     id="agent-instruction"
                     value={agentInstruction}
                     onChange={(e) => setAgentInstruction(e.target.value)}
-                    placeholder="e.g., Remove microwave, Add sunset background, Make it black and white, Enhance colors, Add dramatic lighting..."
+                    placeholder={selectedEditType === 'object-remover'
+                      ? "e.g., Remove the microwave, Remove the person in the background, Remove the car from the driveway..."
+                      : "e.g., Add sunset background, Make it black and white, Enhance colors, Add dramatic lighting..."
+                    }
                     className="w-full px-4 sm:px-6 py-4 border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 resize-none transition-all duration-300 text-slate-700 placeholder-slate-400 bg-slate-50/50 hover:bg-white hover:border-slate-300 text-sm sm:text-base"
                     rows={4}
                     maxLength={500}
@@ -474,16 +574,23 @@ export default function PhotoEditor() {
                 <div className="space-y-3">
                   <p className="text-sm font-medium text-slate-700">Quick suggestions:</p>
                   <div className="flex flex-wrap gap-2">
-                    {[
-                      "Remove background",
+                    {(selectedEditType === 'object-remover' ? [
+                      "Remove microwave",
+                      "Remove person",
+                      "Remove car",
+                      "Remove furniture",
+                      "Remove background clutter",
+                      "Remove unwanted objects"
+                    ] : [
                       "Add golden hour lighting",
                       "Convert to black & white",
                       "Enhance colors",
                       "Add cinematic look",
                       "Fix perspective",
                       "Add vintage filter",
-                      "Boost contrast"
-                    ].map((example, index) => (
+                      "Boost contrast",
+                      "Add sunset background"
+                    ]).map((example, index) => (
                       <button
                         key={index}
                         onClick={() => setAgentInstruction(example)}
@@ -542,25 +649,30 @@ export default function PhotoEditor() {
                 <>
                   <button
                     onClick={handleEnhancePhoto}
-                    disabled={!selectedImageUrl || !agentInstruction || isLoading}
+                    disabled={!selectedImageUrl || !agentInstruction || !selectedEditType || isLoading}
                     className="group relative bg-gradient-to-r from-slate-600 via-blue-600 to-indigo-600 hover:from-slate-700 hover:via-blue-700 hover:to-indigo-700 disabled:from-slate-400 disabled:via-slate-400 disabled:to-slate-400 text-white font-bold py-3 px-8 sm:py-4 sm:px-12 rounded-2xl transition-all duration-500 transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed shadow-lg hover:shadow-xl disabled:shadow-none overflow-hidden text-sm sm:text-lg"
                   >
                     <div className="relative z-10 flex items-center justify-center">
                       <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 transition-transform duration-300 group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
-                      <span>Enhance Photo with AI</span>
+                      <span>
+                        {selectedEditType === 'object-remover' ? 'Remove Objects with AI' :
+                         selectedEditType === 'image-enhancer' ? 'Enhance Image with AI' :
+                         'Process with AI'}
+                      </span>
                     </div>
                     {!isLoading && (
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                     )}
                   </button>
 
-                  {(!selectedImageUrl || !agentInstruction) && (
+                  {(!selectedImageUrl || !agentInstruction || !selectedEditType) && (
                     <div className="mt-4 text-xs sm:text-sm text-slate-500">
-                      {!selectedImageUrl && !agentInstruction && "Please select an image and add instructions"}
-                      {!selectedImageUrl && agentInstruction && "Please select an image first"}
-                      {selectedImageUrl && !agentInstruction && "Please add instructions for the AI"}
+                      {!selectedImageUrl && !agentInstruction && !selectedEditType && "Please select an image, choose edit type, and add instructions"}
+                      {!selectedImageUrl && (agentInstruction || selectedEditType) && "Please select an image first"}
+                      {selectedImageUrl && !selectedEditType && "Please choose an edit type"}
+                      {selectedImageUrl && selectedEditType && !agentInstruction && "Please add instructions for the AI"}
                     </div>
                   )}
                 </>
@@ -576,114 +688,154 @@ export default function PhotoEditor() {
                   <svg className="w-6 h-6 mr-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  AI Enhancement Complete
+                  AI {selectedEditType === 'object-remover' ? 'Object Removal' : 'Enhancement'} Complete
                 </h2>
-                <p className="text-sm text-slate-600 mt-1">Compare your original image with the AI-enhanced version</p>
+                <p className="text-sm text-slate-600 mt-1">Compare your original image with the AI-processed version</p>
               </div>
 
               <div className="p-6 sm:p-8">
-                {/* Before/After Slider */}
-                <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+                {/* Side by Side Comparison */}
+                <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden mb-6">
                   <div className="bg-gradient-to-r from-slate-50 to-blue-50 px-6 py-4 border-b border-slate-100">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-slate-800 flex items-center">
-                        <svg className="w-5 h-5 mr-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                        </svg>
-                        Before / After Comparison
-                      </h3>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm text-slate-600 bg-slate-100 px-3 py-1 rounded-full">Drag to compare</span>
-                      </div>
-                    </div>
+                    <h3 className="text-lg font-semibold text-slate-800 flex items-center">
+                      <svg className="w-5 h-5 mr-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                      Before / After Comparison
+                    </h3>
                   </div>
 
-                  <div className="relative">
-                    {/* Slider Container */}
-                    <div
-                      ref={sliderRef}
-                      className="relative w-full h-96 sm:h-[500px] overflow-hidden cursor-ew-resize"
-                      onMouseDown={handleMouseDown}
-                    >
-                      {/* Before Image (Bottom Layer) */}
-                      <img
-                        src={originalImage}
-                        alt="Original"
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
+                    {/* Original Image */}
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <img
+                          src={originalImage}
+                          alt="Original"
+                          className="w-full h-64 sm:h-80 object-cover rounded-xl border-2 border-slate-200"
+                        />
+                        <div className="absolute top-3 left-3 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">
+                          Original
+                        </div>
+                      </div>
+                    </div>
 
-                      {/* After Image (Top Layer with dynamic clip) */}
-                      <div
-                        className="absolute inset-0 overflow-hidden"
-                        style={{
-                          clipPath: `polygon(0 0, ${sliderPosition}% 0, ${sliderPosition}% 100%, 0 100%)`
-                        }}
-                      >
+                    {/* Edited Image */}
+                    <div className="space-y-3">
+                      <div className="relative">
                         <img
                           src={editedImage}
                           alt="Edited"
-                          className="absolute inset-0 w-full h-full object-cover"
+                          className="w-full h-64 sm:h-80 object-cover rounded-xl border-2 border-emerald-200"
                         />
-                      </div>
-
-                      {/* Slider Handle */}
-                      <div
-                        className="absolute inset-y-0 w-1 bg-white shadow-lg z-10"
-                        style={{ left: `${sliderPosition}%` }}
-                      >
-                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white border-2 border-blue-500 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform">
-                          <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
+                        <div className="absolute top-3 right-3 bg-emerald-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                          AI {selectedEditType === 'object-remover' ? 'Removed' : 'Enhanced'}
                         </div>
                       </div>
-
-                      {/* Center Line */}
-                      <div
-                        className="absolute top-0 bottom-0 w-0.5 bg-blue-500 z-20"
-                        style={{ left: `${sliderPosition}%` }}
-                      />
-
-                      {/* Labels */}
-                      <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">
-                        Before
-                      </div>
-                      <div className="absolute top-4 right-4 bg-emerald-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                        After
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="p-6 bg-slate-50 border-t border-slate-200">
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <button
-                        onClick={() => downloadImage(originalImage, 'original-image.jpg')}
-                        className="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center"
-                      >
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Download Original
-                      </button>
-                      <button
-                        onClick={() => downloadImage(editedImage, 'ai-enhanced-image.jpg')}
-                        className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center"
-                      >
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Download Enhanced
-                      </button>
                     </div>
                   </div>
                 </div>
 
+                {/* Action Buttons */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Delete Button */}
+                  <button
+                    onClick={() => {
+                      setEditedImage(null);
+                      setOriginalImage(null);
+                      setSelectedImageUrl(null);
+                      setAgentInstruction('');
+                      setSelectedEditType(null);
+                    }}
+                    className="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete Result
+                  </button>
+
+                  {/* Download Original Button */}
+                  <button
+                    onClick={() => downloadImage(originalImage, 'original-image.jpg')}
+                    className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download Original
+                  </button>
+
+                  {/* Download Enhanced Button */}
+                  <button
+                    onClick={() => downloadImage(editedImage, `ai-${selectedEditType === 'object-remover' ? 'removed' : 'enhanced'}-image.jpg`)}
+                    className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download {selectedEditType === 'object-remover' ? 'Removed' : 'Enhanced'}
+                  </button>
+                </div>
+
+                {/* Save to Gallery Option */}
+                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-blue-800">Save to Gallery</h4>
+                        <p className="text-xs text-blue-600">Keep this result in your uploaded images for future use</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        try {
+                          // Download the edited image as a blob
+                          const response = await fetch(editedImage);
+                          const blob = await response.blob();
+
+                          // Upload to Supabase storage
+                          const timestamp = Date.now();
+                          const fileName = `saved-${timestamp}-ai-${selectedEditType === 'object-remover' ? 'removed' : 'enhanced'}.jpg`;
+
+                          const { data, error } = await supabase.storage
+                            .from('images')
+                            .upload(fileName, blob, {
+                              contentType: 'image/jpeg',
+                              cacheControl: '3600',
+                            });
+
+                          if (error) throw error;
+
+                          // Refresh the uploaded images list
+                          await loadUploadedImages();
+                          alert('Image saved to your gallery successfully!');
+                        } catch (error) {
+                          console.error('Error saving to gallery:', error);
+                          alert('Failed to save image to gallery. Please try again.');
+                        }
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+
                 {/* Success Message */}
-                <div className="mt-6 sm:mt-8 text-center">
+                <div className="mt-6 text-center">
                   <div className="inline-flex items-center bg-emerald-100 border border-emerald-200 rounded-full px-4 py-2 sm:px-6 sm:py-3">
                     <svg className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 mr-2 sm:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span className="text-emerald-800 font-medium text-sm sm:text-base">Your image has been successfully enhanced with AI!</span>
+                    <span className="text-emerald-800 font-medium text-sm sm:text-base">
+                      Your image has been successfully {selectedEditType === 'object-remover' ? 'processed for object removal' : 'enhanced'} with AI!
+                    </span>
                   </div>
                 </div>
               </div>

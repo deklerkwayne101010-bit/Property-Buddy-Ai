@@ -26,6 +26,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     { href: '/photo-editor', label: 'AI Photo Editor', icon: '🖼️' },
     { href: '/video-generator', label: 'AI Video Generator', icon: '🎥' },
     { href: '/property-descriptions', label: 'AI Property Descriptions', icon: '📝' },
+    { href: '/ai-chat', label: 'AI Chat Assistant', icon: '💬' },
+    { href: '/templates', label: 'Templates', icon: '📋' },
+    { href: '/marketing-materials', label: 'Marketing Materials', icon: '📢' },
     { href: '/crm', label: 'CRM', icon: '👥' },
   ];
 

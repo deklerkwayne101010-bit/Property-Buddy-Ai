@@ -10,12 +10,13 @@ export const config = {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { imageUrl, prompt } = body;
+    const { imageUrl, prompt, editType } = body;
 
     // Detailed logging for input parameters
     console.log('=== Replicate API Edit Request ===');
     console.log('Image URL:', imageUrl);
     console.log('Prompt:', prompt);
+    console.log('Edit Type:', editType);
 
     if (!imageUrl || !prompt) {
       return NextResponse.json({ error: 'imageUrl and prompt are required' }, { status: 400 });
@@ -30,23 +31,44 @@ export async function POST(request: NextRequest) {
     const imagePublicUrl = imageUrl;
     console.log('Using provided image URL:', imagePublicUrl);
 
-    // Prepare Replicate API request body with public URLs
-    // Using the correct format for FLUX models
-    const requestBody = {
-      input: {
-        prompt: prompt,
-        input_image: imagePublicUrl,
-        aspect_ratio: "match_input_image",
-        output_format: "jpg",
-        safety_tolerance: 2,
-        prompt_upsampling: false
-      }
-    };
+    // Choose the appropriate model based on edit type
+    const isObjectRemover = editType === 'object-remover';
+    const modelUrl = isObjectRemover
+      ? 'https://api.replicate.com/v1/models/qwen/qwen2-vl-72b-instruct/predictions'
+      : 'https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions';
 
+    // Prepare Replicate API request body based on model
+    let requestBody;
+    if (isObjectRemover) {
+      // Qwen Image Editor for object removal
+      requestBody = {
+        input: {
+          image: imagePublicUrl,
+          prompt: prompt,
+          negative_prompt: "blurry, low quality, distorted",
+          guidance_scale: 7.5,
+          num_inference_steps: 20
+        }
+      };
+    } else {
+      // FLUX Pro for image enhancement
+      requestBody = {
+        input: {
+          prompt: prompt,
+          input_image: imagePublicUrl,
+          aspect_ratio: "match_input_image",
+          output_format: "jpg",
+          safety_tolerance: 2,
+          prompt_upsampling: false
+        }
+      };
+    }
+
+    console.log('Using model:', isObjectRemover ? 'Qwen Image Editor' : 'FLUX Pro');
     console.log('Replicate API request body:', JSON.stringify(requestBody, null, 2));
 
     // Call Replicate API
-    const replicateResponse = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions', {
+    const replicateResponse = await fetch(modelUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${replicateToken}`,

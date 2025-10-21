@@ -30,6 +30,13 @@ export default function DashboardPage() {
       color: 'from-emerald-500 to-teal-600'
     },
     {
+      title: 'AI Chat Assistant',
+      description: 'Get instant real estate advice',
+      href: '/ai-chat',
+      icon: '💬',
+      color: 'from-cyan-500 to-blue-600'
+    },
+    {
       title: 'CRM Dashboard',
       description: 'Manage leads and properties',
       href: '/crm',
