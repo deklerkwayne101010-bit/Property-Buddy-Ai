@@ -2,19 +2,31 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../../../../lib/supabase';
 import { createSecurityHeaders, logSecurityEvent } from '../../../../lib/security';
 
+interface WebhookEvent {
+  type: string;
+  data: {
+    id: string;
+    amount: number;
+    currency: string;
+    status: string;
+    metadata?: Record<string, unknown>;
+    checkoutId?: string;
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Get raw body for webhook signature verification
     const rawBody = await request.text();
-    const signature = request.headers.get('x-yoco-signature');
+    // const signature = request.headers.get('x-yoco-signature'); // TODO: Implement signature verification
 
     // Verify webhook signature (recommended for production)
     // For now, we'll trust the request but you should implement signature verification
 
-    let eventData;
+    let eventData: WebhookEvent;
     try {
-      eventData = JSON.parse(rawBody);
-    } catch (error) {
+      eventData = JSON.parse(rawBody) as WebhookEvent;
+    } catch {
       return NextResponse.json(
         { error: 'Invalid JSON payload' },
         { status: 400, headers: createSecurityHeaders() }
@@ -34,15 +46,15 @@ export async function POST(request: NextRequest) {
     // Handle different webhook event types
     switch (type) {
       case 'payment.succeeded':
-        await handlePaymentSucceeded(data);
+        await handlePaymentSucceeded(data as PaymentData);
         break;
 
       case 'payment.failed':
-        await handlePaymentFailed(data);
+        await handlePaymentFailed(data as PaymentData);
         break;
 
       case 'payment.cancelled':
-        await handlePaymentCancelled(data);
+        await handlePaymentCancelled(data as PaymentData);
         break;
 
       default:
@@ -70,7 +82,16 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handlePaymentSucceeded(paymentData: any) {
+interface PaymentData {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  metadata?: Record<string, unknown>;
+  checkoutId?: string;
+}
+
+async function handlePaymentSucceeded(paymentData: PaymentData) {
   const { id: paymentId, amount, currency, metadata } = paymentData;
 
   try {
@@ -132,7 +153,7 @@ async function handlePaymentSucceeded(paymentData: any) {
   }
 }
 
-async function handlePaymentFailed(paymentData: any) {
+async function handlePaymentFailed(paymentData: PaymentData) {
   const { id: paymentId, metadata } = paymentData;
 
   try {
@@ -160,7 +181,7 @@ async function handlePaymentFailed(paymentData: any) {
   }
 }
 
-async function handlePaymentCancelled(paymentData: any) {
+async function handlePaymentCancelled(paymentData: PaymentData) {
   const { id: paymentId, metadata } = paymentData;
 
   try {
@@ -188,19 +209,19 @@ async function handlePaymentCancelled(paymentData: any) {
   }
 }
 
-async function handleSubscriptionPayment(metadata: any, amount: number) {
+async function handleSubscriptionPayment(metadata: Record<string, unknown> | undefined, amount: number) {
   // Handle subscription payment logic
   // Update user subscription status, extend expiry, etc.
   console.log('Processing subscription payment:', metadata, amount);
 }
 
-async function handleCreditsPurchase(metadata: any, amount: number) {
+async function handleCreditsPurchase(metadata: Record<string, unknown> | undefined, amount: number) {
   // Handle AI credits purchase
   // Add credits to user account
   console.log('Processing credits purchase:', metadata, amount);
 }
 
-async function handleTemplatePurchase(metadata: any, amount: number) {
+async function handleTemplatePurchase(metadata: Record<string, unknown> | undefined, amount: number) {
   // Handle template purchase
   // Grant access to template
   console.log('Processing template purchase:', metadata, amount);

@@ -19,10 +19,17 @@ interface CheckoutRequest {
   amount: number;
   currency: string;
   description?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
-async function createYocoCheckout(checkoutData: CheckoutRequest): Promise<any> {
+interface YocoCheckoutResponse {
+  id: string;
+  redirectUrl: string;
+  amount: number;
+  currency: string;
+}
+
+async function createYocoCheckout(checkoutData: CheckoutRequest): Promise<YocoCheckoutResponse> {
   const yocoSecretKey = process.env.YOCO_SECRET_KEY;
 
   if (!yocoSecretKey) {
