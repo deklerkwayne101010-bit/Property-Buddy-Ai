@@ -47,7 +47,7 @@ export default function AdminDashboard() {
 
     try {
       // Check if user is admin (you can modify this logic)
-      const adminEmails = ['admin@propertybuddy.ai', 'wayne@propertybuddy.ai']; // Add your admin emails
+      const adminEmails = ['deklerkwayne101010@gmail.com', 'admin@propertybuddy.ai', 'wayne@propertybuddy.ai']; // Add your admin emails
       const isUserAdmin = adminEmails.includes(user.email || '');
 
       if (!isUserAdmin) {
