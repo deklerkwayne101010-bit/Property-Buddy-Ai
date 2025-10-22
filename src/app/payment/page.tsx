@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import DashboardLayout from '../../components/DashboardLayout';
 import ProtectedRoute from '../../components/ProtectedRoute';
@@ -166,7 +166,7 @@ const paymentPlans: PaymentPlan[] = [
   }
 ];
 
-export default function PaymentPage() {
+function PaymentPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
@@ -657,5 +657,13 @@ export default function PaymentPage() {
         </div>
       </DashboardLayout>
     </ProtectedRoute>
+  );
+}
+
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PaymentPageContent />
+    </Suspense>
   );
 }
