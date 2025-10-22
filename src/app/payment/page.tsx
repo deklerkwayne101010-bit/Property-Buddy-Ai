@@ -106,7 +106,7 @@ const paymentPlans: PaymentPlan[] = [
     currency: 'ZAR',
     interval: 'month',
     features: [
-      '180 credits included',
+      '200 credits included',
       'Supports up to 150 photo edits',
       'Generate 7–8 AI property videos',
       'Unlimited access to premium templates',
@@ -121,7 +121,7 @@ const paymentPlans: PaymentPlan[] = [
     currency: 'ZAR',
     interval: 'year',
     features: [
-      '180 credits included monthly',
+      '200 credits included monthly',
       'Supports up to 150 photo edits',
       'Generate 7–8 AI property videos',
       'Unlimited access to premium templates',
@@ -139,7 +139,7 @@ const paymentPlans: PaymentPlan[] = [
     currency: 'ZAR',
     interval: 'month',
     features: [
-      '350 credits included',
+      '400 credits included',
       'Supports 300 photo edits',
       'Generate 12+ AI videos',
       'Team & multi-agent access',
@@ -154,7 +154,7 @@ const paymentPlans: PaymentPlan[] = [
     currency: 'ZAR',
     interval: 'year',
     features: [
-      '350 credits included monthly',
+      '400 credits included monthly',
       'Supports 300 photo edits',
       'Generate 12+ AI videos',
       'Team & multi-agent access',
