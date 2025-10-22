@@ -205,8 +205,8 @@ export async function POST(request: NextRequest) {
     const now = new Date().toISOString();
     const newLead = {
       ...leadData,
-      createdAt: now,
-      updatedAt: now
+      created_at: now,
+      updated_at: now
     };
 
     const { data, error } = await supabase
