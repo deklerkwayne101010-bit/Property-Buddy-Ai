@@ -203,8 +203,12 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date().toISOString();
+    // Remove contactNumber and leadStage from leadData and map to database column names
+    const { contactNumber, leadStage, ...leadDataWithoutMappedFields } = leadData;
     const newLead = {
-      ...leadData,
+      ...leadDataWithoutMappedFields,
+      contact_number: contactNumber, // Map to database column name
+      lead_stage: leadStage, // Map to database column name
       created_at: now,
       updated_at: now
     };

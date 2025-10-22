@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Sidebar from './Sidebar';
+import CreditBalance from './CreditBalance';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -22,6 +23,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
+      </div>
+
+      {/* Credit Balance - Top Right */}
+      <div className="fixed top-4 right-4 z-50">
+        <CreditBalance />
       </div>
 
       <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(false)} />

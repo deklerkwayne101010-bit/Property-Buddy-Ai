@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../contexts/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -13,9 +14,11 @@ interface ChatMessage {
 }
 
 export default function AIChatPage() {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [hasAccess, setHasAccess] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -25,6 +28,27 @@ export default function AIChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    // Check user subscription for AI Chat access
+    const checkAccess = async () => {
+      if (!user) return;
+
+      try {
+        const response = await fetch(`/api/credits?userId=${user.id}`);
+        const data = await response.json();
+
+        // Allow access if user has any paid subscription (not free tier)
+        const hasPaidAccess = data.subscriptionTier && data.subscriptionTier !== 'free';
+        setHasAccess(hasPaidAccess);
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+        setHasAccess(false);
+      }
+    };
+
+    checkAccess();
+  }, [user]);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,20 +108,66 @@ export default function AIChatPage() {
     <ProtectedRoute>
       <DashboardLayout>
         <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <motion.div
-            className="text-center py-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-              AI Real Estate Assistant
-            </h1>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              Get instant help with property questions, market analysis, and real estate advice.
-            </p>
-          </motion.div>
+          {/* Access Check */}
+          {!hasAccess ? (
+            <motion.div
+              className="text-center py-16"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
+                Premium Feature
+              </h1>
+              <p className="text-xl text-slate-600 max-w-2xl mx-auto mb-8">
+                AI Chat Assistant is available with paid subscriptions. Upgrade your plan to unlock intelligent real estate assistance.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <a
+                  href="/payment"
+                  className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  View Pricing Plans
+                </a>
+                <a
+                  href="/dashboard"
+                  className="border border-slate-300 text-slate-700 px-8 py-3 rounded-lg font-semibold hover:bg-slate-50 transition-colors"
+                >
+                  Back to Dashboard
+                </a>
+              </div>
+            </motion.div>
+          ) : (
+            <>
+              {/* Header */}
+              <motion.div
+                className="text-center py-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+              >
+                <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
+                  AI Real Estate Assistant
+                </h1>
+                <p className="text-xl text-slate-600 max-w-2xl mx-auto mb-4">
+                  Get instant help with property questions, market analysis, and real estate advice.
+                </p>
+
+                {/* Cost Display */}
+                <div className="inline-flex items-center bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-full px-4 py-2">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 bg-cyan-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">💬</span>
+                    </div>
+                    <span className="text-cyan-800 font-semibold text-sm">FREE with subscription</span>
+                  </div>
+                </div>
+              </motion.div>
 
           {/* Chat Container */}
           <motion.div
@@ -239,7 +309,9 @@ export default function AIChatPage() {
                 </button>
               ))}
             </div>
-          </motion.div>
+              </motion.div>
+            </>
+          )}
         </div>
       </DashboardLayout>
     </ProtectedRoute>

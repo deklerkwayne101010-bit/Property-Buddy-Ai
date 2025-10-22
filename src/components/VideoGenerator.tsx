@@ -152,6 +152,7 @@ export default function VideoGenerator() {
         },
         body: JSON.stringify({
           imageUrls: selectedImages.map(img => img.file_url),
+          userId: user?.id,
         }),
       });
 
@@ -207,7 +208,17 @@ export default function VideoGenerator() {
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Video Generator</h1>
-        <p className="text-gray-600">Upload property images and create stunning AI-generated videos</p>
+        <p className="text-gray-600 mb-4">Upload property images and create stunning AI-generated videos</p>
+
+        {/* Cost Display */}
+        <div className="inline-flex items-center bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-full px-4 py-2">
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-bold">🎥</span>
+            </div>
+            <span className="text-orange-800 font-semibold text-sm">4 Credits per video</span>
+          </div>
+        </div>
       </div>
 
       {/* Image Upload Section */}

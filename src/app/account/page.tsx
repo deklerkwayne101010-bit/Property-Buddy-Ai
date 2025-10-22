@@ -101,22 +101,23 @@ export default function AccountPage() {
     {
       id: 'starter',
       name: 'Starter',
-      price: '$9',
+      price: 'R150',
       period: '/month',
       description: 'Perfect for individual agents',
-      icon: '🚀',
+      icon: '💼',
       gradient: 'from-green-400 to-blue-500',
       features: [
-        '50 photo edits/month',
-        'Basic AI enhancement',
-        'Property descriptions',
-        'Email support',
-        'Basic analytics'
+        '35 credits included',
+        'Up to 25 photo edits per month',
+        'Generate 2 AI property videos (30 seconds each)',
+        'Access to basic property templates',
+        'Email support'
       ],
       limits: {
-        photos: '50/month',
-        videos: '5/month',
-        properties: '25/month'
+        credits: '35/month',
+        photos: '25/month',
+        videos: '2/month',
+        templates: 'Basic'
       },
       popular: false,
       current: false
@@ -124,23 +125,23 @@ export default function AccountPage() {
     {
       id: 'pro',
       name: 'Pro',
-      price: '$29',
+      price: 'R299',
       period: '/month',
-      description: 'Perfect for growing real estate businesses',
-      icon: '💎',
+      description: 'Designed for about 3 listings per month',
+      icon: '🚀',
       gradient: 'from-blue-500 to-purple-600',
       features: [
-        'Unlimited photo edits',
-        'AI video generation',
-        'CRM integration',
-        'Priority support',
-        'Advanced analytics',
-        'Custom branding'
+        '80 credits included',
+        '60+ photo edits',
+        'Generate 3–4 AI property videos',
+        'Access to premium templates',
+        'Priority email & chat support'
       ],
       limits: {
-        photos: 'Unlimited',
-        videos: '50/month',
-        properties: 'Unlimited'
+        credits: '80/month',
+        photos: '60+/month',
+        videos: '3-4/month',
+        templates: 'Premium'
       },
       popular: true,
       current: true
@@ -148,23 +149,49 @@ export default function AccountPage() {
     {
       id: 'elite',
       name: 'Elite',
-      price: '$99',
+      price: 'R599',
       period: '/month',
-      description: 'For enterprise real estate teams',
-      icon: '🏆',
+      description: 'For high-volume real estate professionals',
+      icon: '🏡',
       gradient: 'from-purple-600 to-pink-600',
       features: [
-        'Everything in Pro',
-        'White-label solution',
-        'API access',
-        'Dedicated account manager',
-        'Custom integrations',
-        'Advanced AI models'
+        '180 credits included',
+        '150+ photo edits',
+        'Generate 7–8 AI property videos',
+        'Unlimited premium templates',
+        'Team collaboration tools',
+        'Priority support'
       ],
       limits: {
-        photos: 'Unlimited',
-        videos: 'Unlimited',
-        properties: 'Unlimited'
+        credits: '180/month',
+        photos: '150+/month',
+        videos: '7-8/month',
+        templates: 'Unlimited'
+      },
+      popular: false,
+      current: false
+    },
+    {
+      id: 'agency',
+      name: 'Agency+',
+      price: 'R999',
+      period: '/month',
+      description: 'For agencies and large teams',
+      icon: '🏢',
+      gradient: 'from-orange-500 to-red-600',
+      features: [
+        '350 credits included',
+        '300+ photo edits',
+        'Generate 12+ AI videos',
+        'Team & multi-agent access',
+        'Custom branding & template setup',
+        'Dedicated support'
+      ],
+      limits: {
+        credits: '350/month',
+        photos: '300+/month',
+        videos: '12+/month',
+        templates: 'Custom'
       },
       popular: false,
       current: false

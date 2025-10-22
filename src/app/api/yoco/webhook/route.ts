@@ -212,13 +212,167 @@ async function handlePaymentCancelled(paymentData: PaymentData) {
 async function handleSubscriptionPayment(metadata: Record<string, unknown> | undefined, amount: number) {
   // Handle subscription payment logic
   // Update user subscription status, extend expiry, etc.
-  console.log('Processing subscription payment:', metadata, amount);
+  if (!metadata?.userId || !metadata?.planId) {
+    console.error('Missing userId or planId in subscription metadata');
+    return;
+  }
+
+  try {
+    // Calculate subscription duration based on plan
+    const planId = metadata.planId as string;
+    let subscriptionTier = 'starter';
+    let creditsToAdd = 0;
+
+    if (planId.includes('pro')) {
+      subscriptionTier = 'pro';
+      creditsToAdd = 100; // Monthly credits for Pro plan
+    } else if (planId.includes('elite')) {
+      subscriptionTier = 'elite';
+      creditsToAdd = 180; // Monthly credits for Elite plan
+    } else if (planId.includes('agency')) {
+      subscriptionTier = 'agency';
+      creditsToAdd = 350; // Monthly credits for Agency plan
+    } else {
+      creditsToAdd = 5; // Free plan
+    }
+
+    // First get current credits (or create profile if it doesn't exist)
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('credits_balance')
+      .eq('id', metadata.userId)
+      .single();
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.error('Error fetching user profile:', profileError);
+      return;
+    }
+
+    const currentCredits = profile?.credits_balance || 0;
+    const newCredits = currentCredits + creditsToAdd;
+
+    // Update user subscription tier and add monthly credits
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .upsert({
+        id: metadata.userId,
+        subscription_tier: subscriptionTier === 'starter' && creditsToAdd === 5 ? 'free' : subscriptionTier,
+        credits_balance: newCredits
+      });
+
+    if (updateError) {
+      console.error('Error updating subscription:', updateError);
+      return;
+    }
+
+    // Log the subscription activation
+    const { error: billingError } = await supabase
+      .from('billing_history')
+      .insert({
+        user_id: metadata.userId,
+        amount: amount / 100, // Convert cents to rand
+        currency: 'ZAR',
+        status: 'completed',
+        description: `Subscription: ${subscriptionTier} plan - ${creditsToAdd} monthly credits added`
+      });
+
+    if (billingError) {
+      console.error('Error logging subscription:', billingError);
+    }
+
+    console.log(`Activated ${subscriptionTier} subscription for user ${metadata.userId}, added ${creditsToAdd} credits`);
+  } catch (error) {
+    console.error('Error processing subscription payment:', error);
+  }
 }
 
 async function handleCreditsPurchase(metadata: Record<string, unknown> | undefined, amount: number) {
   // Handle AI credits purchase
-  // Add credits to user account
-  console.log('Processing credits purchase:', metadata, amount);
+  // Add credits to user account based on package purchased
+  if (!metadata?.userId || !metadata?.packageId) {
+    console.error('Missing userId or packageId in metadata for credits purchase');
+    return;
+  }
+
+  try {
+    const packageId = metadata.packageId as string;
+
+    // Define credit packages (matching frontend)
+    const creditPackages: Record<string, number> = {
+      '50': 50,
+      '100': 100,
+      '200': 200,
+      '300': 300
+    };
+
+    const creditsToAdd = creditPackages[packageId];
+    if (!creditsToAdd) {
+      console.error('Invalid package ID:', packageId);
+      return;
+    }
+
+    // First get current credits (or create profile if it doesn't exist)
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('credits_balance')
+      .eq('id', metadata.userId)
+      .single();
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.error('Error fetching user profile:', profileError);
+      return;
+    }
+
+    const currentCredits = profile?.credits_balance || 0;
+    const newCredits = currentCredits + creditsToAdd;
+
+    // Update or insert user credits in profiles table
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .upsert({
+        id: metadata.userId,
+        credits_balance: newCredits,
+        subscription_tier: 'starter' // Default tier if not set
+      });
+
+    if (updateError) {
+      console.error('Error updating user credits:', updateError);
+      return;
+    }
+
+    // Log the credit transaction
+    const { error: logError } = await supabase
+      .from('usage_tracking')
+      .insert({
+        user_id: metadata.userId,
+        feature: 'credit_purchase',
+        credits_used: -creditsToAdd, // Negative to indicate addition
+        created_at: new Date().toISOString()
+      });
+
+    if (logError) {
+      console.error('Error logging credit transaction:', logError);
+    }
+
+    // Log the billing transaction
+    const { error: billingError } = await supabase
+      .from('billing_history')
+      .insert({
+        user_id: metadata.userId,
+        amount: amount / 100, // Convert cents to rand
+        currency: 'ZAR',
+        status: 'completed',
+        description: `Credit purchase: ${creditsToAdd} credits`
+      });
+
+    if (billingError) {
+      console.error('Error logging billing transaction:', billingError);
+    }
+
+    console.log(`Added ${creditsToAdd} credits to user ${metadata.userId} for package ${packageId}`);
+  } catch (error) {
+    console.error('Error processing credits purchase:', error);
+  }
 }
 
 async function handleTemplatePurchase(metadata: Record<string, unknown> | undefined, amount: number) {

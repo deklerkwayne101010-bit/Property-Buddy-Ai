@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Transaction {
   id: string;
@@ -25,11 +26,15 @@ interface PaymentMethod {
 }
 
 export default function BillingTab() {
+  const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'subscription' | 'credit_purchase' | 'refund'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'pending' | 'failed'>('all');
+  const [showCreditPurchase, setShowCreditPurchase] = useState(false);
+  const [creditPackage, setCreditPackage] = useState<'50' | '100' | '200' | '300'>('100');
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   useEffect(() => {
     loadBillingData();
@@ -39,10 +44,13 @@ export default function BillingTab() {
     try {
       const response = await fetch('/api/billing');
       const data = await response.json();
-      setTransactions(data.transactions);
-      setPaymentMethods(data.paymentMethods);
+      setTransactions(data.transactions || []);
+      setPaymentMethods(data.paymentMethods || []);
     } catch (error) {
       console.error('Error loading billing data:', error);
+      // Set empty arrays as fallback
+      setTransactions([]);
+      setPaymentMethods([]);
     } finally {
       setLoading(false);
     }
@@ -167,8 +175,103 @@ Status: ${invoiceData.status}
     );
   }
 
+  const handleCreditPurchase = async () => {
+    if (!user) return;
+
+    setProcessingPayment(true);
+    try {
+      const response = await fetch('/api/yoco/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          packageId: creditPackage,
+          userId: user.id,
+          type: 'credit_purchase'
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.checkoutUrl) {
+        // Redirect to YOCO checkout
+        window.location.href = data.checkoutUrl;
+      } else {
+        alert('Failed to create checkout session. Please try again.');
+      }
+    } catch (error) {
+      console.error('Credit purchase error:', error);
+      alert('An error occurred. Please try again.');
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
+  const creditPackages = {
+    '50': { credits: 50, price: 25000, displayPrice: 'R250.00' },
+    '100': { credits: 100, price: 40000, displayPrice: 'R400.00' },
+    '200': { credits: 200, price: 70000, displayPrice: 'R700.00' },
+    '300': { credits: 300, price: 90000, displayPrice: 'R900.00' }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Credit Purchase Section */}
+      <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-xl font-semibold text-slate-900">Purchase AI Credits</h3>
+            <p className="text-slate-600 mt-1">Buy credits to use our AI-powered tools</p>
+          </div>
+          <button
+            onClick={() => setShowCreditPurchase(!showCreditPurchase)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+          >
+            {showCreditPurchase ? 'Hide' : 'Buy Credits'}
+          </button>
+        </div>
+
+        {showCreditPurchase && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="border-t border-slate-200 pt-6"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              {Object.entries(creditPackages).map(([key, pkg]) => (
+                <div
+                  key={key}
+                  onClick={() => setCreditPackage(key as '50' | '100' | '200' | '300')}
+                  className={`cursor-pointer border-2 rounded-lg p-4 transition-all ${
+                    creditPackage === key
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-slate-900">{pkg.credits}</div>
+                    <div className="text-sm text-slate-600">Credits</div>
+                    <div className="text-lg font-semibold text-blue-600 mt-2">{pkg.displayPrice}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-center">
+              <button
+                onClick={handleCreditPurchase}
+                disabled={processingPayment}
+                className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors font-medium"
+              >
+                {processingPayment ? 'Processing...' : `Purchase ${creditPackages[creditPackage].credits} Credits`}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </div>
+
       {/* Payment Methods */}
       <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
         <div className="flex items-center justify-between mb-4">

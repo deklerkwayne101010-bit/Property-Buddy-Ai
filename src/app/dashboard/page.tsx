@@ -49,6 +49,13 @@ export default function DashboardPage() {
       href: '/video-generator',
       icon: '🎥',
       color: 'from-orange-500 to-red-600'
+    },
+    {
+      title: 'Buy Credits',
+      description: 'Purchase credits for AI features',
+      href: '/credits',
+      icon: '💰',
+      color: 'from-green-500 to-emerald-600'
     }
   ];
 

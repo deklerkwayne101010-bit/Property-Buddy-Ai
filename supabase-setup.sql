@@ -81,11 +81,38 @@ CREATE TABLE IF NOT EXISTS billing_history (
 
 -- Create usage_tracking table
 CREATE TABLE IF NOT EXISTS usage_tracking (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  feature TEXT NOT NULL, -- 'photo_edit', 'description_gen', 'video_gen', etc.
-  credits_used INTEGER DEFAULT 1,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+   feature TEXT NOT NULL, -- 'photo_edit', 'description_gen', 'video_gen', etc.
+   credits_used INTEGER DEFAULT 1,
+   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+ );
+
+-- Create payment_sessions table for tracking payment sessions
+CREATE TABLE IF NOT EXISTS payment_sessions (
+   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+   yoco_checkout_id TEXT NOT NULL,
+   amount INTEGER NOT NULL,
+   currency TEXT DEFAULT 'ZAR',
+   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed', 'cancelled')),
+   metadata JSONB,
+   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+   completed_at TIMESTAMP WITH TIME ZONE,
+   failed_at TIMESTAMP WITH TIME ZONE,
+   cancelled_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Create payments table for completed payments
+CREATE TABLE IF NOT EXISTS payments (
+   id TEXT PRIMARY KEY, -- YOCO payment ID
+   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+   amount INTEGER NOT NULL,
+   currency TEXT DEFAULT 'ZAR',
+   status TEXT DEFAULT 'completed' CHECK (status IN ('completed', 'failed', 'cancelled')),
+   payment_method TEXT DEFAULT 'yoco',
+   metadata JSONB,
+   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Create user_media table for storing user uploads (images and voice recordings)
@@ -147,6 +174,8 @@ ALTER TABLE templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE billing_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE usage_tracking ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_media ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies (basic policies - you may want to customize these)
 -- For now, allowing authenticated users to access their own data
@@ -156,6 +185,18 @@ ALTER TABLE user_media ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
 DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can view own templates" ON templates;
+DROP POLICY IF EXISTS "Users can insert own templates" ON templates;
+DROP POLICY IF EXISTS "Users can update own templates" ON templates;
+DROP POLICY IF EXISTS "Users can delete own templates" ON templates;
+DROP POLICY IF EXISTS "Users can view own billing" ON billing_history;
+DROP POLICY IF EXISTS "Users can view own usage" ON usage_tracking;
+DROP POLICY IF EXISTS "Users can view own media" ON user_media;
+DROP POLICY IF EXISTS "Users can insert own media" ON user_media;
+DROP POLICY IF EXISTS "Users can update own media" ON user_media;
+DROP POLICY IF EXISTS "Users can delete own media" ON user_media;
+DROP POLICY IF EXISTS "Users can view own payment sessions" ON payment_sessions;
+DROP POLICY IF EXISTS "Users can view own payments" ON payments;
 
 -- Profiles: Users can only access their own profile
 CREATE POLICY "Users can view own profile" ON profiles
@@ -166,14 +207,6 @@ CREATE POLICY "Users can update own profile" ON profiles
 
 CREATE POLICY "Users can insert own profile" ON profiles
   FOR INSERT WITH CHECK (auth.uid() = id);
-
--- Drop existing policies if they exist (to avoid conflicts)
-DROP POLICY IF EXISTS "Users can view own templates" ON templates;
-DROP POLICY IF EXISTS "Users can insert own templates" ON templates;
-DROP POLICY IF EXISTS "Users can update own templates" ON templates;
-DROP POLICY IF EXISTS "Users can delete own templates" ON templates;
-DROP POLICY IF EXISTS "Users can view own billing" ON billing_history;
-DROP POLICY IF EXISTS "Users can view own usage" ON usage_tracking;
 
 -- Templates: Users can only access their own templates
 CREATE POLICY "Users can view own templates" ON templates
@@ -198,16 +231,24 @@ CREATE POLICY "Users can view own usage" ON usage_tracking
 
 -- User media: Users can only access their own media files
 CREATE POLICY "Users can view own media" ON user_media
-  FOR SELECT USING (auth.uid() = user_id);
+   FOR SELECT USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can insert own media" ON user_media
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
+   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can update own media" ON user_media
-  FOR UPDATE USING (auth.uid() = user_id);
+   FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete own media" ON user_media
-  FOR DELETE USING (auth.uid() = user_id);
+   FOR DELETE USING (auth.uid() = user_id);
+
+-- Payment sessions: Users can only access their own payment sessions
+CREATE POLICY "Users can view own payment sessions" ON payment_sessions
+   FOR SELECT USING (auth.uid() = user_id);
+
+-- Payments: Users can only access their own payment records
+CREATE POLICY "Users can view own payments" ON payments
+   FOR SELECT USING (auth.uid() = user_id);
 
 -- Drop existing policies if they exist (to avoid conflicts)
 DROP POLICY IF EXISTS "Authenticated users can view leads" ON leads;
@@ -218,9 +259,12 @@ DROP POLICY IF EXISTS "Authenticated users can view properties" ON properties;
 DROP POLICY IF EXISTS "Authenticated users can insert properties" ON properties;
 DROP POLICY IF EXISTS "Authenticated users can update properties" ON properties;
 DROP POLICY IF EXISTS "Authenticated users can delete properties" ON properties;
+DROP POLICY IF EXISTS "Authenticated users can upload video assets" ON storage.objects;
+DROP POLICY IF EXISTS "Public can view video assets" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own video assets" ON storage.objects;
 
--- For leads and properties, you might want different policies
--- For now, allowing authenticated users to access all (you can restrict this later)
+-- For leads and properties, allowing authenticated users to access all
+-- This is suitable for a real estate CRM where agents need to manage shared data
 CREATE POLICY "Authenticated users can view leads" ON leads
   FOR SELECT TO authenticated USING (true);
 

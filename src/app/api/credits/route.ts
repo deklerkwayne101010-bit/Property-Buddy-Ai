@@ -32,25 +32,51 @@ export async function POST(request: NextRequest) {
     // Here you would integrate with your payment processor (Stripe, PayPal, etc.)
     // For now, we'll simulate a successful payment
 
-    // Update user credits
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('credits')
+    // Update user credits in profiles table
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('credits_balance')
       .eq('id', userId)
       .single();
 
-    if (userError) {
+    if (profileError) {
+      // If profile doesn't exist, create it with default credits
+      if (profileError.code === 'PGRST116') {
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            credits_balance: 100, // Default credits for new users
+            subscription_tier: 'starter'
+          })
+          .select('credits_balance')
+          .single();
+
+        if (createError) {
+          return NextResponse.json(
+            { error: 'Failed to create user profile' },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          credits: newProfile.credits_balance || 0,
+          added: selectedPackage.credits
+        });
+      }
+
       return NextResponse.json(
-        { error: 'User not found' },
+        { error: 'User profile not found' },
         { status: 404 }
       );
     }
 
-    const newCredits = (user.credits || 0) + selectedPackage.credits;
+    const newCredits = (profile.credits_balance || 0) + selectedPackage.credits;
 
     const { error: updateError } = await supabase
-      .from('users')
-      .update({ credits: newCredits })
+      .from('profiles')
+      .update({ credits_balance: newCredits })
       .eq('id', userId);
 
     if (updateError) {
@@ -60,15 +86,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Log the transaction
+    // Log the transaction in billing_history
     const { error: transactionError } = await supabase
-      .from('credit_transactions')
+      .from('billing_history')
       .insert({
         user_id: userId,
-        package_id: packageId,
-        credits_added: selectedPackage.credits,
-        amount_paid: selectedPackage.price,
-        payment_status: 'completed'
+        amount: selectedPackage.price / 100, // Convert cents to rand
+        currency: selectedPackage.currency,
+        status: 'completed',
+        description: `Credit purchase: ${selectedPackage.credits} credits`
       });
 
     if (transactionError) {
@@ -104,21 +130,45 @@ export async function GET(request: NextRequest) {
 
     const supabase = supabaseAdmin;
 
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('credits')
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('credits_balance')
       .eq('id', userId)
       .single();
 
     if (error) {
+      // If profile doesn't exist, create it with default credits
+      if (error.code === 'PGRST116') {
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            credits_balance: 100, // Default credits for new users
+            subscription_tier: 'starter'
+          })
+          .select('credits_balance')
+          .single();
+
+        if (createError) {
+          return NextResponse.json(
+            { error: 'Failed to create user profile' },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({
+          credits: newProfile.credits_balance || 0
+        });
+      }
+
       return NextResponse.json(
-        { error: 'User not found' },
+        { error: 'User profile not found' },
         { status: 404 }
       );
     }
 
     return NextResponse.json({
-      credits: user.credits || 0
+      credits: profile.credits_balance || 0
     });
 
   } catch (error) {

@@ -46,6 +46,8 @@ async function createYocoCheckout(checkoutData: CheckoutRequest): Promise<YocoCh
       amount: checkoutData.amount,
       currency: checkoutData.currency,
       description: checkoutData.description || 'Property Buddy AI Payment',
+      successUrl: checkoutData.metadata?.successUrl as string,
+      cancelUrl: checkoutData.metadata?.cancelUrl as string,
       metadata: checkoutData.metadata || {},
     }),
   });
@@ -133,6 +135,8 @@ export async function POST(request: NextRequest) {
       metadata: {
         userId: user?.id || 'guest',
         userEmail: user?.email || 'guest@example.com',
+        successUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3041'}/payment?success=true`,
+        cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3041'}/payment?canceled=true`,
         ...metadata
       }
     };

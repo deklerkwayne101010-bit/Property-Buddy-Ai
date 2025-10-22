@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabase } from '../../../lib/supabase';
 import {
   checkRateLimit,
   validateRequestSize,
@@ -7,6 +8,7 @@ import {
   logSecurityEvent,
   filterContent
 } from '../../../lib/security';
+// AI Chat is free with active subscription - no credit deduction needed
 
 // Rate limiting: 20 requests per minute per IP for chat
 const RATE_LIMIT_CONFIG = {
@@ -175,6 +177,11 @@ export async function POST(request: NextRequest) {
         { status: 400, headers: createSecurityHeaders() }
       );
     }
+
+    // Check user subscription tier for feature access
+    // Note: This assumes we have user authentication context
+    // In a real implementation, you'd get the user ID from the session
+    // For now, we'll allow access but this should be restricted based on subscription
 
     // Validate conversation history
     if (conversationHistory && !Array.isArray(conversationHistory)) {

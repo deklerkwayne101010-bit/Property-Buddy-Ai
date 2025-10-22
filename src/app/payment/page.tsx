@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import DashboardLayout from '../../components/DashboardLayout';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import BillingTab from '../../components/BillingTab';
 
 interface PaymentPlan {
   id: string;
@@ -14,63 +15,183 @@ interface PaymentPlan {
   interval: 'month' | 'year';
   features: string[];
   popular?: boolean;
+  savings?: string;
+  monthlyEquivalent?: string;
 }
 
 const paymentPlans: PaymentPlan[] = [
   {
-    id: 'starter',
-    name: 'Starter',
-    price: 9900, // R99 in cents
+    id: 'free',
+    name: 'Free',
+    price: 0, // Free
     currency: 'ZAR',
     interval: 'month',
     features: [
-      '50 AI Photo Edits',
-      '25 Property Descriptions',
-      '5 Video Generations',
-      'Basic Templates',
-      'Email Support'
+      '5 credits included monthly',
+      'Access to AI Photo Editor only',
+      'Basic photo editing features',
+      'Community support'
     ]
   },
   {
-    id: 'professional',
-    name: 'Professional',
-    price: 19900, // R199 in cents
+    id: 'starter-monthly',
+    name: 'Starter',
+    price: 15000, // R150 in cents
+    currency: 'ZAR',
+    interval: 'month',
+    features: [
+      '50 credits included',
+      'Up to 25 photo edits per month',
+      'Generate 2 AI property videos (30 seconds each)',
+      'Access to basic property templates',
+      'Email support'
+    ]
+  },
+  {
+    id: 'starter-yearly',
+    name: 'Starter Annual',
+    price: 144000, // R1,440 in cents (20% discount)
+    currency: 'ZAR',
+    interval: 'year',
+    features: [
+      '50 credits included monthly',
+      'Up to 25 photo edits per month',
+      'Generate 2 AI property videos (30 seconds each)',
+      'Access to basic property templates',
+      'Email support',
+      'Save R360/year (20% off)'
+    ],
+    savings: 'Save 20%',
+    monthlyEquivalent: 'R120/month'
+  },
+  {
+    id: 'pro-monthly',
+    name: 'Pro',
+    price: 29900, // R299 in cents
     currency: 'ZAR',
     interval: 'month',
     popular: true,
     features: [
-      '200 AI Photo Edits',
-      '100 Property Descriptions',
-      '20 Video Generations',
-      'Premium Templates',
-      'CRM Integration',
-      'Priority Support',
-      'Custom Branding'
+      '100 credits included',
+      'Designed for about 3 listings per month',
+      'Allows 60+ photo edits',
+      'Generate 3–4 AI property videos',
+      'Access to premium templates',
+      'Priority email & chat support'
     ]
   },
   {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: 39900, // R399 in cents
+    id: 'pro-yearly',
+    name: 'Pro Annual',
+    price: 287040, // R2,870.40 in cents (20% discount)
+    currency: 'ZAR',
+    interval: 'year',
+    features: [
+      '100 credits included monthly',
+      'Designed for about 3 listings per month',
+      'Allows 60+ photo edits',
+      'Generate 3–4 AI property videos',
+      'Access to premium templates',
+      'Priority email & chat support',
+      'Save R718/year (20% off)'
+    ],
+    savings: 'Save 20%',
+    monthlyEquivalent: 'R239/month'
+  },
+  {
+    id: 'elite-monthly',
+    name: 'Elite',
+    price: 59900, // R599 in cents
     currency: 'ZAR',
     interval: 'month',
     features: [
-      'Unlimited AI Photo Edits',
-      'Unlimited Property Descriptions',
-      'Unlimited Video Generations',
-      'All Templates',
-      'Advanced CRM',
-      'White-label Solution',
-      'Dedicated Support',
-      'API Access'
+      '180 credits included',
+      'Supports up to 150 photo edits',
+      'Generate 7–8 AI property videos',
+      'Unlimited access to premium templates',
+      'Team collaboration tools',
+      'Priority support'
     ]
+  },
+  {
+    id: 'elite-yearly',
+    name: 'Elite Annual',
+    price: 575040, // R5,750.40 in cents (20% discount)
+    currency: 'ZAR',
+    interval: 'year',
+    features: [
+      '180 credits included monthly',
+      'Supports up to 150 photo edits',
+      'Generate 7–8 AI property videos',
+      'Unlimited access to premium templates',
+      'Team collaboration tools',
+      'Priority support',
+      'Save R1,438/year (20% off)'
+    ],
+    savings: 'Save 20%',
+    monthlyEquivalent: 'R480/month'
+  },
+  {
+    id: 'agency-monthly',
+    name: 'Agency+',
+    price: 99900, // R999 in cents
+    currency: 'ZAR',
+    interval: 'month',
+    features: [
+      '350 credits included',
+      'Supports 300 photo edits',
+      'Generate 12+ AI videos',
+      'Team & multi-agent access',
+      'Custom branding & template setup',
+      'Dedicated support'
+    ]
+  },
+  {
+    id: 'agency-yearly',
+    name: 'Agency+ Annual',
+    price: 959040, // R9,590.40 in cents (20% discount)
+    currency: 'ZAR',
+    interval: 'year',
+    features: [
+      '350 credits included monthly',
+      'Supports 300 photo edits',
+      'Generate 12+ AI videos',
+      'Team & multi-agent access',
+      'Custom branding & template setup',
+      'Dedicated support',
+      'Save R2,398/year (20% off)'
+    ],
+    savings: 'Save 20%',
+    monthlyEquivalent: 'R800/month'
   }
 ];
 
 export default function PaymentPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month');
+  const [activeTab, setActiveTab] = useState<'pricing' | 'billing'>('pricing');
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentCanceled, setPaymentCanceled] = useState(false);
+
+  useEffect(() => {
+    // Check for success/cancel parameters in URL
+    const success = searchParams.get('success');
+    const canceled = searchParams.get('canceled');
+
+    if (success === 'true') {
+      setPaymentSuccess(true);
+      setActiveTab('billing');
+      // Clear URL parameters
+      router.replace('/payment', undefined);
+    } else if (canceled === 'true') {
+      setPaymentCanceled(true);
+      // Clear URL parameters
+      router.replace('/payment', undefined);
+    }
+  }, [searchParams, router]);
 
   const handlePayment = async (plan: PaymentPlan) => {
     setSelectedPlan(plan.id);
@@ -127,19 +248,123 @@ export default function PaymentPage() {
     <ProtectedRoute>
       <DashboardLayout>
         <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="text-center py-8">
-            <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-              Choose Your Plan
-            </h1>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              Unlock the full potential of AI-powered real estate tools with our flexible pricing plans.
-            </p>
+          {/* Success/Cancel Messages */}
+          {paymentSuccess && (
+            <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <div>
+                  <h3 className="text-green-800 font-semibold">Payment Successful!</h3>
+                  <p className="text-green-700 text-sm">Your credits have been added to your account.</p>
+                </div>
+                <button
+                  onClick={() => setPaymentSuccess(false)}
+                  className="ml-auto text-green-500 hover:text-green-700"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {paymentCanceled && (
+            <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <svg className="w-5 h-5 text-yellow-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <div>
+                  <h3 className="text-yellow-800 font-semibold">Payment Canceled</h3>
+                  <p className="text-yellow-700 text-sm">Your payment was canceled. No charges were made.</p>
+                </div>
+                <button
+                  onClick={() => setPaymentCanceled(false)}
+                  className="ml-auto text-yellow-500 hover:text-yellow-700"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Tab Navigation */}
+          <div className="mb-8">
+            <div className="border-b border-slate-200">
+              <nav className="-mb-px flex space-x-8">
+                <button
+                  onClick={() => setActiveTab('pricing')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'pricing'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  Pricing Plans
+                </button>
+                <button
+                  onClick={() => setActiveTab('billing')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'billing'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  Billing & Credits
+                </button>
+              </nav>
+            </div>
+          </div>
+
+          {activeTab === 'pricing' ? (
+            <>
+              {/* Header */}
+              <div className="text-center py-8">
+                <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
+                  Choose Your Plan
+                </h1>
+                <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+                  Unlock the full potential of AI-powered real estate tools with our flexible pricing plans.
+                </p>
+              </div>
+
+          {/* Billing Toggle */}
+          <div className="flex items-center justify-center mb-8">
+            <div className="bg-slate-100 p-1 rounded-lg">
+              <button
+                onClick={() => setBillingInterval('month')}
+                className={`px-6 py-2 rounded-md font-medium transition-all duration-200 ${
+                  billingInterval === 'month'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingInterval('year')}
+                className={`px-6 py-2 rounded-md font-medium transition-all duration-200 ${
+                  billingInterval === 'year'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Annual
+                <span className="ml-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                  Save 20%
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* Pricing Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-            {paymentPlans.map((plan) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-12">
+            {paymentPlans.filter(plan => plan.interval === billingInterval || plan.id === 'free').map((plan) => (
               <div
                 key={plan.id}
                 className={`relative bg-white rounded-xl shadow-lg border transition-all duration-300 ${
@@ -161,12 +386,30 @@ export default function PaymentPage() {
                     <h3 className="text-2xl font-bold text-slate-900 mb-2">
                       {plan.name}
                     </h3>
-                    <div className="text-4xl font-bold text-slate-900 mb-1">
-                      {formatPrice(plan.price, plan.currency)}
-                    </div>
+                    {plan.price === 0 ? (
+                      <div className="text-4xl font-bold text-slate-900 mb-1">
+                        Free
+                      </div>
+                    ) : (
+                      <div className="text-4xl font-bold text-slate-900 mb-1">
+                        {formatPrice(plan.price, plan.currency)}
+                      </div>
+                    )}
                     <div className="text-slate-600">
-                      per {plan.interval}
+                      {plan.price === 0 ? 'forever' : `per ${plan.interval}`}
                     </div>
+                    {plan.savings && (
+                      <div className="mt-2">
+                        <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                          {plan.savings}
+                        </span>
+                      </div>
+                    )}
+                    {plan.monthlyEquivalent && (
+                      <div className="text-sm text-slate-500 mt-1">
+                        {plan.monthlyEquivalent} equivalent
+                      </div>
+                    )}
                   </div>
 
                   <ul className="space-y-3 mb-8">
@@ -181,15 +424,19 @@ export default function PaymentPage() {
                   </ul>
 
                   <button
-                    onClick={() => handlePayment(plan)}
-                    disabled={isProcessing}
+                    onClick={() => plan.price === 0 ? null : handlePayment(plan)}
+                    disabled={isProcessing || plan.price === 0}
                     className={`w-full py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
-                      plan.popular
+                      plan.price === 0
+                        ? 'bg-slate-100 text-slate-500 cursor-not-allowed'
+                        : plan.popular
                         ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-900'
                     } disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center`}
                   >
-                    {isProcessing && selectedPlan === plan.id ? (
+                    {plan.price === 0 ? (
+                      'Current Plan'
+                    ) : isProcessing && selectedPlan === plan.id ? (
                       <>
                         <LoadingSpinner size="sm" />
                         <span className="ml-2">Processing...</span>
@@ -206,48 +453,64 @@ export default function PaymentPage() {
           {/* Pay-as-you-go Credits Section */}
           <div className="bg-slate-50 rounded-xl p-8 mb-8">
             <h2 className="text-2xl font-bold text-slate-900 mb-4 text-center">
-              Pay-as-you-go Credits
+              Credit Top-Ups (Pay-As-You-Go)
             </h2>
             <p className="text-slate-600 text-center mb-8">
               Buy credits on-demand to use our AI services. Perfect for occasional users or testing our features.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {[
                 {
-                  id: '100',
-                  name: '100 Credits',
-                  price: 'R199',
-                  usdPrice: '$9.99',
-                  credits: 100,
-                  description: 'Perfect for occasional use',
+                  id: '50',
+                  name: '50 Credits',
+                  price: 'R250',
+                  usdPrice: '$12.50',
+                  credits: 50,
+                  description: 'Perfect for trying out our services',
                   icon: '💰',
                   gradient: 'from-green-400 to-blue-500',
                   popular: false,
-                  savings: null
+                  savings: null,
+                  costPerCredit: 'R5.00'
                 },
                 {
-                  id: '500',
-                  name: '500 Credits',
-                  price: 'R799',
-                  usdPrice: '$39.99',
-                  credits: 500,
-                  description: 'Great value for regular users',
+                  id: '100',
+                  name: '100 Credits',
+                  price: 'R400',
+                  usdPrice: '$20.00',
+                  credits: 100,
+                  description: 'Great for occasional use',
                   icon: '💎',
                   gradient: 'from-blue-500 to-purple-600',
-                  popular: true,
-                  savings: 'Save 20%'
+                  popular: false,
+                  savings: 'Save 20%',
+                  costPerCredit: 'R4.00'
                 },
                 {
-                  id: '1000',
-                  name: '1000 Credits',
-                  price: 'R1,399',
-                  usdPrice: '$69.99',
-                  credits: 1000,
-                  description: 'Best value for power users',
-                  icon: '🏆',
+                  id: '200',
+                  name: '200 Credits',
+                  price: 'R700',
+                  usdPrice: '$35.00',
+                  credits: 200,
+                  description: 'Best value for regular users',
+                  icon: '⭐',
                   gradient: 'from-purple-600 to-pink-600',
+                  popular: true,
+                  savings: 'Save 30%',
+                  costPerCredit: 'R3.50'
+                },
+                {
+                  id: '300',
+                  name: '300 Credits',
+                  price: 'R900',
+                  usdPrice: '$45.00',
+                  credits: 300,
+                  description: 'Ideal for agencies and power users',
+                  icon: '🏆',
+                  gradient: 'from-pink-600 to-red-600',
                   popular: false,
-                  savings: 'Save 30%'
+                  savings: 'Save 40%',
+                  costPerCredit: 'R3.00'
                 }
               ].map((pkg) => (
                 <div
@@ -297,7 +560,7 @@ export default function PaymentPage() {
                       </div>
                       <div className="text-center">
                         <p className="text-slate-700 text-sm">
-                          R{(parseFloat(pkg.price.replace('R', '').replace(',', '')) / pkg.credits * 100).toFixed(0)} per 100 credits
+                          {pkg.costPerCredit} per credit
                         </p>
                       </div>
                     </div>
@@ -334,6 +597,46 @@ export default function PaymentPage() {
             </div>
           </div>
 
+          {/* Notes & Details */}
+          <div className="bg-white rounded-xl p-8 mb-8 border border-slate-200">
+            <h3 className="text-xl font-bold text-slate-900 mb-6 text-center">Notes & Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <p className="text-slate-700 font-medium">Credit Usage</p>
+                    <p className="text-slate-600 text-sm">1 credit = 1 AI image edit</p>
+                    <p className="text-slate-600 text-sm">4 credits = 1 AI video (30 seconds)</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <p className="text-slate-700 font-medium">VAT Included</p>
+                    <p className="text-slate-600 text-sm">All prices include VAT</p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <p className="text-slate-700 font-medium">Billing Cycle</p>
+                    <p className="text-slate-600 text-sm">Monthly subscriptions auto-renew</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <p className="text-slate-700 font-medium">Cancel Anytime</p>
+                    <p className="text-slate-600 text-sm">No long-term contracts</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Security Notice */}
           <div className="text-center text-slate-600">
             <div className="flex items-center justify-center mb-4">
@@ -347,6 +650,10 @@ export default function PaymentPage() {
               Your payment information is never stored on our servers.
             </p>
           </div>
+            </>
+          ) : (
+            <BillingTab />
+          )}
         </div>
       </DashboardLayout>
     </ProtectedRoute>

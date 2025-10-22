@@ -185,6 +185,7 @@ export default function PhotoEditor() {
           imageUrl: selectedImageUrl,
           prompt: agentInstruction,
           editType: selectedEditType,
+          userId: user?.id,
         }),
       });
 
@@ -287,6 +288,21 @@ export default function PhotoEditor() {
                 Photo Editor
               </motion.span>
             </motion.h1>
+
+            {/* Cost Display */}
+            <motion.div
+              className="inline-flex items-center bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-full px-4 py-2 mb-4"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
+            >
+              <div className="flex items-center space-x-2">
+                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">💰</span>
+                </div>
+                <span className="text-blue-800 font-semibold text-sm">1 Credit per edit</span>
+              </div>
+            </motion.div>
             <motion.p
               className="text-xl sm:text-2xl text-slate-600 mb-8 max-w-3xl mx-auto leading-relaxed"
               initial={{ opacity: 0, y: 20 }}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { checkCreditsAndDeduct } from '@/lib/creditUtils';
 
 export const config = {
   api: {
@@ -10,7 +11,21 @@ export const config = {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { imageUrl, prompt, editType } = body;
+    const { imageUrl, prompt, editType, userId } = body;
+
+    // Check credits and deduct for photo editing (1 credit per edit)
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
+
+    const creditResult = await checkCreditsAndDeduct(userId, 1); // 1 credit per photo edit
+    if (!creditResult.success) {
+      return NextResponse.json({
+        error: 'Insufficient credits',
+        details: creditResult.error,
+        currentCredits: creditResult.newCredits
+      }, { status: 402 });
+    }
 
     // Detailed logging for input parameters
     console.log('=== Replicate API Edit Request ===');

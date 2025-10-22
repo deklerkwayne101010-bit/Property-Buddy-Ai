@@ -9,6 +9,7 @@ import {
   logSecurityEvent,
   filterContent
 } from '../../../lib/security';
+import { checkCreditsAndDeduct } from '../../../lib/creditUtils';
 
 // Rate limiting: 10 requests per minute per IP
 const RATE_LIMIT_CONFIG = {
@@ -39,6 +40,7 @@ interface GenerationRequest {
   length: 'Short' | 'Medium' | 'Long';
   variations: number;
   seoKeywords?: string;
+  userId?: string; // Optional for subscription-based access
 }
 
 async function callReplicateAPI(prompt: string): Promise<string> {
@@ -130,7 +132,10 @@ export async function POST(request: NextRequest) {
 
     const body: GenerationRequest = await request.json();
 
-    const { propertyData, platforms, tone, length, variations = 1, seoKeywords } = body;
+    const { propertyData, platforms, tone, length, variations = 1, seoKeywords, userId } = body;
+
+    // Property descriptions are free (no credits required) - they just need active subscription
+    // This is handled by the subscription check in the UI
 
     // Validate required fields
     if (!propertyData || !platforms || platforms.length === 0) {
