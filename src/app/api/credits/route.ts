@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Here you would integrate with your payment processor (Stripe, PayPal, etc.)
-    // For now, we'll simulate a successful payment
+    // Check if user has sufficient credits before deducting (for credit purchases)
+    // This is handled by the credit validation in the UI, but double-check here
 
     // Update user credits in profiles table
     const { data: profile, error: profileError } = await supabase

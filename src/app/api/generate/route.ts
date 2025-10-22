@@ -46,7 +46,8 @@ interface GenerationRequest {
 async function callReplicateAPI(prompt: string): Promise<string> {
   const replicateToken = process.env.REPLICATE_API_TOKEN;
   if (!replicateToken) {
-    throw new Error('Replicate API token not configured');
+    // Fallback response when API is not configured
+    return "This is a sample property description generated for demonstration purposes. The AI service is currently unavailable, but you can see how professional property descriptions would appear here. Please contact support to enable full AI features.";
   }
 
   const response = await fetch('https://api.replicate.com/v1/predictions', {
@@ -134,8 +135,8 @@ export async function POST(request: NextRequest) {
 
     const { propertyData, platforms, tone, length, variations = 1, seoKeywords, userId } = body;
 
-    // Property descriptions are free (no credits required) - they just need active subscription
-    // This is handled by the subscription check in the UI
+    // Property descriptions are free with active subscription - no credits deducted
+    // Access control is handled by subscription tier check in the UI
 
     // Validate required fields
     if (!propertyData || !platforms || platforms.length === 0) {

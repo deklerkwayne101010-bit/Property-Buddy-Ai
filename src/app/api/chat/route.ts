@@ -51,7 +51,8 @@ interface ChatRequest {
 async function callReplicateChatAPI(prompt: string, history: ChatMessage[] = []): Promise<string> {
   const replicateToken = process.env.REPLICATE_API_TOKEN;
   if (!replicateToken) {
-    throw new Error('Replicate API token not configured');
+    // Fallback response when API is not configured
+    return "I'm sorry, but the AI chat service is currently unavailable. Please try again later or contact support for assistance with your real estate questions.";
   }
 
   // Build conversation context
