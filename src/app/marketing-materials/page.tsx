@@ -27,7 +27,7 @@ export default function MarketingMaterialsPage() {
             </div>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">Under Construction</h2>
             <p className="text-slate-600 mb-6 max-w-md mx-auto">
-              The Marketing Materials feature is currently under development. We're building powerful tools to create stunning marketing content.
+              The Marketing Materials feature is currently under development. We&apos;re building powerful tools to create stunning marketing content.
             </p>
             <div className="flex flex-wrap justify-center gap-4 text-sm text-slate-500">
               <span className="flex items-center">
