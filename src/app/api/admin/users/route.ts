@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user is admin (you can modify this logic)
-    const adminEmails = ['admin@propertybuddy.ai', 'wayne@propertybuddy.ai']; // Add your admin emails
+    const adminEmails = ['deklerkwayne101010@gmail.com', 'admin@propertybuddy.ai', 'wayne@propertybuddy.ai']; // Add your admin emails
     if (!adminEmails.includes(user.email || '')) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
