@@ -225,10 +225,30 @@ export default function AccountPage() {
   const handleSaveProfile = async () => {
     setIsSaving(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      alert('Profile updated successfully!');
+      // Update user metadata in Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { error } = await supabase.auth.updateUser({
+          data: {
+            first_name: profileData.firstName,
+            last_name: profileData.lastName,
+            phone: profileData.phone,
+            company: profileData.company,
+            website: profileData.website,
+            bio: profileData.bio
+          }
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        alert('Profile updated successfully!');
+      } else {
+        throw new Error('User not authenticated');
+      }
     } catch (error) {
+      console.error('Error updating profile:', error);
       alert('Failed to update profile. Please try again.');
     } finally {
       setIsSaving(false);
