@@ -46,8 +46,8 @@ export async function POST(request: NextRequest) {
           .from('profiles')
           .insert({
             id: userId,
-            credits_balance: 100, // Default credits for new users
-            subscription_tier: 'starter'
+            credits_balance: 5, // Default credits for new users (free tier)
+            subscription_tier: 'free'
           })
           .select('credits_balance')
           .single();
@@ -143,8 +143,8 @@ export async function GET(request: NextRequest) {
           .from('profiles')
           .insert({
             id: userId,
-            credits_balance: 100, // Default credits for new users
-            subscription_tier: 'starter'
+            credits_balance: 5, // Default credits for new users (free tier)
+            subscription_tier: 'free'
           })
           .select('credits_balance')
           .single();

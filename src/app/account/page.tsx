@@ -11,7 +11,7 @@ export default function AccountPage() {
     const [activeTab, setActiveTab] = useState('profile');
     const [isPurchasing, setIsPurchasing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [userCredits, setUserCredits] = useState(1250);
+    // const [userCredits, setUserCredits] = useState(1250);
     const [usageStats, setUsageStats] = useState({
       photoEdits: { used: 450, total: 1000 },
       videoGeneration: { used: 200, total: 500 },
@@ -44,6 +44,8 @@ export default function AccountPage() {
      autoSave: true,
      dataRetention: '1year'
    });
+   const [currentSubscription, setCurrentSubscription] = useState('free');
+   const [userCredits, setUserCredits] = useState(0);
   useEffect(() => {
      // Load user profile data on component mount
      const loadUserProfile = async () => {
@@ -86,12 +88,35 @@ export default function AccountPage() {
        }
      };
 
+     // Load user subscription
+     const loadUserSubscription = async () => {
+       try {
+         const { data: { user } } = await supabase.auth.getUser();
+         if (user) {
+           const { data: profile } = await supabase
+             .from('profiles')
+             .select('subscription_tier, credits_balance')
+             .eq('id', user.id)
+             .single();
+
+           if (profile) {
+             setCurrentSubscription(profile.subscription_tier || 'free');
+             setUserCredits(profile.credits_balance || 0);
+           }
+         }
+       } catch (error) {
+         console.error('Error loading subscription:', error);
+       }
+     };
+
      loadUserProfile();
      loadCreditsAndUsage();
+     loadUserSubscription();
    }, []);
 
   const tabs = [
     { id: 'profile', label: 'Profile', icon: '👤' },
+    { id: 'subscription', label: 'Subscription', icon: '💎' },
     { id: 'preferences', label: 'Preferences', icon: '⚙️' },
     { id: 'billing', label: 'Billing', icon: '📄' },
     { id: 'security', label: 'Security', icon: '🔒' },
@@ -426,27 +451,120 @@ export default function AccountPage() {
       case 'subscription':
         return (
           <div className="space-y-6">
+            {/* Current Subscription Status */}
             <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+              <h3 className="text-xl font-semibold text-slate-900 mb-6">Current Subscription</h3>
+
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <span className="text-2xl">💎</span>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900 capitalize">
+                      {currentSubscription === 'free' ? 'Free Plan' :
+                       currentSubscription === 'starter' ? 'Starter Plan' :
+                       currentSubscription === 'pro' ? 'Pro Plan' :
+                       currentSubscription === 'elite' ? 'Elite Plan' :
+                       currentSubscription === 'agency' ? 'Agency+ Plan' : 'Unknown Plan'}
+                    </h4>
+                    <p className="text-slate-600 text-sm">
+                      {currentSubscription === 'free' ? '5 credits included' :
+                       currentSubscription === 'starter' ? '50 credits included' :
+                       currentSubscription === 'pro' ? '100 credits included' :
+                       currentSubscription === 'elite' ? '180 credits included' :
+                       currentSubscription === 'agency' ? '350 credits included' : 'Unknown credits'}
+                    </p>
+                  </div>
                 </div>
-                <h4 className="text-lg font-medium text-slate-900 mb-2">Subscription Management Moved</h4>
-                <p className="text-slate-600 mb-6 max-w-md mx-auto">
-                  Subscription plans and billing are now managed through our dedicated payment page for better user experience.
-                </p>
-                <a
-                  href="/payment"
-                  className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-                >
-                  Go to Payment Page
-                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </a>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-slate-900">{userCredits}</div>
+                  <div className="text-sm text-slate-600">Credits Available</div>
+                </div>
               </div>
+            </div>
+
+            {/* Change Subscription */}
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
+              <h3 className="text-xl font-semibold text-slate-900 mb-6">Change Subscription</h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Select New Subscription Tier
+                  </label>
+                  <select
+                    value={currentSubscription}
+                    onChange={(e) => setCurrentSubscription(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="free">Free - 5 credits (AI Photo Editor only)</option>
+                    <option value="starter">Starter - 50 credits (Basic features)</option>
+                    <option value="pro">Pro - 100 credits (Full features)</option>
+                    <option value="elite">Elite - 180 credits (Premium features)</option>
+                    <option value="agency">Agency+ - 350 credits (Enterprise features)</option>
+                  </select>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <h4 className="font-medium text-blue-900">Important Note</h4>
+                      <p className="text-blue-700 text-sm mt-1">
+                        Changing your subscription tier here will update your account immediately.
+                        For paid subscriptions, please use the payment page to upgrade or downgrade with proper billing.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (!user) return;
+
+                        // Update subscription tier
+                        const { error } = await supabase
+                          .from('profiles')
+                          .update({ subscription_tier: currentSubscription })
+                          .eq('id', user.id);
+
+                        if (error) throw error;
+
+                        alert('Subscription updated successfully!');
+                      } catch (error) {
+                        console.error('Error updating subscription:', error);
+                        alert('Failed to update subscription. Please try again.');
+                      }
+                    }}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Update Subscription
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Upgrade Options */}
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
+              <h3 className="text-xl font-semibold text-slate-900 mb-6">Need More Features?</h3>
+              <p className="text-slate-600 mb-6">
+                Upgrade to a paid subscription to unlock all AI features and get more credits.
+              </p>
+              <a
+                href="/payment"
+                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors font-semibold"
+              >
+                View All Plans
+                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
             </div>
           </div>
         );
