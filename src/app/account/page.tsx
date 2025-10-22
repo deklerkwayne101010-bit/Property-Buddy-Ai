@@ -489,41 +489,105 @@ export default function AccountPage() {
               <h3 className="text-xl font-semibold text-slate-900 mb-6">Change Subscription</h3>
 
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Select New Subscription Tier
-                  </label>
-                  <select
-                    value={currentSubscription}
-                    onChange={(e) => setCurrentSubscription(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="free">Free - 5 credits (AI Photo Editor only)</option>
-                    <option value="starter">Starter - 50 credits (Basic features)</option>
-                    <option value="pro">Pro - 100 credits (Full features)</option>
-                    <option value="elite">Elite - 180 credits (Premium features)</option>
-                    <option value="agency">Agency+ - 350 credits (Enterprise features)</option>
-                  </select>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-start space-x-3">
-                    <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
+                    <h4 className="font-medium text-slate-900">Subscription Management</h4>
+                  </div>
+                  <p className="text-slate-600 text-sm">
+                    To change your subscription tier, please visit the{' '}
+                    <a href="/payment" className="text-blue-600 hover:text-blue-700 underline font-medium">
+                      Payment Page
+                    </a>{' '}
+                    where you can upgrade or downgrade with proper billing and credit allocation.
+                  </p>
+                </div>
+
+                <div className="border-t border-slate-200 pt-4">
+                  <h4 className="font-medium text-slate-900 mb-3">Available Plans</h4>
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div>
+                        <div className="font-medium text-green-900">Free Plan</div>
+                        <div className="text-sm text-green-700">5 credits - AI Photo Editor only</div>
+                      </div>
+                      <a href="/payment" className="text-green-600 hover:text-green-700 text-sm underline">
+                        Current Plan
+                      </a>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div>
+                        <div className="font-medium text-blue-900">Starter Plan</div>
+                        <div className="text-sm text-blue-700">50 credits - Basic features</div>
+                      </div>
+                      <a href="/payment" className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors">
+                        Upgrade
+                      </a>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                      <div>
+                        <div className="font-medium text-purple-900">Pro Plan</div>
+                        <div className="text-sm text-purple-700">100 credits - Full features</div>
+                      </div>
+                      <a href="/payment" className="px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 transition-colors">
+                        Upgrade
+                      </a>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-pink-50 border border-pink-200 rounded-lg">
+                      <div>
+                        <div className="font-medium text-pink-900">Elite Plan</div>
+                        <div className="text-sm text-pink-700">180 credits - Premium features</div>
+                      </div>
+                      <a href="/payment" className="px-3 py-1 bg-pink-600 text-white text-sm rounded hover:bg-pink-700 transition-colors">
+                        Upgrade
+                      </a>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <div>
+                        <div className="font-medium text-orange-900">Agency+ Plan</div>
+                        <div className="text-sm text-orange-700">350 credits - Enterprise features</div>
+                      </div>
+                      <a href="/payment" className="px-3 py-1 bg-orange-600 text-white text-sm rounded hover:bg-orange-700 transition-colors">
+                        Upgrade
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <svg className="w-5 h-5 text-amber-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
                     <div>
-                      <h4 className="font-medium text-blue-900">Important Note</h4>
-                      <p className="text-blue-700 text-sm mt-1">
-                        Changing your subscription tier here will update your account immediately.
-                        For paid subscriptions, please use the payment page to upgrade or downgrade with proper billing.
+                      <h4 className="font-medium text-amber-900">Admin Access Only</h4>
+                      <p className="text-amber-700 text-sm mt-1">
+                        This subscription management is for administrative purposes only.
+                        Users should upgrade through the payment page for proper billing and credit allocation.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-slate-600">
+                    For user upgrades with payment processing, use the{' '}
+                    <a href="/payment" className="text-blue-600 hover:text-blue-700 underline">
+                      Payment Page
+                    </a>
+                  </p>
                   <button
                     onClick={async () => {
+                      if (!confirm('Are you sure you want to manually change this subscription tier? This should only be used for administrative purposes.')) {
+                        return;
+                      }
+
                       try {
                         const { data: { user } } = await supabase.auth.getUser();
                         if (!user) return;
@@ -537,14 +601,26 @@ export default function AccountPage() {
                         if (error) throw error;
 
                         alert('Subscription updated successfully!');
+
+                        // Reload subscription data
+                        const { data: profile } = await supabase
+                          .from('profiles')
+                          .select('subscription_tier, credits_balance')
+                          .eq('id', user.id)
+                          .single();
+
+                        if (profile) {
+                          setCurrentSubscription(profile.subscription_tier || 'free');
+                          setUserCredits(profile.credits_balance || 0);
+                        }
                       } catch (error) {
                         console.error('Error updating subscription:', error);
                         alert('Failed to update subscription. Please try again.');
                       }
                     }}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
                   >
-                    Update Subscription
+                    Admin Update Only
                   </button>
                 </div>
               </div>
