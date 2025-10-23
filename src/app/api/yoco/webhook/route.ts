@@ -128,12 +128,16 @@ async function handlePaymentSucceeded(paymentData: PaymentData) {
     }
 
     // Handle different payment types based on metadata
+    console.log('Processing payment with metadata:', metadata);
     if (metadata?.type === 'subscription') {
       await handleSubscriptionPayment(metadata, amount);
     } else if (metadata?.type === 'credits') {
+      console.log('Processing credits purchase');
       await handleCreditsPurchase(metadata, amount);
     } else if (metadata?.type === 'template') {
       await handleTemplatePurchase(metadata, amount);
+    } else {
+      console.log('Unknown payment type:', metadata?.type);
     }
 
     logSecurityEvent('PAYMENT_SUCCEEDED', {
@@ -289,6 +293,7 @@ async function handleSubscriptionPayment(metadata: Record<string, unknown> | und
 async function handleCreditsPurchase(metadata: Record<string, unknown> | undefined, amount: number) {
   // Handle AI credits purchase
   // Add credits to user account based on package purchased
+  console.log('handleCreditsPurchase called with metadata:', metadata);
   if (!metadata?.userId || !metadata?.packageId) {
     console.error('Missing userId or packageId in metadata for credits purchase');
     return;
