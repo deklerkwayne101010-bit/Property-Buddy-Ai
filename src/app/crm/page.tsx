@@ -100,11 +100,11 @@ export default function CRMPage() {
    // Load data on mount and when filters change
    useEffect(() => {
      fetchLeads(); // Call directly instead of debounced version for initial load
-   }, [filterStage, leadsSearch]);
+   }, [fetchLeads]);
 
    useEffect(() => {
      fetchProperties(); // Call directly instead of debounced version for initial load
-   }, [propertyTypeFilter, propertiesSearch, minPrice, maxPrice]);
+   }, [fetchProperties]);
 
    const handleAddLead = async (leadData: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>) => {
      try {
