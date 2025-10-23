@@ -408,7 +408,7 @@ function PaymentPageContent() {
           </div>
 
           {/* Pricing Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
             {paymentPlans.filter(plan => plan.interval === billingInterval || plan.id === 'free').map((plan) => (
               <div
                 key={plan.id}
@@ -426,44 +426,44 @@ function PaymentPageContent() {
                   </div>
                 )}
 
-                <div className="p-8">
-                  <div className="text-center mb-6">
-                    <h3 className="text-2xl font-bold text-slate-900 mb-2">
+                <div className="p-6">
+                  <div className="text-center mb-8">
+                    <h3 className="text-2xl font-bold text-slate-900 mb-4">
                       {plan.name}
                     </h3>
                     {plan.price === 0 ? (
-                      <div className="text-4xl font-bold text-slate-900 mb-1">
+                      <div className="text-5xl font-bold text-slate-900 mb-2">
                         Free
                       </div>
                     ) : (
-                      <div className="text-4xl font-bold text-slate-900 mb-1">
+                      <div className="text-5xl font-bold text-slate-900 mb-2">
                         {formatPrice(plan.price, plan.currency)}
                       </div>
                     )}
-                    <div className="text-slate-600">
+                    <div className="text-slate-600 text-lg mb-4">
                       {plan.price === 0 ? 'forever' : `per ${plan.interval}`}
                     </div>
                     {plan.savings && (
-                      <div className="mt-2">
-                        <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                      <div className="mb-2">
+                        <span className="bg-green-500 text-white text-sm px-3 py-1 rounded-full font-semibold">
                           {plan.savings}
                         </span>
                       </div>
                     )}
                     {plan.monthlyEquivalent && (
-                      <div className="text-sm text-slate-500 mt-1">
+                      <div className="text-slate-500 text-base">
                         {plan.monthlyEquivalent} equivalent
                       </div>
                     )}
                   </div>
 
-                  <ul className="space-y-3 mb-8">
+                  <ul className="space-y-4 mb-8">
                     {plan.features.map((feature, index) => (
-                      <li key={index} className="flex items-center text-slate-700">
-                        <svg className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <li key={index} className="flex items-start text-slate-700">
+                        <svg className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        {feature}
+                        <span className="text-base leading-relaxed">{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -471,7 +471,7 @@ function PaymentPageContent() {
                   <button
                     onClick={() => plan.price === 0 ? null : handlePayment(plan)}
                     disabled={isProcessing || plan.price === 0}
-                    className={`w-full py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
+                    className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-200 text-lg ${
                       plan.price === 0
                         ? 'bg-slate-100 text-slate-500 cursor-not-allowed'
                         : plan.popular
