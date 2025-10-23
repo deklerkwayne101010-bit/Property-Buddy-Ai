@@ -175,8 +175,20 @@ export default function CRMPage() {
    const handleDeleteLead = async (lead: Lead) => {
      if (confirm(`Are you sure you want to delete ${lead.name}?`)) {
        try {
+         // Get the current session to include JWT token
+         const { supabase } = await import('../../lib/supabase');
+         const { data: { session } } = await supabase.auth.getSession();
+
+         if (!session?.access_token) {
+           console.error('No authentication session found');
+           return;
+         }
+
          const response = await fetch(`/api/leads/${lead.id}`, {
-           method: 'DELETE'
+           method: 'DELETE',
+           headers: {
+             'Authorization': `Bearer ${session.access_token}`
+           }
          });
          const data = await response.json();
          if (data.success) {
