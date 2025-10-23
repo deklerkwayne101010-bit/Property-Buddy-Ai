@@ -18,6 +18,8 @@ export async function POST(request: NextRequest) {
   try {
     // Get raw body for webhook signature verification
     const rawBody = await request.text();
+    console.log('=== YOCO WEBHOOK RECEIVED ===');
+    console.log('Raw body:', rawBody);
     // const signature = request.headers.get('x-yoco-signature'); // TODO: Implement signature verification
 
     // Verify webhook signature (recommended for production)
@@ -34,6 +36,8 @@ export async function POST(request: NextRequest) {
     }
 
     const { type, data } = eventData;
+    console.log('Event type:', type);
+    console.log('Event data:', JSON.stringify(data, null, 2));
 
     logSecurityEvent('YOCO_WEBHOOK_RECEIVED', {
       type,
