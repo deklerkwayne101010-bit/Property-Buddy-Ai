@@ -153,6 +153,8 @@ export async function GET(request: NextRequest) {
 
     const { data: leads, error, count } = await query;
 
+    console.log('API: Query result - leads:', leads?.length || 0, 'error:', error);
+
     if (error) {
       console.error('Error fetching leads:', error);
       logSecurityEvent('DATABASE_ERROR', { error: error.message, ip: clientIP });
