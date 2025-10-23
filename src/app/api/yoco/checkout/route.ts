@@ -135,8 +135,8 @@ export async function POST(request: NextRequest) {
       metadata: {
         userId: user?.id || 'guest',
         userEmail: user?.email || 'guest@example.com',
-        successUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3041'}/payment?success=true`,
-        cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3041'}/payment?canceled=true`,
+        successUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/payment?success=true`,
+        cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/payment?canceled=true`,
         ...metadata
       }
     };
