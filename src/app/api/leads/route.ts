@@ -168,16 +168,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const clientIP = getClientIP(request);
 
-  // Get authenticated user from Supabase
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json(
-      { error: 'Authentication required' },
-      { status: 401, headers: createSecurityHeaders() }
-    );
-  }
-
   try {
     // Security checks
     const rateLimitResult = checkRateLimit(clientIP, RATE_LIMIT_CONFIG);
@@ -230,7 +220,6 @@ export async function POST(request: NextRequest) {
     const { contactNumber, leadStage, ...leadDataWithoutMappedFields } = leadData;
     const newLead = {
       ...leadDataWithoutMappedFields,
-      user_id: user?.id, // Add user ownership
       contact_number: contactNumber, // Map to database column name
       lead_stage: leadStage, // Map to database column name
       created_at: now,
