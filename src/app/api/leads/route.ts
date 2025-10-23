@@ -137,6 +137,19 @@ export async function GET(request: NextRequest) {
 
     console.log('API: Executing leads query for user:', user.id);
 
+    // Also try without user filter to see if leads exist at all
+    const testQuery = supabase
+      .from('leads')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    const { data: allLeads, error: testError } = await testQuery;
+    console.log('API: All leads in database (first 10):', allLeads?.length || 0, 'error:', testError);
+    if (allLeads && allLeads.length > 0) {
+      console.log('API: Sample lead user_ids:', allLeads.slice(0, 3).map(l => ({ id: l.id, user_id: l.user_id })));
+    }
+
     // Apply filters
     if (leadStage && LEAD_STAGES.includes(leadStage as typeof LEAD_STAGES[number])) {
       query = query.eq('lead_stage', leadStage);
