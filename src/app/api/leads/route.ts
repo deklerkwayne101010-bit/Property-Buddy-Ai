@@ -124,9 +124,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Transform database column names (snake_case) to frontend field names (camelCase)
+    const transformedLeads = (leads || []).map(lead => ({
+      id: lead.id,
+      name: lead.name,
+      contactNumber: lead.contact_number, // Transform snake_case to camelCase
+      email: lead.email,
+      source: lead.source,
+      leadStage: lead.lead_stage, // Transform snake_case to camelCase
+      notes: lead.notes,
+      createdAt: lead.created_at,
+      updatedAt: lead.updated_at
+    }));
+
     return NextResponse.json({
       success: true,
-      data: leads || [],
+      data: transformedLeads,
       pagination: {
         total: count || 0,
         limit,
