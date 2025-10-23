@@ -37,7 +37,11 @@ export default function CRMPage() {
        if (filterStage !== 'All') params.append('leadStage', filterStage);
        if (leadsSearch) params.append('search', leadsSearch);
 
-       const response = await fetch(`/api/leads?${params}`);
+       const response = await fetch(`/api/leads?${params}`, {
+         headers: {
+           'Authorization': `Bearer ${(await import('../../lib/supabase')).supabase.auth.getSession().then(({ data }) => data.session?.access_token)}`
+         }
+       });
        const data = await response.json();
        console.log('Leads API response:', data); // Debug log
        console.log('Leads data array:', data.data); // Debug log

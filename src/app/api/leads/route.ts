@@ -93,13 +93,49 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
     const offset = parseInt(searchParams.get('offset') || '0');
 
+    // Get user from JWT token in Authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      logSecurityEvent('AUTH_ERROR', { error: 'No authorization header', ip: clientIP });
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401, headers: createSecurityHeaders() }
+      );
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    // Create a Supabase client with the user's token
+    const { createClient } = await import('@supabase/supabase-js');
+    const userSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    );
+
+    const { data: { user }, error: authError } = await userSupabase.auth.getUser();
+    if (authError || !user) {
+      logSecurityEvent('AUTH_ERROR', { error: authError?.message || 'Invalid token', ip: clientIP });
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401, headers: createSecurityHeaders() }
+      );
+    }
+
     let query = supabase
       .from('leads')
       .select('*', { count: 'exact' })
+      .eq('user_id', user.id) // Filter by authenticated user
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    console.log('API: Executing leads query without user filter');
+    console.log('API: Executing leads query for user:', user.id);
 
     // Apply filters
     if (leadStage && LEAD_STAGES.includes(leadStage as typeof LEAD_STAGES[number])) {
