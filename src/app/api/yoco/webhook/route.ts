@@ -297,14 +297,16 @@ async function handleSubscriptionPayment(metadata: Record<string, unknown> | und
 async function handleCreditsPurchase(metadata: Record<string, unknown> | undefined, amount: number) {
   // Handle AI credits purchase
   // Add credits to user account based on package purchased
-  console.log('handleCreditsPurchase called with metadata:', metadata);
+  console.log('handleCreditsPurchase called with metadata:', JSON.stringify(metadata, null, 2));
   if (!metadata?.userId || !metadata?.packageId) {
     console.error('Missing userId or packageId in metadata for credits purchase');
+    console.error('Available metadata keys:', Object.keys(metadata || {}));
     return;
   }
 
   try {
     const packageId = metadata.packageId as string;
+    console.log('Processing packageId:', packageId);
 
     // Define credit packages (matching frontend)
     const creditPackages: Record<string, number> = {
@@ -315,6 +317,7 @@ async function handleCreditsPurchase(metadata: Record<string, unknown> | undefin
     };
 
     const creditsToAdd = creditPackages[packageId];
+    console.log('Credits to add:', creditsToAdd);
     if (!creditsToAdd) {
       console.error('Invalid package ID:', packageId);
       return;
@@ -336,6 +339,7 @@ async function handleCreditsPurchase(metadata: Record<string, unknown> | undefin
     const newCredits = currentCredits + creditsToAdd;
 
     // Update or insert user credits in profiles table
+    console.log('Updating user credits - userId:', metadata.userId, 'newCredits:', newCredits);
     const { error: updateError } = await supabase
       .from('profiles')
       .upsert({
@@ -346,8 +350,10 @@ async function handleCreditsPurchase(metadata: Record<string, unknown> | undefin
 
     if (updateError) {
       console.error('Error updating user credits:', updateError);
+      console.error('Update error details:', JSON.stringify(updateError, null, 2));
       return;
     }
+    console.log('Successfully updated user credits');
 
     // Log the credit transaction
     const { error: logError } = await supabase
