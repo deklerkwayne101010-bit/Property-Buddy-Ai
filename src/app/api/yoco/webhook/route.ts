@@ -20,10 +20,10 @@ export async function POST(request: NextRequest) {
     const rawBody = await request.text();
     console.log('=== YOCO WEBHOOK RECEIVED ===');
     console.log('Raw body:', rawBody);
-    // const signature = request.headers.get('x-yoco-signature'); // TODO: Implement signature verification
+    console.log('Headers:', Object.fromEntries(request.headers.entries()));
 
-    // Verify webhook signature (recommended for production)
-    // For now, we'll trust the request but you should implement signature verification
+    // TODO: Implement signature verification for production
+    // const signature = request.headers.get('x-yoco-signature');
 
     let eventData: WebhookEvent;
     try {
