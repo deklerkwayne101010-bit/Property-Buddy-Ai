@@ -150,6 +150,19 @@ export async function GET(request: NextRequest) {
       console.log('API: Sample lead user_ids:', allLeads.slice(0, 3).map(l => ({ id: l.id, user_id: l.user_id })));
     }
 
+    // Try with public schema explicitly
+    const publicQuery = supabase
+      .from('public.leads')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    const { data: publicLeads, error: publicError } = await publicQuery;
+    console.log('API: Public schema leads (first 10):', publicLeads?.length || 0, 'error:', publicError);
+    if (publicLeads && publicLeads.length > 0) {
+      console.log('API: Public schema sample user_ids:', publicLeads.slice(0, 3).map(l => ({ id: l.id, user_id: l.user_id })));
+    }
+
     // Apply filters
     if (leadStage && LEAD_STAGES.includes(leadStage as typeof LEAD_STAGES[number])) {
       query = query.eq('lead_stage', leadStage);
