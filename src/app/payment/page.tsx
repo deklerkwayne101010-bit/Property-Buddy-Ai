@@ -9,15 +9,16 @@ import BillingTab from '../../components/BillingTab';
 import { supabase } from '../../lib/supabase';
 
 interface PaymentPlan {
-  id: string;
-  name: string;
-  price: number;
-  currency: string;
-  interval: 'month' | 'year';
-  features: string[];
-  popular?: boolean;
-  savings?: string;
-  monthlyEquivalent?: string;
+   id: string;
+   name: string;
+   price: number;
+   currency: string;
+   interval: 'month' | 'year';
+   features: string[];
+   popular?: boolean;
+   savings?: string;
+   monthlyEquivalent?: string;
+   metadata?: Record<string, unknown>;
 }
 
 const paymentPlans: PaymentPlan[] = [
@@ -617,7 +618,12 @@ function PaymentPageContent() {
                         price: parseFloat(pkg.price.replace('R', '').replace(',', '')) * 100, // Convert to cents
                         currency: 'ZAR',
                         interval: 'month',
-                        features: [`${pkg.credits} AI Credits`]
+                        features: [`${pkg.credits} AI Credits`],
+                        metadata: {
+                          type: 'credits',
+                          packageId: pkg.id,
+                          credits: pkg.credits
+                        }
                       })}
                       disabled={isProcessing}
                       className={`w-full bg-gradient-to-r ${pkg.gradient} text-white py-3 px-4 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed`}
