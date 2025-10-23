@@ -215,11 +215,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get the authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      logSecurityEvent('AUTH_ERROR', { error: authError?.message || 'No user found', ip: clientIP });
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401, headers: createSecurityHeaders() }
+      );
+    }
+
     const now = new Date().toISOString();
     // Remove contactNumber and leadStage from leadData and map to database column names
     const { contactNumber, leadStage, ...leadDataWithoutMappedFields } = leadData;
     const newLead = {
       ...leadDataWithoutMappedFields,
+      user_id: user.id, // Set user ownership
       contact_number: contactNumber, // Map to database column name
       lead_stage: leadStage, // Map to database column name
       created_at: now,
