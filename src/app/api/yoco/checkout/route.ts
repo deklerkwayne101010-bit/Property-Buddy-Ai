@@ -10,7 +10,7 @@ import {
 // Rate limiting: 10 checkouts per minute per IP
 const RATE_LIMIT_CONFIG = {
   maxRequestSize: 1024 * 1024, // 1MB
-  allowedOrigins: ['http://localhost:3000', 'https://yourdomain.com'],
+  allowedOrigins: ['http://localhost:3000', 'http://localhost:3002', 'https://property-buddy-4jzm4b62z-waynes-projects-d2d6b907.vercel.app'],
   rateLimitWindow: 60 * 1000, // 1 minute
   rateLimitMax: 10,
 };
@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       user = authUser;
+      console.log('User authenticated:', user?.id);
     } catch (authError) {
       console.log('Auth not available, proceeding without authentication for demo');
     }
@@ -187,6 +188,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error in YOCO checkout API:', error);
+    console.error('Error details:', error instanceof Error ? error.stack : 'Unknown error');
     logSecurityEvent('API_ERROR', {
       endpoint: '/api/yoco/checkout',
       method: 'POST',
