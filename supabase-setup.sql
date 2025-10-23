@@ -265,6 +265,8 @@ DROP POLICY IF EXISTS "Users can delete own video assets" ON storage.objects;
 
 -- For leads and properties, allowing authenticated users to access all
 -- This is suitable for a real estate CRM where agents need to manage shared data
+-- NOTE: These policies allow ALL authenticated users to access ALL leads
+-- This is intentional for a shared CRM system where multiple agents work together
 CREATE POLICY "Authenticated users can view leads" ON leads
   FOR SELECT TO authenticated USING (true);
 
