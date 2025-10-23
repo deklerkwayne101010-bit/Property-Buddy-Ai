@@ -39,8 +39,11 @@ export default function CRMPage() {
 
        const response = await fetch(`/api/leads?${params}`);
        const data = await response.json();
+       console.log('Leads API response:', data); // Debug log
        if (data.success) {
-         setLeads(data.data);
+         setLeads(data.data || []);
+       } else {
+         console.error('API returned error:', data);
        }
      } catch (error) {
        console.error('Error fetching leads:', error);
