@@ -99,6 +99,8 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
+    console.log('API: Executing leads query without user filter');
+
     // Apply filters
     if (leadStage && LEAD_STAGES.includes(leadStage as typeof LEAD_STAGES[number])) {
       query = query.eq('lead_stage', leadStage);
