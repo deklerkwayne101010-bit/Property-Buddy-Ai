@@ -15,6 +15,7 @@ DROP TABLE IF EXISTS profiles;
 -- Create leads table
 CREATE TABLE leads (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE, -- Add user ownership
   name TEXT NOT NULL,
   contact_number TEXT,
   email TEXT,
@@ -263,21 +264,18 @@ DROP POLICY IF EXISTS "Authenticated users can upload video assets" ON storage.o
 DROP POLICY IF EXISTS "Public can view video assets" ON storage.objects;
 DROP POLICY IF EXISTS "Users can delete own video assets" ON storage.objects;
 
--- For leads and properties, allowing authenticated users to access all
--- This is suitable for a real estate CRM where agents need to manage shared data
--- NOTE: These policies allow ALL authenticated users to access ALL leads
--- This is intentional for a shared CRM system where multiple agents work together
-CREATE POLICY "Authenticated users can view leads" ON leads
-  FOR SELECT TO authenticated USING (true);
+-- Leads: Users can only access their own leads (user-specific data isolation)
+CREATE POLICY "Users can view own leads" ON leads
+  FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "Authenticated users can insert leads" ON leads
-  FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Users can insert own leads" ON leads
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Authenticated users can update leads" ON leads
-  FOR UPDATE TO authenticated USING (true);
+CREATE POLICY "Users can update own leads" ON leads
+  FOR UPDATE USING (auth.uid() = user_id);
 
-CREATE POLICY "Authenticated users can delete leads" ON leads
-  FOR DELETE TO authenticated USING (true);
+CREATE POLICY "Users can delete own leads" ON leads
+  FOR DELETE USING (auth.uid() = user_id);
 
 CREATE POLICY "Authenticated users can view properties" ON properties
   FOR SELECT TO authenticated USING (true);
@@ -338,9 +336,8 @@ CREATE POLICY "Users can delete own video assets" ON storage.objects
   USING (bucket_id = 'video-assets');
 
 -- Insert some sample data (optional - remove in production)
--- Sample lead
-INSERT INTO leads (name, contact_number, email, source, lead_stage, notes)
-VALUES ('John Smith', '+27 82 123 4567', 'john.smith@email.com', 'Facebook', 'New', 'Interested in 3-bedroom house in Sandton');
+-- Note: Sample lead removed since we now require user_id for all leads
+-- Each user will start with their own leads only
 
 -- Sample property
 INSERT INTO properties (title, address, listing_price, property_type, bedrooms, bathrooms, parking, size_sqm, description, photos)
