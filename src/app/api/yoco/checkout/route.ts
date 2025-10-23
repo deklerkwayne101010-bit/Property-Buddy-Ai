@@ -88,13 +88,14 @@ export async function POST(request: NextRequest) {
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       user = authUser;
-      console.log('User authenticated:', user?.id);
+      console.log('User authenticated:', user?.id, 'email:', user?.email);
     } catch (authError) {
       console.log('Auth not available, proceeding without authentication for demo');
     }
 
     const body: CheckoutRequest = await request.json();
     const { amount, currency, description, metadata } = body;
+    console.log('Checkout request body:', JSON.stringify(body, null, 2));
 
     // Validate required fields
     if (!amount || !currency) {
