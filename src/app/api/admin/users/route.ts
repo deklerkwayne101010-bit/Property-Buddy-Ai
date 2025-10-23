@@ -38,11 +38,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all users with their profile information
+    // Note: email is not stored in profiles table, it's in auth.users
+    // We'll need to get user data from auth.users and join with profiles
     const { data: users, error } = await supabase
       .from('profiles')
       .select(`
         id,
-        email,
         subscription_tier,
         created_at,
         last_sign_in_at
@@ -54,8 +55,38 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
     }
 
+    // Get email information from auth.users for each profile
+    const usersWithEmails = await Promise.all(
+      users.map(async (user) => {
+        try {
+          const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(user.id);
+          return {
+            id: user.id,
+            email: authUser?.user?.email || 'N/A',
+            subscription_tier: user.subscription_tier || 'free',
+            created_at: user.created_at,
+            last_sign_in_at: user.last_sign_in_at
+          };
+        } catch (err) {
+          console.error('Error fetching auth user:', err);
+          return {
+            id: user.id,
+            email: 'N/A',
+            subscription_tier: user.subscription_tier || 'free',
+            created_at: user.created_at,
+            last_sign_in_at: user.last_sign_in_at
+          };
+        }
+      })
+    );
+
+    if (error) {
+      console.error('Error fetching users:', error);
+      return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+    }
+
     // Transform the data to include default credit values
-    const transformedUsers = users.map(user => ({
+    const transformedUsers = usersWithEmails.map(user => ({
       id: user.id,
       email: user.email,
       subscription_tier: user.subscription_tier || 'free',
