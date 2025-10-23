@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    // Get all users with their profile and credit information
+    // Get all users with their profile information
     const { data: users, error } = await supabase
       .from('profiles')
       .select(`
@@ -45,11 +45,7 @@ export async function GET(request: NextRequest) {
         email,
         subscription_tier,
         created_at,
-        last_sign_in_at,
-        credits (
-          credits_remaining,
-          credits_used_this_month
-        )
+        last_sign_in_at
       `)
       .order('created_at', { ascending: false });
 
@@ -58,15 +54,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
     }
 
-    // Transform the data to flatten the credits relationship
+    // Transform the data to include default credit values
     const transformedUsers = users.map(user => ({
       id: user.id,
       email: user.email,
       subscription_tier: user.subscription_tier || 'free',
       created_at: user.created_at,
       last_sign_in_at: user.last_sign_in_at,
-      credits_remaining: user.credits?.[0]?.credits_remaining || 0,
-      credits_used_this_month: user.credits?.[0]?.credits_used_this_month || 0
+      credits_remaining: 5, // Default free tier credits
+      credits_used_this_month: 0
     }));
 
     return NextResponse.json({
