@@ -37,9 +37,19 @@ export default function CRMPage() {
        if (filterStage !== 'All') params.append('leadStage', filterStage);
        if (leadsSearch) params.append('search', leadsSearch);
 
+       // Get the current session to include JWT token
+       const { supabase } = await import('../../lib/supabase');
+       const { data: { session } } = await supabase.auth.getSession();
+
+       if (!session?.access_token) {
+         console.error('No authentication session found');
+         setLoading(false);
+         return;
+       }
+
        const response = await fetch(`/api/leads?${params}`, {
          headers: {
-           'Authorization': `Bearer ${(await import('../../lib/supabase')).supabase.auth.getSession().then(({ data }) => data.session?.access_token)}`
+           'Authorization': `Bearer ${session.access_token}`
          }
        });
        const data = await response.json();
