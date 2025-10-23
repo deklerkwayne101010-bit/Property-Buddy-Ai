@@ -99,6 +99,7 @@ export default function CRMPage() {
 
    // Load data on mount
    useEffect(() => {
+     console.log('CRM component mounted, fetching data...');
      fetchLeads();
      fetchProperties();
    }, []); // Empty dependency array for initial load only
