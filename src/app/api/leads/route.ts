@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../lib/supabase';
+import { supabase, supabaseAdmin } from '../../../lib/supabase';
 import {
   checkRateLimit,
   validateRequestSize,
@@ -226,8 +226,8 @@ export async function POST(request: NextRequest) {
       updated_at: now
     };
 
-    // Temporarily disable RLS for testing
-    const { data, error } = await supabase
+    // Use service role client to bypass RLS and set user ownership
+    const { data, error } = await supabaseAdmin
       .from('leads')
       .insert([newLead])
       .select()
