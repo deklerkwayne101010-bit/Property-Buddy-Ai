@@ -226,6 +226,7 @@ export async function POST(request: NextRequest) {
       updated_at: now
     };
 
+    // Temporarily disable RLS for testing
     const { data, error } = await supabase
       .from('leads')
       .insert([newLead])
