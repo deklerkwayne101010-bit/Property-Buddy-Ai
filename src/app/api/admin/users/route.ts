@@ -38,15 +38,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all users with their profile information
-    // Note: email is not stored in profiles table, it's in auth.users
-    // We'll need to get user data from auth.users and join with profiles
+    // Note: email and last_sign_in_at are not stored in profiles table, they're in auth.users
     const { data: users, error } = await supabase
       .from('profiles')
       .select(`
         id,
         subscription_tier,
-        created_at,
-        last_sign_in_at
+        created_at
       `)
       .order('created_at', { ascending: false });
 
@@ -55,7 +53,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
     }
 
-    // Get email information from auth.users for each profile
+    // Get email and last_sign_in_at information from auth.users for each profile
     const usersWithEmails = await Promise.all(
       users.map(async (user) => {
         try {
@@ -65,7 +63,7 @@ export async function GET(request: NextRequest) {
             email: authUser?.user?.email || 'N/A',
             subscription_tier: user.subscription_tier || 'free',
             created_at: user.created_at,
-            last_sign_in_at: user.last_sign_in_at
+            last_sign_in_at: authUser?.user?.last_sign_in_at || null
           };
         } catch (err) {
           console.error('Error fetching auth user:', err);
@@ -74,7 +72,7 @@ export async function GET(request: NextRequest) {
             email: 'N/A',
             subscription_tier: user.subscription_tier || 'free',
             created_at: user.created_at,
-            last_sign_in_at: user.last_sign_in_at
+            last_sign_in_at: null
           };
         }
       })
