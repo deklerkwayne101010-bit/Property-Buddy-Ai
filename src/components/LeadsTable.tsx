@@ -66,17 +66,17 @@ export default function LeadsTable({
     return (
       <div className="flex flex-col items-start space-y-1">
         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border-2 transition-all duration-200 ${LEAD_STAGE_COLORS[stage]}`}>
-          <div className={`w-2 h-2 rounded-full mr-2 ${stage === 'Closed' ? 'bg-green-500' : stage === 'Lost' ? 'bg-red-500' : 'bg-blue-500'}`}></div>
+          <div className={`w-2 h-2 rounded-full mr-2 ${(stage as string) === 'Closed' ? 'bg-green-500' : (stage as string) === 'Lost' ? 'bg-red-500' : 'bg-blue-500'}`}></div>
           {stage}
         </span>
         <div className="w-full bg-gray-200 rounded-full h-1.5">
           <div
             className={`h-1.5 rounded-full transition-all duration-500 ${
-              stage === 'Closed' ? 'bg-green-500' :
-              stage === 'Lost' ? 'bg-red-500' :
+              (stage as string) === 'Closed' ? 'bg-green-500' :
+              (stage as string) === 'Lost' ? 'bg-red-500' :
               'bg-blue-500'
             }`}
-            style={{ width: `${stageProgress[stage]}%` }}
+            style={{ width: `${stageProgress[stage as keyof typeof stageProgress] || 0}%` }}
           ></div>
         </div>
       </div>
@@ -210,8 +210,8 @@ export default function LeadsTable({
           {Object.entries(stageStats).map(([stage, count]) => (
             <div key={stage} className="flex items-center space-x-2 bg-white px-3 py-2 rounded-lg shadow-sm border">
               <div className={`w-3 h-3 rounded-full ${
-                stage === 'Closed' ? 'bg-green-500' :
-                stage === 'Lost' ? 'bg-red-500' :
+                (stage as string) === 'Closed' ? 'bg-green-500' :
+                (stage as string) === 'Lost' ? 'bg-red-500' :
                 'bg-blue-500'
               }`}></div>
               <span className="text-sm font-medium text-gray-700">{stage}:</span>
