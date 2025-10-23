@@ -24,23 +24,25 @@ interface AdminStats {
   monthlyActiveUsers: number;
 }
 
+
 export default function AdminDashboard() {
-  const { user } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+   const { user } = useAuth();
+   const [users, setUsers] = useState<User[]>([]);
+   const [stats, setStats] = useState<AdminStats | null>(null);
+   const [loading, setLoading] = useState(true);
+   const [error, setError] = useState<string | null>(null);
+   const [isAdmin, setIsAdmin] = useState(false);
+   const [activeTab, setActiveTab] = useState<'users'>('users');
 
   useEffect(() => {
     checkAdminAccess();
   }, [user]);
 
   useEffect(() => {
-    if (isAdmin) {
-      loadAdminData();
-    }
-  }, [isAdmin]);
+     if (isAdmin) {
+       loadAdminData();
+     }
+   }, [isAdmin]);
 
   const checkAdminAccess = async () => {
     if (!user) return;
@@ -105,6 +107,10 @@ export default function AdminDashboard() {
     }
   };
 
+
+
+
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-ZA', {
       year: 'numeric',
@@ -159,6 +165,7 @@ export default function AdminDashboard() {
       </ProtectedRoute>
     );
   }
+ 
 
   return (
     <ProtectedRoute>
@@ -167,7 +174,25 @@ export default function AdminDashboard() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-slate-900 mb-2">Admin Dashboard</h1>
-            <p className="text-slate-600">Manage users, subscriptions, and monitor usage</p>
+            <p className="text-slate-600">Manage users, subscriptions, marketing materials, and monitor usage</p>
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="mb-8">
+            <div className="border-b border-slate-200">
+              <nav className="-mb-px flex space-x-8">
+                <button
+                  onClick={() => setActiveTab('users')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'users'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  Users Management
+                </button>
+              </nav>
+            </div>
           </div>
 
           {/* Stats Cards */}
@@ -231,12 +256,15 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Users Table */}
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-200">
-              <h2 className="text-xl font-semibold text-slate-900">Users Management</h2>
-              <p className="text-slate-600 text-sm">View and manage all user accounts</p>
-            </div>
+          {/* Content based on active tab */}
+          {activeTab === 'users' && (
+            <>
+              {/* Users Table */}
+              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200">
+                  <h2 className="text-xl font-semibold text-slate-900">Users Management</h2>
+                  <p className="text-slate-600 text-sm">View and manage all user accounts</p>
+                </div>
 
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -298,7 +326,10 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
-        </div>
+        </>
+      )}
+
+    </div>
       </DashboardLayout>
     </ProtectedRoute>
   );
