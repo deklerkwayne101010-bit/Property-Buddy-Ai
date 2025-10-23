@@ -105,9 +105,21 @@ export default function CRMPage() {
 
    const handleAddLead = async (leadData: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>) => {
      try {
+       // Get the current session to include JWT token
+       const { supabase } = await import('../../lib/supabase');
+       const { data: { session } } = await supabase.auth.getSession();
+
+       if (!session?.access_token) {
+         console.error('No authentication session found');
+         return;
+       }
+
        const response = await fetch('/api/leads', {
          method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
+         headers: {
+           'Content-Type': 'application/json',
+           'Authorization': `Bearer ${session.access_token}`
+         },
          body: JSON.stringify(leadData)
        });
        const data = await response.json();
