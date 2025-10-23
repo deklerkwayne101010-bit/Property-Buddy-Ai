@@ -394,7 +394,7 @@ export default function CRMPage() {
                   className="px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[44px]"
                 >
                   <option value="All">All Stages</option>
-                  {['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'].map((stage) => (
+                  {['New', 'Contacted', 'Viewing', 'Offer Made', 'Closed', 'Lost'].map((stage) => (
                     <option key={stage} value={stage}>
                       {stage}
                     </option>

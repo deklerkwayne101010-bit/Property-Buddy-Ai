@@ -21,11 +21,10 @@ export const LEAD_SOURCES = [
 export const LEAD_STAGES = [
   'New',
   'Contacted',
-  'Qualified',
-  'Proposal',
-  'Negotiation',
-  'Closed Won',
-  'Closed Lost'
+  'Viewing',
+  'Offer Made',
+  'Closed',
+  'Lost'
 ] as const;
 
 export const LEAD_STAGE_COLORS = {
