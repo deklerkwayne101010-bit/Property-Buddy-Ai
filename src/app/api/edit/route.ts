@@ -49,26 +49,15 @@ export async function POST(request: NextRequest) {
     // Choose the appropriate model based on edit type
     const isObjectRemover = editType === 'object-remover';
     const modelUrl = isObjectRemover
-      ? 'https://api.replicate.com/v1/models/qwen/qwen2-vl-72b-instruct/predictions'
-      : 'https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions';
+      ? 'https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions'
+      : 'https://api.replicate.com/v1/models/qwen/qwen-image-edit-plus/predictions';
 
     console.log('Edit type:', editType, 'isObjectRemover:', isObjectRemover);
 
     // Prepare Replicate API request body based on model
     let requestBody;
     if (isObjectRemover) {
-      // Qwen Image Editor for object removal
-      requestBody = {
-        input: {
-          image: imagePublicUrl,
-          prompt: prompt,
-          negative_prompt: "blurry, low quality, distorted",
-          guidance_scale: 7.5,
-          num_inference_steps: 20
-        }
-      };
-    } else {
-      // FLUX Pro for image enhancement
+      // FLUX Pro for object removal
       requestBody = {
         input: {
           prompt: prompt,
@@ -79,10 +68,22 @@ export async function POST(request: NextRequest) {
           prompt_upsampling: true
         }
       };
-      console.log('Using FLUX Pro model URL:', modelUrl);
+      console.log('Using FLUX Pro model for object removal');
+    } else {
+      // Qwen Image Editor for image enhancement
+      requestBody = {
+        input: {
+          image: imagePublicUrl,
+          prompt: prompt,
+          negative_prompt: "blurry, low quality, distorted",
+          guidance_scale: 7.5,
+          num_inference_steps: 20
+        }
+      };
+      console.log('Using Qwen Image Editor for enhancement');
     }
 
-    console.log('Using model:', isObjectRemover ? 'Qwen Image Editor' : 'FLUX Pro');
+    console.log('Using model:', isObjectRemover ? 'FLUX Pro (Object Removal)' : 'Qwen Image Editor (Enhancement)');
     console.log('Replicate API request body:', JSON.stringify(requestBody, null, 2));
 
     // Call Replicate API
