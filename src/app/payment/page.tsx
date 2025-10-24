@@ -185,14 +185,22 @@ function PaymentPageContent() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('subscription_tier')
-            .eq('id', user.id)
-            .single();
+          // First try to get from credits API which includes subscription tier
+          const creditsResponse = await fetch(`/api/credits?userId=${user.id}`);
+          if (creditsResponse.ok) {
+            const creditsData = await creditsResponse.json();
+            setCurrentSubscription(creditsData.subscriptionTier || 'free');
+          } else {
+            // Fallback to direct database query
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('subscription_tier')
+              .eq('id', user.id)
+              .single();
 
-          if (profile) {
-            setCurrentSubscription(profile.subscription_tier || 'free');
+            if (profile) {
+              setCurrentSubscription(profile.subscription_tier || 'free');
+            }
           }
         }
       } catch (error) {
