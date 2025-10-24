@@ -157,7 +157,8 @@ export async function GET(request: NextRequest) {
         }
 
         return NextResponse.json({
-          credits: newProfile.credits_balance || 0
+          credits: newProfile.credits_balance || 0,
+          subscriptionTier: 'free'
         });
       }
 

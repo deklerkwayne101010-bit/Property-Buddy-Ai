@@ -189,8 +189,10 @@ function PaymentPageContent() {
           const creditsResponse = await fetch(`/api/credits?userId=${user.id}`);
           if (creditsResponse.ok) {
             const creditsData = await creditsResponse.json();
+            console.log('Credits API response:', creditsData); // Debug log
             setCurrentSubscription(creditsData.subscriptionTier || 'free');
           } else {
+            console.log('Credits API failed, trying direct query'); // Debug log
             // Fallback to direct database query
             const { data: profile } = await supabase
               .from('profiles')
@@ -199,6 +201,7 @@ function PaymentPageContent() {
               .single();
 
             if (profile) {
+              console.log('Direct query result:', profile); // Debug log
               setCurrentSubscription(profile.subscription_tier || 'free');
             }
           }
