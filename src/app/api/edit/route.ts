@@ -73,12 +73,8 @@ export async function POST(request: NextRequest) {
       // Qwen Image Edit Plus for image enhancement
       requestBody = {
         input: {
-          image: imagePublicUrl,
-          prompt: prompt,
-          go_fast: true,
-          aspect_ratio: "match_input_image",
-          output_format: "webp",
-          output_quality: 80
+          image: [imagePublicUrl],
+          prompt: prompt
         }
       };
       console.log('Using Qwen Image Edit Plus for enhancement');
@@ -93,6 +89,7 @@ export async function POST(request: NextRequest) {
       headers: {
         'Authorization': `Bearer ${replicateToken}`,
         'Content-Type': 'application/json',
+        'Prefer': 'wait',
       },
       body: JSON.stringify(requestBody),
     });
@@ -109,10 +106,19 @@ export async function POST(request: NextRequest) {
     const prediction = await replicateResponse.json();
     console.log('Replicate prediction response:', JSON.stringify(prediction, null, 2));
 
-    // Poll for completion
-    let result;
+    // Check if prediction succeeded immediately (due to 'Prefer: wait' header)
+    if (prediction.status === 'succeeded') {
+      console.log('Prediction succeeded immediately, output:', prediction.output);
+      return NextResponse.json({ edited_image_url: prediction.output });
+    } else if (prediction.status === 'failed') {
+      console.error('Prediction failed, error details:', prediction.error);
+      throw new Error(`Image editing failed: ${prediction.error || 'Unknown error'}`);
+    }
+
+    // Poll for completion if not immediate
+    let result = prediction;
     let pollCount = 0;
-    while (true) {
+    while (result.status !== 'succeeded') {
       pollCount++;
       console.log(`Polling attempt ${pollCount} for prediction ${prediction.id}`);
 
