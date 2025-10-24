@@ -178,10 +178,12 @@ function PaymentPageContent() {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [paymentCanceled, setPaymentCanceled] = useState(false);
   const [currentSubscription, setCurrentSubscription] = useState('free');
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
 
   useEffect(() => {
     // Load current subscription
     const loadCurrentSubscription = async () => {
+      setIsLoadingSubscription(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -210,6 +212,8 @@ function PaymentPageContent() {
         }
       } catch (error) {
         console.error('Error loading subscription:', error);
+      } finally {
+        setIsLoadingSubscription(false);
       }
     };
 
@@ -291,23 +295,35 @@ function PaymentPageContent() {
       <DashboardLayout>
         <div className="max-w-6xl mx-auto">
           {/* Current Plan Indicator */}
-          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <svg className="w-5 h-5 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div>
-                <h3 className="text-blue-800 font-semibold">Current Plan: {currentSubscription === 'free' ? 'Free Plan' : currentSubscription.charAt(0).toUpperCase() + currentSubscription.slice(1) + ' Plan'}</h3>
-                <p className="text-blue-700 text-sm">
-                  {currentSubscription === 'free' ? '5 credits included - AI Photo Editor only' :
-                    currentSubscription === 'starter' ? '50 credits included - Basic features' :
-                    currentSubscription === 'pro' ? '100 credits included - Full features' :
-                    currentSubscription === 'elite' ? '180 credits included - Premium features' :
-                    currentSubscription === 'agency' ? '350 credits included - Enterprise features' : 'Unknown plan'}
-                </p>
+          {isLoadingSubscription ? (
+            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500 mr-3"></div>
+                <div>
+                  <h3 className="text-blue-800 font-semibold">Loading subscription...</h3>
+                  <p className="text-blue-700 text-sm">Please wait while we load your plan details</p>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <svg className="w-5 h-5 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <h3 className="text-blue-800 font-semibold">Current Plan: {currentSubscription === 'free' ? 'Free Plan' : currentSubscription.charAt(0).toUpperCase() + currentSubscription.slice(1) + ' Plan'}</h3>
+                  <p className="text-blue-700 text-sm">
+                    {currentSubscription === 'free' ? '5 credits included - AI Photo Editor only' :
+                      currentSubscription === 'starter' ? '50 credits included - Basic features' :
+                      currentSubscription === 'pro' ? '100 credits included - Full features' :
+                      currentSubscription === 'elite' ? '180 credits included - Premium features' :
+                      currentSubscription === 'agency' ? '350 credits included - Enterprise features' : 'Unknown plan'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Success/Cancel Messages */}
           {paymentSuccess && (
