@@ -190,6 +190,7 @@ function PaymentPageContent() {
           if (creditsResponse.ok) {
             const creditsData = await creditsResponse.json();
             console.log('Credits API response:', creditsData); // Debug log
+            console.log('Setting subscription to:', creditsData.subscriptionTier); // Debug log
             setCurrentSubscription(creditsData.subscriptionTier || 'free');
           } else {
             console.log('Credits API failed, trying direct query'); // Debug log
@@ -202,6 +203,7 @@ function PaymentPageContent() {
 
             if (profile) {
               console.log('Direct query result:', profile); // Debug log
+              console.log('Setting subscription to:', profile.subscription_tier); // Debug log
               setCurrentSubscription(profile.subscription_tier || 'free');
             }
           }
