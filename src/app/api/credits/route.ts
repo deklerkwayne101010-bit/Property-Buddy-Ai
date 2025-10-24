@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
 
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('credits_balance')
+      .select('credits_balance, subscription_tier')
       .eq('id', userId)
       .single();
 
@@ -168,7 +168,8 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      credits: profile.credits_balance || 0
+      credits: profile.credits_balance || 0,
+      subscriptionTier: profile.subscription_tier || 'free'
     });
 
   } catch (error) {
