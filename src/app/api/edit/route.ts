@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     const isObjectRemover = editType === 'object-remover';
     const modelUrl = isObjectRemover
       ? 'https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions'
-      : 'https://api.replicate.com/v1/models/qwen/qwen-image-edit-plus/predictions';
+      : 'https://api.replicate.com/v1/models/qwen/qwen-image-edit/predictions';
 
     console.log('Edit type:', editType, 'isObjectRemover:', isObjectRemover);
 
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
           go_fast: true,
           aspect_ratio: "match_input_image",
           output_format: "webp",
-          output_quality: 95
+          output_quality: 80
         }
       };
       console.log('Using Qwen Image Editor for enhancement');
