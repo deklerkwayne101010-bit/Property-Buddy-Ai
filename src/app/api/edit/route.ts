@@ -75,9 +75,10 @@ export async function POST(request: NextRequest) {
         input: {
           image: imagePublicUrl,
           prompt: prompt,
-          negative_prompt: "blurry, low quality, distorted",
-          guidance_scale: 7.5,
-          num_inference_steps: 20
+          go_fast: true,
+          aspect_ratio: "match_input_image",
+          output_format: "webp",
+          output_quality: 95
         }
       };
       console.log('Using Qwen Image Editor for enhancement');
