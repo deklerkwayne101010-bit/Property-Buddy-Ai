@@ -284,6 +284,8 @@ function PaymentPageContent() {
     }).format(price / 100); // Convert from cents
   };
 
+  console.log('Rendering with currentSubscription:', currentSubscription); // Debug log
+
   return (
     <ProtectedRoute>
       <DashboardLayout>
@@ -298,10 +300,10 @@ function PaymentPageContent() {
                 <h3 className="text-blue-800 font-semibold">Current Plan: {currentSubscription === 'free' ? 'Free Plan' : currentSubscription.charAt(0).toUpperCase() + currentSubscription.slice(1) + ' Plan'}</h3>
                 <p className="text-blue-700 text-sm">
                   {currentSubscription === 'free' ? '5 credits included - AI Photo Editor only' :
-                   currentSubscription === 'starter' ? '50 credits included - Basic features' :
-                   currentSubscription === 'pro' ? '100 credits included - Full features' :
-                   currentSubscription === 'elite' ? '180 credits included - Premium features' :
-                   currentSubscription === 'agency' ? '350 credits included - Enterprise features' : 'Unknown plan'}
+                    currentSubscription === 'starter' ? '50 credits included - Basic features' :
+                    currentSubscription === 'pro' ? '100 credits included - Full features' :
+                    currentSubscription === 'elite' ? '180 credits included - Premium features' :
+                    currentSubscription === 'agency' ? '350 credits included - Enterprise features' : 'Unknown plan'}
                 </p>
               </div>
             </div>
