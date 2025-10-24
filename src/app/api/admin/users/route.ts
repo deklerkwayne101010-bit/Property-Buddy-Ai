@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
       .select(`
         id,
         subscription_tier,
+        credits_balance,
         created_at
       `)
       .order('created_at', { ascending: false });
@@ -83,16 +84,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
     }
 
-    // Transform the data to include default credit values
-    const transformedUsers = usersWithEmails.map(user => ({
-      id: user.id,
-      email: user.email,
-      subscription_tier: user.subscription_tier || 'free',
-      created_at: user.created_at,
-      last_sign_in_at: user.last_sign_in_at,
-      credits_remaining: 5, // Default free tier credits
-      credits_used_this_month: 0
-    }));
+    // Transform the data to include actual credit values
+    const transformedUsers = usersWithEmails.map(user => {
+      const profile = users.find(p => p.id === user.id);
+      return {
+        id: user.id,
+        email: user.email,
+        subscription_tier: user.subscription_tier || 'free',
+        created_at: user.created_at,
+        last_sign_in_at: user.last_sign_in_at,
+        credits_remaining: profile?.credits_balance || 0,
+        credits_used_this_month: 0 // TODO: Calculate actual usage this month
+      };
+    });
 
     return NextResponse.json({
       success: true,
