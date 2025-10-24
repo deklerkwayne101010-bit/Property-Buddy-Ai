@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Image Comparison Slider Styles */
+.before-slider-after {
+  transition: none !important;
+}
+
+.slider-handle {
+  user-select: none;
+  transition: opacity 0.2s ease;
+}
+
+.slider-handle:hover {
+  opacity: 0.8;
+}
+
+.slider-handle:active {
+  opacity: 1;
+}
+
+/* Smooth cursor transitions */
+.cursor-ew-resize {
+  cursor: ew-resize;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+  .slider-handle {
+    width: 2px;
+  }
+
+  .slider-handle > div {
+    width: 6px;
+    height: 6px;
+  }
+}
