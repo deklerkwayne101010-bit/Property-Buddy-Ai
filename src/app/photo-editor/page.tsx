@@ -495,9 +495,6 @@ export default function PhotoEditor() {
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-slate-800 mb-2">Object Remover</h3>
                       <p className="text-sm text-slate-600 mb-3">Remove unwanted objects, people, or elements from your image using AI</p>
-                      <div className="text-xs text-slate-500">
-                        Uses: Qwen Image Editor on Replicate
-                      </div>
                     </div>
                   </div>
                   {selectedEditType === 'object-remover' && (
@@ -531,9 +528,6 @@ export default function PhotoEditor() {
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-slate-800 mb-2">Image Enhancer</h3>
                       <p className="text-sm text-slate-600 mb-3">Enhance, modify, or transform your image with advanced AI editing</p>
-                      <div className="text-xs text-slate-500">
-                        Uses: FLUX Pro on Replicate
-                      </div>
                     </div>
                   </div>
                   {selectedEditType === 'image-enhancer' && (
