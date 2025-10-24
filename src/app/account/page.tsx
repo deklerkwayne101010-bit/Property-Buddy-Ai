@@ -508,54 +508,130 @@ export default function AccountPage() {
                 <div className="border-t border-slate-200 pt-4">
                   <h4 className="font-medium text-slate-900 mb-3">Available Plans</h4>
                   <div className="grid grid-cols-1 gap-3">
-                    <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className={`flex items-center justify-between p-3 rounded-lg ${
+                      currentSubscription === 'free'
+                        ? 'bg-green-50 border border-green-200'
+                        : 'bg-slate-50 border border-slate-200'
+                    }`}>
                       <div>
-                        <div className="font-medium text-green-900">Free Plan</div>
-                        <div className="text-sm text-green-700">5 credits - AI Photo Editor only</div>
+                        <div className={`font-medium ${
+                          currentSubscription === 'free' ? 'text-green-900' : 'text-slate-900'
+                        }`}>Free Plan</div>
+                        <div className={`text-sm ${
+                          currentSubscription === 'free' ? 'text-green-700' : 'text-slate-600'
+                        }`}>5 credits - AI Photo Editor only</div>
                       </div>
-                      <a href="/payment" className="text-green-600 hover:text-green-700 text-sm underline">
-                        Current Plan
-                      </a>
+                      {currentSubscription === 'free' ? (
+                        <span className="text-green-600 text-sm underline">Current Plan</span>
+                      ) : (
+                        <a href="/payment" className="text-slate-600 hover:text-slate-700 text-sm underline">
+                          Downgrade
+                        </a>
+                      )}
                     </div>
 
-                    <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className={`flex items-center justify-between p-3 rounded-lg ${
+                      currentSubscription === 'starter'
+                        ? 'bg-blue-50 border border-blue-200'
+                        : 'bg-slate-50 border border-slate-200'
+                    }`}>
                       <div>
-                        <div className="font-medium text-blue-900">Starter Plan</div>
-                        <div className="text-sm text-blue-700">50 credits - Basic features</div>
+                        <div className={`font-medium ${
+                          currentSubscription === 'starter' ? 'text-blue-900' : 'text-slate-900'
+                        }`}>Starter Plan</div>
+                        <div className={`text-sm ${
+                          currentSubscription === 'starter' ? 'text-blue-700' : 'text-slate-600'
+                        }`}>50 credits - Basic features</div>
                       </div>
-                      <a href="/payment" className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors">
-                        Upgrade
-                      </a>
+                      {currentSubscription === 'starter' ? (
+                        <span className="text-blue-600 text-sm underline">Current Plan</span>
+                      ) : (
+                        <a href="/payment" className={`px-3 py-1 text-sm rounded transition-colors ${
+                          currentSubscription === 'free' || currentSubscription === 'starter'
+                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-slate-600 text-white hover:bg-slate-700'
+                        }`}>
+                          {currentSubscription === 'free' ? 'Upgrade' : 'Change Plan'}
+                        </a>
+                      )}
                     </div>
 
-                    <div className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                    <div className={`flex items-center justify-between p-3 rounded-lg ${
+                      currentSubscription === 'pro'
+                        ? 'bg-purple-50 border border-purple-200'
+                        : 'bg-slate-50 border border-slate-200'
+                    }`}>
                       <div>
-                        <div className="font-medium text-purple-900">Pro Plan</div>
-                        <div className="text-sm text-purple-700">100 credits - Full features</div>
+                        <div className={`font-medium ${
+                          currentSubscription === 'pro' ? 'text-purple-900' : 'text-slate-900'
+                        }`}>Pro Plan</div>
+                        <div className={`text-sm ${
+                          currentSubscription === 'pro' ? 'text-purple-700' : 'text-slate-600'
+                        }`}>100 credits - Full features</div>
                       </div>
-                      <a href="/payment" className="px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 transition-colors">
-                        Upgrade
-                      </a>
+                      {currentSubscription === 'pro' ? (
+                        <span className="text-purple-600 text-sm underline">Current Plan</span>
+                      ) : (
+                        <a href="/payment" className={`px-3 py-1 text-sm rounded transition-colors ${
+                          currentSubscription === 'free' || currentSubscription === 'starter' || currentSubscription === 'pro'
+                            ? 'bg-purple-600 text-white hover:bg-purple-700'
+                            : 'bg-slate-600 text-white hover:bg-slate-700'
+                        }`}>
+                          {currentSubscription === 'free' || currentSubscription === 'starter' ? 'Upgrade' : 'Change Plan'}
+                        </a>
+                      )}
                     </div>
 
-                    <div className="flex items-center justify-between p-3 bg-pink-50 border border-pink-200 rounded-lg">
+                    <div className={`flex items-center justify-between p-3 rounded-lg ${
+                      currentSubscription === 'elite'
+                        ? 'bg-pink-50 border border-pink-200'
+                        : 'bg-slate-50 border border-slate-200'
+                    }`}>
                       <div>
-                        <div className="font-medium text-pink-900">Elite Plan</div>
-                        <div className="text-sm text-pink-700">180 credits - Premium features</div>
+                        <div className={`font-medium ${
+                          currentSubscription === 'elite' ? 'text-pink-900' : 'text-slate-900'
+                        }`}>Elite Plan</div>
+                        <div className={`text-sm ${
+                          currentSubscription === 'elite' ? 'text-pink-700' : 'text-slate-600'
+                        }`}>180 credits - Premium features</div>
                       </div>
-                      <a href="/payment" className="px-3 py-1 bg-pink-600 text-white text-sm rounded hover:bg-pink-700 transition-colors">
-                        Upgrade
-                      </a>
+                      {currentSubscription === 'elite' ? (
+                        <span className="text-pink-600 text-sm underline">Current Plan</span>
+                      ) : (
+                        <a href="/payment" className={`px-3 py-1 text-sm rounded transition-colors ${
+                          currentSubscription === 'free' || currentSubscription === 'starter' || currentSubscription === 'pro' || currentSubscription === 'elite'
+                            ? 'bg-pink-600 text-white hover:bg-pink-700'
+                            : 'bg-slate-600 text-white hover:bg-slate-700'
+                        }`}>
+                          Upgrade
+                        </a>
+                      )}
                     </div>
 
-                    <div className="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <div className={`flex items-center justify-between p-3 rounded-lg ${
+                      currentSubscription === 'agency'
+                        ? 'bg-orange-50 border border-orange-200'
+                        : 'bg-slate-50 border border-slate-200'
+                    }`}>
                       <div>
-                        <div className="font-medium text-orange-900">Agency+ Plan</div>
-                        <div className="text-sm text-orange-700">350 credits - Enterprise features</div>
+                        <div className={`font-medium ${
+                          currentSubscription === 'agency' ? 'text-orange-900' : 'text-slate-900'
+                        }`}>Agency+ Plan</div>
+                        <div className={`text-sm ${
+                          currentSubscription === 'agency' ? 'text-orange-700' : 'text-slate-600'
+                        }`}>350 credits - Enterprise features</div>
                       </div>
-                      <a href="/payment" className="px-3 py-1 bg-orange-600 text-white text-sm rounded hover:bg-orange-700 transition-colors">
-                        Upgrade
-                      </a>
+                      {currentSubscription === 'agency' ? (
+                        <span className="text-orange-600 text-sm underline">Current Plan</span>
+                      ) : (
+                        <a href="/payment" className={`px-3 py-1 text-sm rounded transition-colors ${
+                          currentSubscription === 'free' || currentSubscription === 'starter' || currentSubscription === 'pro' || currentSubscription === 'elite' || currentSubscription === 'agency'
+                            ? 'bg-orange-600 text-white hover:bg-orange-700'
+                            : 'bg-slate-600 text-white hover:bg-slate-700'
+                        }`}>
+                          Upgrade
+                        </a>
+                      )}
                     </div>
                   </div>
                 </div>
