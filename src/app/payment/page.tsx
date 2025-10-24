@@ -312,7 +312,7 @@ function PaymentPageContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <h3 className="text-blue-800 font-semibold">Current Plan: {currentSubscription === 'free' ? 'Free Plan' : currentSubscription.charAt(0).toUpperCase() + currentSubscription.slice(1) + ' Plan'}</h3>
+                  <h3 className="text-blue-800 font-semibold">Current Plan: {currentSubscription === 'free' ? 'Free Plan' : currentSubscription === 'pro' ? 'Pro Plan' : currentSubscription.charAt(0).toUpperCase() + currentSubscription.slice(1) + ' Plan'}</h3>
                   <p className="text-blue-700 text-sm">
                     {currentSubscription === 'free' ? '5 credits included - AI Photo Editor only' :
                       currentSubscription === 'starter' ? '50 credits included - Basic features' :
