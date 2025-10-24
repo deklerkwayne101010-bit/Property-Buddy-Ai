@@ -52,6 +52,8 @@ export async function POST(request: NextRequest) {
       ? 'https://api.replicate.com/v1/models/qwen/qwen2-vl-72b-instruct/predictions'
       : 'https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions';
 
+    console.log('Edit type:', editType, 'isObjectRemover:', isObjectRemover);
+
     // Prepare Replicate API request body based on model
     let requestBody;
     if (isObjectRemover) {
@@ -77,6 +79,7 @@ export async function POST(request: NextRequest) {
           prompt_upsampling: true
         }
       };
+      console.log('Using FLUX Pro model URL:', modelUrl);
     }
 
     console.log('Using model:', isObjectRemover ? 'Qwen Image Editor' : 'FLUX Pro');
