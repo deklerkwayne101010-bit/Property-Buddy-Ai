@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     const isObjectRemover = editType === 'object-remover';
     const modelUrl = isObjectRemover
       ? 'https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions'
-      : 'https://api.replicate.com/v1/models/qwen/qwen-image-edit-plus/predictions';
+      : 'https://api.replicate.com/v1/models/qwen/qwen-image-edit/predictions';
 
     console.log('Edit type:', editType, 'isObjectRemover:', isObjectRemover);
 
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       };
       console.log('Using FLUX Pro model for object removal');
     } else {
-      // Qwen Image Edit Plus for image enhancement
+      // Qwen Image Editor for image enhancement
       requestBody = {
         input: {
           image: imagePublicUrl,
@@ -81,10 +81,10 @@ export async function POST(request: NextRequest) {
           output_quality: 80
         }
       };
-      console.log('Using Qwen Image Edit Plus for enhancement');
+      console.log('Using Qwen Image Editor for enhancement');
     }
 
-    console.log('Using model:', isObjectRemover ? 'FLUX Pro (Object Removal)' : 'Qwen Image Edit Plus (Enhancement)');
+    console.log('Using model:', isObjectRemover ? 'FLUX Pro (Object Removal)' : 'Qwen Image Editor (Enhancement)');
     console.log('Replicate API request body:', JSON.stringify(requestBody, null, 2));
 
     // Call Replicate API
