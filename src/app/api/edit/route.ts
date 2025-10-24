@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
           aspect_ratio: "match_input_image",
           output_format: "jpg",
           safety_tolerance: 2,
-          prompt_upsampling: false
+          prompt_upsampling: true
         }
       };
     }
