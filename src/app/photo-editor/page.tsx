@@ -73,23 +73,29 @@ export default function PhotoEditor() {
 
   const loadUploadedImages = async () => {
     try {
-      const { data, error } = await supabase.storage
-        .from('images')
-        .list('', {
-          limit: 20,
-          sortBy: { column: 'created_at', order: 'desc' }
-        });
+      // Only load images uploaded by the current user
+      // We'll use a different approach since Supabase storage doesn't have built-in user filtering
+      // We'll store user-specific images in a user_media table and filter by user_id
+
+      const { data: userMedia, error } = await supabase
+        .from('user_media')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('media_type', 'image')
+        .order('created_at', { ascending: false })
+        .limit(20);
 
       if (error) {
-        console.error('Error loading images:', error);
+        console.error('Error loading user images:', error);
         return;
       }
 
-      const images: UploadedImage[] = data.map(file => ({
-        id: file.id || file.name,
-        url: supabase.storage.from('images').getPublicUrl(file.name).data.publicUrl,
-        filename: file.name,
-        uploadedAt: file.created_at || new Date().toISOString()
+      // Convert user_media records to UploadedImage format
+      const images: UploadedImage[] = (userMedia || []).map(media => ({
+        id: media.id,
+        url: media.file_url,
+        filename: media.file_name,
+        uploadedAt: media.created_at
       }));
 
       setUploadedImages(images);
@@ -99,11 +105,17 @@ export default function PhotoEditor() {
   };
 
   const handleImageUpload = async (file: File) => {
+    if (!user) {
+      alert('You must be logged in to upload images.');
+      return;
+    }
+
     setIsUploading(true);
     try {
       const timestamp = Date.now();
       const fileName = `upload-${timestamp}-${file.name}`;
 
+      // Upload to Supabase storage
       const { data, error } = await supabase.storage
         .from('images')
         .upload(fileName, file, {
@@ -113,6 +125,27 @@ export default function PhotoEditor() {
 
       if (error) {
         throw error;
+      }
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('images')
+        .getPublicUrl(fileName);
+
+      // Store metadata in user_media table for user-specific filtering
+      const { error: mediaError } = await supabase
+        .from('user_media')
+        .insert({
+          user_id: user.id,
+          media_type: 'image',
+          file_name: fileName,
+          file_url: publicUrl,
+          file_size: file.size
+        });
+
+      if (mediaError) {
+        console.error('Error storing media metadata:', mediaError);
+        // Don't fail the upload, just log the error
       }
 
       // Refresh the uploaded images list
@@ -126,7 +159,7 @@ export default function PhotoEditor() {
       reader.readAsDataURL(file);
 
       setIsUploading(false);
-      alert('Image uploaded successfully! You can now select it from the gallery below.');
+      alert('Image uploaded successfully! You can now select it from your personal gallery below.');
     } catch (error) {
       console.error('Error uploading image:', error);
       alert('Failed to upload image. Please try again.');
@@ -415,9 +448,9 @@ export default function PhotoEditor() {
                   <svg className="w-6 h-6 mr-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                   </svg>
-                  Your Uploaded Images
+                  Your Personal Gallery
                 </h2>
-                <p className="text-sm text-slate-600 mt-1">Select an image to edit</p>
+                <p className="text-sm text-slate-600 mt-1">Only you can see your uploaded images</p>
               </div>
 
               <div className="p-6 sm:p-8">
@@ -809,6 +842,11 @@ export default function PhotoEditor() {
                     </div>
                     <button
                       onClick={async () => {
+                        if (!user) {
+                          alert('You must be logged in to save images.');
+                          return;
+                        }
+
                         try {
                           // Download the edited image as a blob
                           const response = await fetch(editedImage);
@@ -827,9 +865,30 @@ export default function PhotoEditor() {
 
                           if (error) throw error;
 
+                          // Get the public URL
+                          const { data: { publicUrl } } = supabase.storage
+                            .from('images')
+                            .getPublicUrl(fileName);
+
+                          // Store metadata in user_media table for user-specific filtering
+                          const { error: mediaError } = await supabase
+                            .from('user_media')
+                            .insert({
+                              user_id: user.id,
+                              media_type: 'image',
+                              file_name: fileName,
+                              file_url: publicUrl,
+                              file_size: blob.size
+                            });
+
+                          if (mediaError) {
+                            console.error('Error storing media metadata:', mediaError);
+                            // Don't fail the save, just log the error
+                          }
+
                           // Refresh the uploaded images list
                           await loadUploadedImages();
-                          alert('Image saved to your gallery successfully!');
+                          alert('Image saved to your personal gallery successfully!');
                         } catch (error) {
                           console.error('Error saving to gallery:', error);
                           alert('Failed to save image to gallery. Please try again.');

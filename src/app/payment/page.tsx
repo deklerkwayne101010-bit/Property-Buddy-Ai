@@ -218,6 +218,13 @@ function PaymentPageContent() {
     };
 
     loadCurrentSubscription();
+
+    // Set up a refresh interval to check for credit updates after payment
+    const refreshInterval = setInterval(() => {
+      loadCurrentSubscription();
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(refreshInterval);
   }, []);
 
   useEffect(() => {
@@ -652,7 +659,6 @@ function PaymentPageContent() {
                         features: [`${pkg.credits} AI Credits`],
                         metadata: {
                           type: 'credits',
-                          packageId: pkg.id,
                           credits: pkg.credits
                         }
                       })}

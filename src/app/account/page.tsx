@@ -79,8 +79,15 @@ export default function AccountPage() {
              ...usageData.usageStats
            }));
          } else {
-           // API failed, keep default values
-           console.warn('Usage API unavailable, using default values');
+           // API failed, try credits API as fallback
+           console.warn('Usage API unavailable, trying credits API');
+           const creditsResponse = await fetch('/api/credits');
+           if (creditsResponse.ok) {
+             const creditsData = await creditsResponse.json();
+             setUserCredits(creditsData.credits || 0);
+           } else {
+             console.warn('Credits API also unavailable, using default values');
+           }
          }
        } catch (error) {
          console.error('Error loading credits and usage:', error);
@@ -112,6 +119,14 @@ export default function AccountPage() {
      loadUserProfile();
      loadCreditsAndUsage();
      loadUserSubscription();
+
+     // Set up a refresh interval to check for credit updates after payment
+     const refreshInterval = setInterval(() => {
+       loadCreditsAndUsage();
+       loadUserSubscription();
+     }, 5000); // Check every 5 seconds
+
+     return () => clearInterval(refreshInterval);
    }, []);
 
   const tabs = [

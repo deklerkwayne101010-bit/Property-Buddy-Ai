@@ -298,28 +298,17 @@ async function handleCreditsPurchase(metadata: Record<string, unknown> | undefin
   // Handle AI credits purchase
   // Add credits to user account based on package purchased
   console.log('handleCreditsPurchase called with metadata:', JSON.stringify(metadata, null, 2));
-  if (!metadata?.userId || !metadata?.packageId) {
-    console.error('Missing userId or packageId in metadata for credits purchase');
+  if (!metadata?.userId || !metadata?.credits) {
+    console.error('Missing userId or credits in metadata for credits purchase');
     console.error('Available metadata keys:', Object.keys(metadata || {}));
     return;
   }
 
   try {
-    const packageId = metadata.packageId as string;
-    console.log('Processing packageId:', packageId);
-
-    // Define credit packages (matching frontend)
-    const creditPackages: Record<string, number> = {
-      '50': 50,
-      '100': 100,
-      '200': 200,
-      '300': 300
-    };
-
-    const creditsToAdd = creditPackages[packageId];
+    const creditsToAdd = metadata.credits as number;
     console.log('Credits to add:', creditsToAdd);
-    if (!creditsToAdd) {
-      console.error('Invalid package ID:', packageId);
+    if (!creditsToAdd || creditsToAdd <= 0) {
+      console.error('Invalid credits amount:', creditsToAdd);
       return;
     }
 
@@ -339,7 +328,7 @@ async function handleCreditsPurchase(metadata: Record<string, unknown> | undefin
     const newCredits = currentCredits + creditsToAdd;
 
     // Update or insert user credits in profiles table
-    console.log('Updating user credits - userId:', metadata.userId, 'newCredits:', newCredits);
+    console.log('Updating user credits - userId:', metadata.userId, 'currentCredits:', currentCredits, 'creditsToAdd:', creditsToAdd, 'newCredits:', newCredits);
     const { error: updateError } = await supabase
       .from('profiles')
       .upsert({
@@ -384,7 +373,7 @@ async function handleCreditsPurchase(metadata: Record<string, unknown> | undefin
       console.error('Error logging billing transaction:', billingError);
     }
 
-    console.log(`Added ${creditsToAdd} credits to user ${metadata.userId} for package ${packageId}`);
+    console.log(`Added ${creditsToAdd} credits to user ${metadata.userId} for ${creditsToAdd} credit purchase`);
   } catch (error) {
     console.error('Error processing credits purchase:', error);
   }
