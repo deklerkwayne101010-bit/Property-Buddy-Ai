@@ -292,26 +292,33 @@ export default function PhotoEditor() {
 
     setIsDeleting(image.id);
     try {
+      console.log('Attempting to delete image:', image.id, 'for user:', user.id);
+
       // Delete from user_media table
-      const { error: mediaError } = await supabase
+      const { data, error: mediaError } = await supabase
         .from('user_media')
         .delete()
         .eq('id', image.id)
-        .eq('user_id', user.id); // Extra security check
+        .eq('user_id', user.id) // Extra security check
+        .select(); // Add select to get deleted data
+
+      console.log('Delete response:', { data, error: mediaError });
 
       if (mediaError) {
+        console.error('Media delete error:', mediaError);
         throw mediaError;
       }
 
-      // Delete from storage (optional - files will remain in storage but won't be accessible)
-      // You might want to keep files in storage for backup purposes
+      if (!data || data.length === 0) {
+        throw new Error('Image not found or you do not have permission to delete it');
+      }
 
       // Refresh the uploaded images list
       await loadUploadedImages();
       alert('Image deleted successfully!');
     } catch (error) {
       console.error('Error deleting image:', error);
-      alert('Failed to delete image. Please try again.');
+      alert(`Failed to delete image: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
     } finally {
       setIsDeleting(null);
     }
