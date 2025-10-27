@@ -59,3 +59,38 @@ body {
     height: 6px;
   }
 }
+
+/* Form input text color fixes */
+input, textarea, select {
+  color: #000000 !important;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #6b7280 !important;
+}
+
+input:focus, textarea:focus, select:focus {
+  color: #000000 !important;
+}
+
+/* Ensure all form elements have proper text contrast */
+.form-input, .form-textarea, .form-select {
+  color: #000000 !important;
+}
+
+.form-input::placeholder, .form-textarea::placeholder {
+  color: #6b7280 !important;
+}
+
+.form-input:focus, .form-textarea:focus, .form-select:focus {
+  color: #000000 !important;
+}
+
+/* Specific overrides for common form classes */
+input[type="text"], input[type="email"], input[type="password"], input[type="number"] {
+  color: #000000 !important;
+}
+
+input[type="text"]::placeholder, input[type="email"]::placeholder, input[type="password"]::placeholder, input[type="number"]::placeholder {
+  color: #6b7280 !important;
+}
