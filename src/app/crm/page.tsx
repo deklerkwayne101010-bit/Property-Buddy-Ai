@@ -181,21 +181,35 @@ export default function CRMPage() {
 
          if (!session?.access_token) {
            console.error('No authentication session found');
+           alert('Authentication required. Please log in again.');
            return;
          }
 
          const response = await fetch(`/api/leads/${lead.id}`, {
            method: 'DELETE',
            headers: {
-             'Authorization': `Bearer ${session.access_token}`
+             'Authorization': `Bearer ${session.access_token}`,
+             'Content-Type': 'application/json'
            }
          });
+
          const data = await response.json();
+
+         if (!response.ok) {
+           console.error('Delete failed:', data);
+           alert(data.error || 'Failed to delete lead');
+           return;
+         }
+
          if (data.success) {
            fetchLeads(); // Refresh the list
+           alert('Lead deleted successfully!');
+         } else {
+           alert(data.error || 'Failed to delete lead');
          }
        } catch (error) {
          console.error('Error deleting lead:', error);
+         alert('An error occurred while deleting the lead. Please try again.');
        }
      }
    };
