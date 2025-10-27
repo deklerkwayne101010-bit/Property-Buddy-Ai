@@ -522,6 +522,7 @@ export default function PhotoEditor() {
                         <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                           <button
                             onClick={(e) => {
+                              e.preventDefault();
                               e.stopPropagation();
                               deleteImage(image);
                             }}
