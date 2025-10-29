@@ -70,18 +70,20 @@ export default function PropertyForm({ onChange, templates = [], onLoadTemplate 
         if (value.length < 20) return 'Short summary must be at least 20 characters';
         break;
       case 'address':
-        if (typeof value !== 'string' || !value.trim()) return 'Address is required';
+        // Address is now optional
         break;
       case 'suburb':
-        if (typeof value !== 'string' || !value.trim()) return 'Suburb is required';
+        // Suburb is now optional
         break;
       case 'city':
-        if (typeof value !== 'string' || !value.trim()) return 'City is required';
+        // City is now optional
         break;
       case 'price':
-        if (typeof value !== 'string' || !value) return 'Price is required';
-        const priceNum = parseInt(value);
-        if (isNaN(priceNum) || priceNum <= 0) return 'Please enter a valid price';
+        // Price is now optional
+        if (typeof value === 'string' && value) {
+          const priceNum = parseInt(value);
+          if (isNaN(priceNum) || priceNum <= 0) return 'Please enter a valid price';
+        }
         break;
       case 'beds':
         if (typeof value !== 'string' || !value) return 'Number of bedrooms is required';
@@ -363,7 +365,7 @@ export default function PropertyForm({ onChange, templates = [], onLoadTemplate 
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           <div className="group">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Street Address *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Street Address</label>
             <input
               type="text"
               value={formData.address}
@@ -374,7 +376,6 @@ export default function PropertyForm({ onChange, templates = [], onLoadTemplate 
                   ? 'border-red-300 focus:ring-red-500 bg-red-50'
                   : 'border-gray-200 focus:ring-blue-500 focus:border-blue-500 bg-white hover:border-blue-300'
               }`}
-              required
             />
             {errors.address && (
               <div className="mt-2 flex items-center text-sm text-red-600 animate-in slide-in-from-top-1">
@@ -386,7 +387,7 @@ export default function PropertyForm({ onChange, templates = [], onLoadTemplate 
             )}
           </div>
           <div className="group">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Suburb *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Suburb</label>
             <input
               type="text"
               value={formData.suburb}
@@ -397,7 +398,6 @@ export default function PropertyForm({ onChange, templates = [], onLoadTemplate 
                   ? 'border-red-300 focus:ring-red-500 bg-red-50'
                   : 'border-gray-200 focus:ring-blue-500 focus:border-blue-500 bg-white hover:border-blue-300'
               }`}
-              required
             />
             {errors.suburb && (
               <div className="mt-2 flex items-center text-sm text-red-600 animate-in slide-in-from-top-1">
@@ -409,7 +409,7 @@ export default function PropertyForm({ onChange, templates = [], onLoadTemplate 
             )}
           </div>
           <div className="group sm:col-span-2 lg:col-span-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">City *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
             <input
               type="text"
               value={formData.city}
@@ -420,7 +420,6 @@ export default function PropertyForm({ onChange, templates = [], onLoadTemplate 
                   ? 'border-red-300 focus:ring-red-500 bg-red-50'
                   : 'border-gray-200 focus:ring-blue-500 focus:border-blue-500 bg-white hover:border-blue-300'
               }`}
-              required
             />
             {errors.city && (
               <div className="mt-2 flex items-center text-sm text-red-600 animate-in slide-in-from-top-1">
@@ -440,7 +439,7 @@ export default function PropertyForm({ onChange, templates = [], onLoadTemplate 
           <svg className="w-4 h-4 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
           </svg>
-          Property Price (R) *
+          Property Price (R)
         </label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 flex items-center pl-4">
@@ -456,7 +455,6 @@ export default function PropertyForm({ onChange, templates = [], onLoadTemplate 
                 ? 'border-red-300 focus:ring-red-500 bg-red-50'
                 : 'border-gray-200 focus:ring-emerald-500 focus:border-emerald-500 bg-white hover:border-emerald-300'
             }`}
-            required
           />
           <div className="absolute inset-y-0 right-0 flex items-center pr-3">
             <div className={`w-2 h-2 rounded-full transition-colors ${

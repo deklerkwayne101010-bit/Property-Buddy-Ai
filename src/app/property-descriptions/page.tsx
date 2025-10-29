@@ -502,9 +502,6 @@ export default function PropertyDescriptions() {
                             formData={formData}
                             generationSettings={generationSettings}
                           />
-                          <div className="mt-8">
-                            <QuickExamples onSelectExample={handleSelectExample} />
-                          </div>
                         </div>
                       </div>
                     </div>
