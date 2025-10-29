@@ -73,60 +73,80 @@ Contact us today to arrange a viewing!`;
 
       {/* Property Details Summary */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-        <h4 className="font-medium text-gray-900 mb-2">Property Summary</h4>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-gray-600">Title:</span>
-            <p className="font-medium">{formData.title || 'Not specified'}</p>
+        <h4 className="font-medium text-gray-900 mb-3">Property Summary</h4>
+        <div className="space-y-3 text-sm">
+          <div className="flex justify-between items-start">
+            <span className="text-gray-600 font-medium min-w-[80px]">Title:</span>
+            <p className="font-medium text-gray-900 flex-1 text-right">{formData.title || 'Not specified'}</p>
           </div>
-          <div>
-            <span className="text-gray-600">Price:</span>
-            <p className="font-medium">{formData.price ? formatPrice(formData.price) : 'Not specified'}</p>
+          <div className="flex justify-between items-start">
+            <span className="text-gray-600 font-medium min-w-[80px]">Price:</span>
+            <p className="font-medium text-gray-900 flex-1 text-right">{formData.price ? formatPrice(formData.price) : 'Not specified'}</p>
           </div>
-          <div>
-            <span className="text-gray-600">Location:</span>
-            <p className="font-medium">
+          <div className="flex justify-between items-start">
+            <span className="text-gray-600 font-medium min-w-[80px]">Location:</span>
+            <p className="font-medium text-gray-900 flex-1 text-right">
               {[formData.suburb, formData.city].filter(Boolean).join(', ') || 'Not specified'}
             </p>
           </div>
-          <div>
-            <span className="text-gray-600">Bedrooms:</span>
-            <p className="font-medium">{formData.beds || 'Not specified'}</p>
+          <div className="flex justify-between items-start">
+            <span className="text-gray-600 font-medium min-w-[80px]">Bedrooms:</span>
+            <p className="font-medium text-gray-900 flex-1 text-right">{formData.beds || 'Not specified'}</p>
           </div>
+          <div className="flex justify-between items-start">
+            <span className="text-gray-600 font-medium min-w-[80px]">Bathrooms:</span>
+            <p className="font-medium text-gray-900 flex-1 text-right">{formData.baths || 'Not specified'}</p>
+          </div>
+          <div className="flex justify-between items-start">
+            <span className="text-gray-600 font-medium min-w-[80px]">Garages:</span>
+            <p className="font-medium text-gray-900 flex-1 text-right">{formData.garages || 'Not specified'}</p>
+          </div>
+          {formData.address && (
+            <div className="flex justify-between items-start">
+              <span className="text-gray-600 font-medium min-w-[80px]">Address:</span>
+              <p className="font-medium text-gray-900 flex-1 text-right">{formData.address}</p>
+            </div>
+          )}
+          {formData.keyFeatures.length > 0 && (
+            <div className="flex justify-between items-start">
+              <span className="text-gray-600 font-medium min-w-[80px]">Features:</span>
+              <p className="font-medium text-gray-900 flex-1 text-right">{formData.keyFeatures.join(', ')}</p>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Generation Settings */}
       <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-        <h4 className="font-medium text-gray-900 mb-2">Generation Settings</h4>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-gray-600">Platforms:</span>
-            <p className="font-medium">
+        <h4 className="font-medium text-gray-900 mb-3">Generation Settings</h4>
+        <div className="space-y-3 text-sm">
+          <div className="flex justify-between items-start">
+            <span className="text-gray-600 font-medium min-w-[100px]">Platforms:</span>
+            <p className="font-medium text-gray-900 flex-1 text-right">
               {generationSettings.platforms.length > 0
                 ? generationSettings.platforms.join(', ')
                 : 'None selected'}
             </p>
           </div>
-          <div>
-            <span className="text-gray-600">Tone:</span>
-            <p className="font-medium">{generationSettings.tone}</p>
+          <div className="flex justify-between items-start">
+            <span className="text-gray-600 font-medium min-w-[100px]">Tone:</span>
+            <p className="font-medium text-gray-900 flex-1 text-right">{generationSettings.tone}</p>
           </div>
-          <div>
-            <span className="text-gray-600">Length:</span>
-            <p className="font-medium">{generationSettings.length}</p>
+          <div className="flex justify-between items-start">
+            <span className="text-gray-600 font-medium min-w-[100px]">Length:</span>
+            <p className="font-medium text-gray-900 flex-1 text-right">{generationSettings.length}</p>
           </div>
-          <div>
-            <span className="text-gray-600">Variations:</span>
-            <p className="font-medium">{generationSettings.variations}</p>
+          <div className="flex justify-between items-start">
+            <span className="text-gray-600 font-medium min-w-[100px]">Variations:</span>
+            <p className="font-medium text-gray-900 flex-1 text-right">{generationSettings.variations}</p>
           </div>
+          {generationSettings.seoKeywords && (
+            <div className="flex justify-between items-start">
+              <span className="text-gray-600 font-medium min-w-[100px]">SEO Keywords:</span>
+              <p className="font-medium text-gray-900 flex-1 text-right">{generationSettings.seoKeywords}</p>
+            </div>
+          )}
         </div>
-        {generationSettings.seoKeywords && (
-          <div className="mt-2">
-            <span className="text-gray-600">SEO Keywords:</span>
-            <p className="font-medium">{generationSettings.seoKeywords}</p>
-          </div>
-        )}
       </div>
 
       {/* Preview Description */}
