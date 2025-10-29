@@ -50,20 +50,18 @@ async function callReplicateAPI(prompt: string): Promise<string> {
     return "This is a sample property description generated for demonstration purposes. The AI service is currently unavailable, but you can see how professional property descriptions would appear here. Please contact support to enable full AI features.";
   }
 
-  const response = await fetch('https://api.replicate.com/v1/predictions', {
+  const response = await fetch('https://api.replicate.com/v1/models/openai/gpt-4o-mini/predictions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${replicateToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      version: 'mistralai/mistral-7b-v0.1',
       input: {
         prompt: prompt,
         max_tokens: 500,
         temperature: 0.7,
         top_p: 0.9,
-        do_sample: true,
       },
     }),
   });
