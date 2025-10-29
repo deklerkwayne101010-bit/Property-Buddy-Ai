@@ -152,27 +152,22 @@ export function validatePropertyData(data: Record<string, unknown>): { isValid: 
     errors.push('Title contains invalid characters');
   }
 
-  if (!data.address || typeof data.address !== 'string' || data.address.trim().length === 0) {
-    errors.push('Address is required');
-  } else if (data.address.length > 300) {
+  // Address is now optional
+  if (data.address && typeof data.address === 'string' && data.address.length > 300) {
     errors.push('Address must be less than 300 characters');
   }
 
-  if (!data.price || typeof data.price !== 'string' || data.price.trim().length === 0) {
-    errors.push('Price is required');
-  } else if (data.price.length > 50) {
-    errors.push('Price must be less than 50 characters');
-  } else if (!/^[0-9\s,.]+$/.test(data.price)) {
-    errors.push('Price must contain only numbers, spaces, commas, and periods');
+  // Price is now optional
+  if (data.price && typeof data.price === 'string') {
+    if (data.price.length > 50) {
+      errors.push('Price must be less than 50 characters');
+    } else if (!/^[0-9\s,.]*$/.test(data.price)) {
+      errors.push('Price must contain only numbers, spaces, commas, and periods');
+    }
   }
 
-  if (!data.suburb || typeof data.suburb !== 'string' || data.suburb.trim().length === 0) {
-    errors.push('Suburb is required');
-  }
-
-  if (!data.city || typeof data.city !== 'string' || data.city.trim().length === 0) {
-    errors.push('City is required');
-  }
+  // Suburb is now optional
+  // City is now optional
 
   if (!data.beds || typeof data.beds !== 'string' || data.beds.trim().length === 0) {
     errors.push('Number of bedrooms is required');
