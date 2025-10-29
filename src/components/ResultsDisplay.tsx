@@ -410,171 +410,94 @@ export default function ResultsDisplay({
         </div>
       )}
 
-      {/* Export All Button */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-900">
-          Generated Results ({allResults.length})
-        </h2>
-        <button
-          onClick={exportAll}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          Export All (.txt)
-        </button>
+      {/* Header */}
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Generated Property Descriptions</h2>
+        <p className="text-gray-600">Here are your AI-generated property descriptions</p>
       </div>
 
-      {/* Results Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {allResults.map((result) => (
-          <div key={result.id} className="bg-white rounded-lg shadow-sm border p-4 hover:shadow-md transition-shadow">
-            {/* Header */}
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex flex-wrap gap-2">
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
-                  {result.platform}
-                </span>
-                <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
-                  {result.tone}
-                </span>
-                <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
-                  {result.length}
+      {/* Full Results Display */}
+      <div className="space-y-8">
+        {allResults.map((result, index) => (
+          <div key={result.id} className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+            {/* Header with Platform Info */}
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-semibold rounded-full">
+                    {result.platform}
+                  </span>
+                  <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-medium rounded-full">
+                    {result.tone}
+                  </span>
+                  <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-medium rounded-full">
+                    {result.length}
+                  </span>
+                </div>
+                <span className="text-sm text-gray-500">
+                  Variation {parseInt(result.id.split('-')[1]) + 1}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+
+              {/* Action Buttons */}
+              <div className="flex items-center space-x-3">
                 <button
-                  onClick={() => handleSelectVariant(result.platform, parseInt(result.id.split('-')[1]))}
-                  className="p-1 rounded text-green-400 hover:text-green-600"
-                  title="Select this variant"
+                  onClick={() => copyToClipboard(result.content)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
+                  <span>Copy</span>
                 </button>
                 <button
-                  onClick={() => handleSaveTemplateClick(result)}
-                  className="p-1 rounded text-gray-400 hover:text-yellow-500"
-                  title="Save as template"
+                  onClick={() => startEditing(result.id, result.content)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors duration-200"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
+                  <span>Edit</span>
                 </button>
               </div>
             </div>
 
             {/* Content */}
-            <div className="mb-4">
+            <div className="mb-6">
               {editingId === result.id ? (
-                <div className="space-y-2">
+                <div className="space-y-4">
                   <textarea
                     ref={textareaRef}
                     value={editingContent}
                     onChange={(e) => setEditingContent(e.target.value)}
-                    className="w-full p-2 border rounded text-sm min-h-[100px]"
+                    className="w-full p-4 border-2 border-gray-300 rounded-lg text-base min-h-[200px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Edit your description..."
                   />
-                  <div className="flex gap-2">
+                  <div className="flex gap-3">
                     <button
                       onClick={saveEdit}
                       disabled={refiningId === result.id}
-                      className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50"
+                      className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors duration-200"
                     >
-                      {refiningId === result.id ? 'Refining...' : 'Refine with AI'}
+                      {refiningId === result.id ? 'Refining with AI...' : 'Refine with AI'}
                     </button>
                     <button
                       onClick={cancelEdit}
-                      className="px-3 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700"
+                      className="px-6 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors duration-200"
                     >
                       Cancel
                     </button>
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-gray-700 whitespace-pre-wrap line-clamp-6">
-                  {result.content}
-                </p>
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <div className="prose prose-gray max-w-none">
+                    <div className="whitespace-pre-wrap text-gray-800 text-base leading-relaxed">
+                      {result.content}
+                    </div>
+                  </div>
+                </div>
               )}
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => copyToClipboard(result.content)}
-                className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded hover:bg-gray-200"
-              >
-                Copy
-              </button>
-              <button
-                onClick={() => downloadAsTxt(result.content, result.platform)}
-                className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded hover:bg-gray-200"
-              >
-                Download
-              </button>
-              <button
-                onClick={() => startEditing(result.id, result.content)}
-                className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded hover:bg-blue-200"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => handleRegenerate(result.platform)}
-                disabled={regeneratingPlatforms.has(result.platform)}
-                className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded hover:bg-purple-200 disabled:opacity-50"
-              >
-                {regeneratingPlatforms.has(result.platform) ? 'Regenerating...' : 'Regenerate'}
-              </button>
-            </div>
-
-            {/* Integration Buttons */}
-            <div className="space-y-2 mt-3 pt-3 border-t">
-              {/* CRM Save */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => saveToCRM(result)}
-                  disabled={savingToCRM.has(result.id)}
-                  className="flex-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded hover:bg-blue-200 disabled:opacity-50"
-                >
-                  {savingToCRM.has(result.id) ? 'Saving...' : 'Save to CRM'}
-                </button>
-                <button
-                  onClick={() => handleSchedulePost(result)}
-                  className="flex-1 px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded hover:bg-purple-200"
-                >
-                  Schedule Post
-                </button>
-              </div>
-
-              {/* Social Sharing */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => shareViaWhatsApp(result.content, result.platform)}
-                  className="flex-1 px-2 py-1 bg-green-100 text-green-700 text-xs rounded hover:bg-green-200"
-                >
-                  WhatsApp
-                </button>
-                <button
-                  onClick={() => shareViaEmail(result.content, result.platform)}
-                  className="flex-1 px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded hover:bg-yellow-200"
-                >
-                  Email
-                </button>
-              </div>
-
-              {/* Use For Buttons */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => onUseForVideo(result.content)}
-                  className="flex-1 px-2 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200"
-                >
-                  Use for Video
-                </button>
-                <button
-                  onClick={() => onUseForFlyer(result.content)}
-                  className="flex-1 px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded hover:bg-indigo-200"
-                >
-                  Use for Flyer
-                </button>
-              </div>
             </div>
           </div>
         ))}
