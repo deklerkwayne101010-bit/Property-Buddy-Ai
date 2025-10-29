@@ -29,18 +29,16 @@ function validateLeadData(data: Partial<Lead>): { isValid: boolean; errors: stri
     }
   }
 
-  if (data.contactNumber !== undefined) {
-    if (!data.contactNumber || typeof data.contactNumber !== 'string' || data.contactNumber.trim().length === 0) {
-      errors.push('Contact number is required');
-    } else if (data.contactNumber.length > 20) {
+  // Contact number is now optional
+  if (data.contactNumber !== undefined && data.contactNumber.trim().length > 0) {
+    if (data.contactNumber.length > 20) {
       errors.push('Contact number must be less than 20 characters');
     }
   }
 
-  if (data.email !== undefined) {
-    if (!data.email || typeof data.email !== 'string' || data.email.trim().length === 0) {
-      errors.push('Email is required');
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+  // Email is now optional
+  if (data.email !== undefined && data.email.trim().length > 0) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
       errors.push('Invalid email format');
     } else if (data.email.length > 100) {
       errors.push('Email must be less than 100 characters');
