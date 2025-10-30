@@ -42,8 +42,8 @@ const paymentPlans: PaymentPlan[] = [
     currency: 'ZAR',
     interval: 'month',
     features: [
-      '50 credits included',
-      'Up to 25 photo edits per month',
+      '100 credits included',
+      'Up to 50 photo edits per month',
       'Generate 2 AI property videos (30 seconds each)',
       'Access to basic property templates',
       'Email support'
@@ -56,8 +56,8 @@ const paymentPlans: PaymentPlan[] = [
     currency: 'ZAR',
     interval: 'year',
     features: [
-      '50 credits included monthly',
-      'Up to 25 photo edits per month',
+      '100 credits included monthly',
+      'Up to 50 photo edits per month',
       'Generate 2 AI property videos (30 seconds each)',
       'Access to basic property templates',
       'Email support',
@@ -74,10 +74,10 @@ const paymentPlans: PaymentPlan[] = [
     interval: 'month',
     popular: true,
     features: [
-      '100 credits included',
-      'Designed for about 3 listings per month',
-      'Allows 60+ photo edits',
-      'Generate 3–4 AI property videos',
+      '200 credits included',
+      'Designed for about 6 listings per month',
+      'Allows 120+ photo edits',
+      'Generate 6–8 AI property videos',
       'Access to premium templates',
       'Priority email & chat support'
     ]
@@ -89,10 +89,10 @@ const paymentPlans: PaymentPlan[] = [
     currency: 'ZAR',
     interval: 'year',
     features: [
-      '100 credits included monthly',
-      'Designed for about 3 listings per month',
-      'Allows 60+ photo edits',
-      'Generate 3–4 AI property videos',
+      '200 credits included monthly',
+      'Designed for about 6 listings per month',
+      'Allows 120+ photo edits',
+      'Generate 6–8 AI property videos',
       'Access to premium templates',
       'Priority email & chat support',
       'Save R718/year (20% off)'
@@ -322,10 +322,10 @@ function PaymentPageContent() {
                   <h3 className="text-blue-800 font-semibold">Current Plan: {currentSubscription === 'free' ? 'Free Plan' : currentSubscription === 'pro' ? 'Pro Plan' : currentSubscription.charAt(0).toUpperCase() + currentSubscription.slice(1) + ' Plan'}</h3>
                   <p className="text-blue-700 text-sm">
                     {currentSubscription === 'free' ? '5 credits included - AI Photo Editor only' :
-                      currentSubscription === 'starter' ? '50 credits included - Basic features' :
-                      currentSubscription === 'pro' ? '100 credits included - Full features' :
-                      currentSubscription === 'elite' ? '180 credits included - Premium features' :
-                      currentSubscription === 'agency' ? '350 credits included - Enterprise features' : 'Unknown plan'}
+                      currentSubscription === 'starter' ? '100 credits included - Basic features' :
+                      currentSubscription === 'pro' ? '200 credits included - Full features' :
+                      currentSubscription === 'elite' ? '200 credits included - Premium features' :
+                      currentSubscription === 'agency' ? '400 credits included - Enterprise features' : 'Unknown plan'}
                   </p>
                 </div>
               </div>
