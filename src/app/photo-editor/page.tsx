@@ -294,23 +294,39 @@ export default function PhotoEditor() {
     try {
       console.log('Attempting to delete image:', image.id, 'for user:', user.id);
 
+      // First, get the file path from user_media to delete from storage
+      const { data: mediaRecord, error: fetchError } = await supabase
+        .from('user_media')
+        .select('file_name')
+        .eq('id', image.id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching media record:', fetchError);
+        throw new Error('Failed to find image record');
+      }
+
+      // Delete from Supabase storage
+      const { error: storageError } = await supabase.storage
+        .from('images')
+        .remove([mediaRecord.file_name]);
+
+      if (storageError) {
+        console.error('Storage delete error:', storageError);
+        // Continue with database deletion even if storage deletion fails
+      }
+
       // Delete from user_media table
-      const { data, error: mediaError } = await supabase
+      const { error: mediaError } = await supabase
         .from('user_media')
         .delete()
         .eq('id', image.id)
-        .eq('user_id', user.id) // Extra security check
-        .select(); // Add select to get deleted data
-
-      console.log('Delete response:', { data, error: mediaError });
+        .eq('user_id', user.id); // Extra security check
 
       if (mediaError) {
         console.error('Media delete error:', mediaError);
         throw mediaError;
-      }
-
-      if (!data || data.length === 0) {
-        throw new Error('Image not found or you do not have permission to delete it');
       }
 
       // Refresh the uploaded images list
