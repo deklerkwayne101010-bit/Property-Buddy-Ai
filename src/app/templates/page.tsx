@@ -83,7 +83,7 @@ export default function TemplatesPage() {
               Under Construction
             </h2>
             <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
-              We're working hard to bring you an amazing template system for creating stunning marketing materials.
+              We&apos;re working hard to bring you an amazing template system for creating stunning marketing materials.
               This feature will be available soon!
             </p>
           </div>
@@ -91,7 +91,7 @@ export default function TemplatesPage() {
           {/* Coming Soon Features */}
           <div className="mt-12 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl p-8 border border-orange-100">
             <div className="text-center">
-              <h3 className="text-2xl font-bold text-slate-900 mb-4">What's Coming to Templates</h3>
+              <h3 className="text-2xl font-bold text-slate-900 mb-4">What&apos;s Coming to Templates</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
                 <div className="text-center">
                   <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
