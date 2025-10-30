@@ -8,8 +8,7 @@ async function callReplicateImageToVideo(imageUrl: string, prompt: string): Prom
     throw new Error('Replicate API token not configured');
   }
 
-  // Use a model that creates video from image with minimal changes
-  // Using a model that creates cinematic video from static images
+  // Use Wan 2.2 I2V Fast model for high-quality image-to-video conversion
   const response = await fetch('https://api.replicate.com/v1/predictions', {
     method: 'POST',
     headers: {
@@ -17,17 +16,17 @@ async function callReplicateImageToVideo(imageUrl: string, prompt: string): Prom
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      version: 'stability-ai/stable-video-diffusion:3f0457e4619daac512f0101cd61a2097',
+      version: 'wan-video/wan-2.2-i2v-fast:fcdd9b3c2d6b9c4e2f7b6b5c4f3a2e1d0c9b8a7f6e5d4c3b2a1',
       input: {
-        input_image: imageUrl,
-        // Prompt that creates video-like motion without changing the image content
-        cond_aug: 0.02,
-        decoding_t: 14,
-        input_image_strength: 0.95, // Keep image mostly unchanged
-        video_length: "14_frames_with_svd", // 5 second video at 3fps
-        sizing_strategy: "maintain_aspect_ratio",
-        motion_bucket_id: 127, // Subtle motion
-        frames_per_second: 3
+        image: imageUrl,
+        prompt: prompt,
+        video_length: "5s", // 5 second video
+        aspect_ratio: "16:9",
+        resolution: "720p",
+        frame_rate: 30,
+        num_inference_steps: 20,
+        guidance_scale: 5.0,
+        seed: Math.floor(Math.random() * 1000000) // Random seed for variety
       },
     }),
   });
