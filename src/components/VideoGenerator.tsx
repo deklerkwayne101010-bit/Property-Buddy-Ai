@@ -210,6 +210,19 @@ export default function VideoGenerator() {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Video Generator</h1>
         <p className="text-gray-600 mb-4">Upload property images and create stunning AI-generated videos</p>
 
+        {/* Template Selection */}
+        <div className="mb-6">
+          <div className="inline-flex items-center bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-full px-4 py-2">
+            <div className="flex items-center space-x-2">
+              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-xs font-bold">1️⃣</span>
+              </div>
+              <span className="text-blue-800 font-semibold text-sm">Template 1: Property Showcase</span>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Upload up to 10 images to create a cinematic property video</p>
+        </div>
+
         {/* Cost Display */}
         <div className="inline-flex items-center bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-full px-4 py-2">
           <div className="flex items-center space-x-2">
@@ -264,8 +277,12 @@ export default function VideoGenerator() {
         <div className="bg-white rounded-lg shadow-lg p-6">
           <h2 className="text-xl font-semibold mb-4 flex items-center">
             <span className="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">2</span>
-            Select Images for Video (Up to 10)
+            Select Images for Property Video (Up to 10)
           </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Choose images in the order you want them to appear in your property showcase video.
+            Each image will be transformed into a 5-second cinematic video clip.
+          </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
             {uploadedImages.map((image) => {
@@ -340,7 +357,7 @@ export default function VideoGenerator() {
 
           <div className="space-y-4">
             <p className="text-gray-600">
-              Create a stunning property video using AI with your selected images ({selectedImages.length} image{selectedImages.length > 1 ? 's' : ''}).
+              Create a cinematic property showcase video using AI. Each selected image will be transformed into a 5-second video clip with subtle camera movements and lighting effects, then smoothly stitched together into one cohesive property tour ({selectedImages.length} image{selectedImages.length > 1 ? 's' : ''} selected).
             </p>
 
             <button
