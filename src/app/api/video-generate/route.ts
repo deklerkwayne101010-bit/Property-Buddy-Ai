@@ -42,10 +42,10 @@ async function callReplicateImageToVideo(imageUrl: string, prompt: string): Prom
 
   const prediction = await response.json();
 
-  // Poll for completion
+  // Poll for completion (extended timeout for video generation)
   let result;
   let attempts = 0;
-  const maxAttempts = 60; // 5 minutes max
+  const maxAttempts = 240; // 20 minutes max (videos take longer)
 
   while (attempts < maxAttempts) {
     attempts++;
@@ -73,7 +73,7 @@ async function callReplicateImageToVideo(imageUrl: string, prompt: string): Prom
     await new Promise(resolve => setTimeout(resolve, 5000));
   }
 
-  throw new Error('Video generation timed out');
+  throw new Error('Video generation timed out after 20 minutes');
 }
 
 async function stitchVideos(videoUrls: string[], outputFilename: string): Promise<string> {
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
 
       try {
         // Prompt that creates subtle video motion without changing the image
-        const videoPrompt = "Create a subtle cinematic video from this static image. Add gentle camera movement and lighting changes that make it feel like a professional real estate video, but keep all objects, people, and details exactly the same - do not add, remove, or change anything in the image.";
+        const videoPrompt = "Create a subtle cinematic video from this static image. Add gentle camera movement and lighting changes that make it feel like a professional real estate video, but keep all objects and details exactly the same - do not add, remove, or change anything in the image.";
 
         console.log(`Calling Replicate API for image ${i + 1} with prompt: ${videoPrompt}`);
         const videoUrl = await callReplicateImageToVideo(imageUrl, videoPrompt);

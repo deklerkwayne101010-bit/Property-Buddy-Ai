@@ -20,6 +20,8 @@ export default function VideoGenerator() {
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [generatedVideo, setGeneratedVideo] = useState<UserMedia | null>(null);
+  const [generatedClips, setGeneratedClips] = useState<UserMedia[]>([]);
+  const [currentGeneratingIndex, setCurrentGeneratingIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Load existing user media on component mount
@@ -35,6 +37,8 @@ export default function VideoGenerator() {
       setUploadedImages([]);
       setSelectedImages([]);
       setGeneratedVideo(null);
+      setGeneratedClips([]);
+      setCurrentGeneratingIndex(null);
       setLoading(false);
     }
   }, [user]);
@@ -144,45 +148,63 @@ export default function VideoGenerator() {
     }
 
     setIsGeneratingVideo(true);
+    setGeneratedClips([]);
+    setGeneratedVideo(null);
+
     try {
-      const response = await fetch('/api/video-generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageUrls: selectedImages.map(img => img.file_url),
-          userId: user?.id,
-        }),
-      });
+      // Process images sequentially
+      for (let i = 0; i < selectedImages.length; i++) {
+        setCurrentGeneratingIndex(i);
 
-      if (!response.ok) {
-        throw new Error('Failed to generate video');
+        const response = await fetch('/api/video-generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            imageUrls: [selectedImages[i].file_url], // Process one image at a time
+            userId: user?.id,
+            template: 'template1'
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to generate video for image ${i + 1}`);
+        }
+
+        const data = await response.json();
+        console.log(`Video generation response for image ${i + 1}:`, data);
+
+        if (!data.videoUrl) {
+          throw new Error(`No video URL received for image ${i + 1}`);
+        }
+
+        // Save the individual video clip to database
+        const { data: insertData, error: dbError } = await supabase
+          .from('user_media')
+          .insert({
+            user_id: user?.id,
+            media_type: 'avatar_video',
+            file_name: `video_clip_${i + 1}_${Date.now()}.mp4`,
+            file_url: data.videoUrl,
+            file_size: 0,
+          })
+          .select();
+
+        if (dbError) throw dbError;
+
+        console.log(`Video clip ${i + 1} saved to database successfully:`, insertData);
+        setGeneratedClips(prev => [...prev, insertData[0]]);
       }
 
-      const data = await response.json();
-      console.log('Video generation response:', data);
+      // After all clips are generated, create the final stitched video
+      setCurrentGeneratingIndex(null);
 
-      if (!data.videoUrl) {
-        throw new Error('No video URL received from API');
+      // For now, use the first clip as the final video (stitching implementation needed)
+      if (generatedClips.length > 0) {
+        setGeneratedVideo(generatedClips[0]);
       }
 
-      // Save the video to database
-      const { data: insertData, error: dbError } = await supabase
-        .from('user_media')
-        .insert({
-          user_id: user?.id,
-          media_type: 'avatar_video',
-          file_name: `generated_video_${Date.now()}.mp4`,
-          file_url: data.videoUrl,
-          file_size: 0,
-        })
-        .select();
-
-      if (dbError) throw dbError;
-
-      console.log('Video saved to database successfully:', insertData);
-      setGeneratedVideo(insertData[0]);
       setSelectedImages([]); // Clear selection after successful generation
     } catch (error) {
       console.error('Error generating video:', error);
@@ -193,6 +215,7 @@ export default function VideoGenerator() {
       }
     } finally {
       setIsGeneratingVideo(false);
+      setCurrentGeneratingIndex(null);
     }
   };
 
@@ -382,16 +405,63 @@ export default function VideoGenerator() {
 
             {/* Generation Progress */}
             {isGeneratingVideo && (
-              <div className="mt-6 p-6 bg-purple-50 border border-purple-200 rounded-xl">
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-                  <div>
-                    <p className="text-lg font-semibold text-purple-800">Creating your AI property video...</p>
-                    <p className="text-sm text-purple-600">This may take several minutes as the AI processes your images</p>
+              <div className="mt-6 space-y-6">
+                {/* Overall Progress */}
+                <div className="p-6 bg-purple-50 border border-purple-200 rounded-xl">
+                  <div className="flex items-center space-x-4 mb-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                    <div>
+                      <p className="text-lg font-semibold text-purple-800">Creating your AI property video...</p>
+                      <p className="text-sm text-purple-600">
+                        Processing {selectedImages.length} image{selectedImages.length > 1 ? 's' : ''} sequentially.
+                        Each video clip takes several minutes to generate.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="w-full bg-purple-200 rounded-full h-3">
+                    <div className="bg-purple-500 h-3 rounded-full animate-pulse"></div>
                   </div>
                 </div>
-                <div className="w-full bg-purple-200 rounded-full h-3">
-                  <div className="bg-purple-500 h-3 rounded-full animate-pulse"></div>
+
+                {/* Individual Clip Progress */}
+                <div className="space-y-3">
+                  <h3 className="text-md font-semibold text-gray-800">Video Clips Progress:</h3>
+                  {selectedImages.map((image, index) => {
+                    const isCompleted = generatedClips.some(clip =>
+                      clip.file_name.includes(`video_clip_${index + 1}_`)
+                    );
+                    const isGenerating = currentGeneratingIndex === index;
+
+                    return (
+                      <div key={image.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                          isCompleted
+                            ? 'bg-green-500 text-white'
+                            : isGenerating
+                            ? 'bg-blue-500 text-white animate-pulse'
+                            : 'bg-gray-300 text-gray-600'
+                        }`}>
+                          {isCompleted ? '✓' : isGenerating ? '⏳' : index + 1}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-800">
+                            Clip {index + 1}: {image.file_name}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            {isCompleted
+                              ? 'Completed'
+                              : isGenerating
+                              ? 'Generating video clip...'
+                              : 'Waiting to process'
+                            }
+                          </p>
+                        </div>
+                        {isGenerating && (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
