@@ -8,7 +8,7 @@ async function callReplicateImageToVideo(imageUrl: string, prompt: string): Prom
     throw new Error('Replicate API token not configured');
   }
 
-  // Use a simpler, more reliable model first - let's try Stability AI's video generation
+  // Use Wan 2.2 I2V Fast model as specified
   const response = await fetch('https://api.replicate.com/v1/predictions', {
     method: 'POST',
     headers: {
@@ -16,16 +16,18 @@ async function callReplicateImageToVideo(imageUrl: string, prompt: string): Prom
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      version: 'stability-ai/stable-video-diffusion:3f0457e4619daac512f0101cd61a2097',
+      version: 'wan-video/wan-2.2-i2v-fast',
       input: {
-        input_image: imageUrl,
-        cond_aug: 0.02,
-        decoding_t: 14,
-        input_image_strength: 0.95,
-        video_length: "14_frames_with_svd",
-        sizing_strategy: "maintain_aspect_ratio",
-        motion_bucket_id: 127,
-        frames_per_second: 6
+        image: imageUrl,
+        prompt: prompt,
+        go_fast: true,
+        num_frames: 81,
+        resolution: "480p",
+        sample_shift: 12,
+        frames_per_second: 16,
+        interpolate_output: true,
+        lora_scale_transformer: 1,
+        lora_scale_transformer_2: 1
       },
     }),
   });
