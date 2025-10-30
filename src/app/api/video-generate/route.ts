@@ -8,7 +8,7 @@ async function callReplicateImageToVideo(imageUrl: string, prompt: string): Prom
     throw new Error('Replicate API token not configured');
   }
 
-  // Use Wan 2.2 I2V Fast model for high-quality image-to-video conversion
+  // Use a simpler, more reliable model first - let's try Stability AI's video generation
   const response = await fetch('https://api.replicate.com/v1/predictions', {
     method: 'POST',
     headers: {
@@ -16,23 +16,25 @@ async function callReplicateImageToVideo(imageUrl: string, prompt: string): Prom
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      version: 'wan-video/wan-2.2-i2v-fast:fcdd9b3c2d6b9c4e2f7b6b5c4f3a2e1d0c9b8a7f6e5d4c3b2a1',
+      version: 'stability-ai/stable-video-diffusion:3f0457e4619daac512f0101cd61a2097',
       input: {
-        image: imageUrl,
-        prompt: prompt,
-        video_length: "5s", // 5 second video
-        aspect_ratio: "16:9",
-        resolution: "720p",
-        frame_rate: 30,
-        num_inference_steps: 20,
-        guidance_scale: 5.0,
-        seed: Math.floor(Math.random() * 1000000) // Random seed for variety
+        input_image: imageUrl,
+        cond_aug: 0.02,
+        decoding_t: 14,
+        input_image_strength: 0.95,
+        video_length: "14_frames_with_svd",
+        sizing_strategy: "maintain_aspect_ratio",
+        motion_bucket_id: 127,
+        frames_per_second: 6
       },
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
+    console.error('Replicate API error response:', errorText);
+    console.error('Response status:', response.status);
+    console.error('Response headers:', Object.fromEntries(response.headers.entries()));
     throw new Error(`Replicate API error: ${response.status} - ${errorText}`);
   }
 
@@ -55,10 +57,13 @@ async function callReplicateImageToVideo(imageUrl: string, prompt: string): Prom
     result = await statusResponse.json();
 
     if (result.status === 'succeeded') {
+      console.log('Video generation succeeded, output:', result.output);
       return result.output; // Video URL
     } else if (result.status === 'failed') {
+      console.error('Video generation failed, error details:', result.error);
       throw new Error(`Video generation failed: ${result.error}`);
     } else if (result.status === 'cancelled') {
+      console.error('Video generation was cancelled');
       throw new Error('Video generation was cancelled');
     }
 
@@ -129,6 +134,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`Starting Video Template 1 generation for ${imageUrls.length} images`);
+    console.log('Image URLs:', imageUrls);
 
     // Process each image into a 5-second video
     const videoUrls: string[] = [];
@@ -141,6 +147,7 @@ export async function POST(request: NextRequest) {
         // Prompt that creates subtle video motion without changing the image
         const videoPrompt = "Create a subtle cinematic video from this static image. Add gentle camera movement and lighting changes that make it feel like a professional real estate video, but keep all objects, people, and details exactly the same - do not add, remove, or change anything in the image.";
 
+        console.log(`Calling Replicate API for image ${i + 1} with prompt: ${videoPrompt}`);
         const videoUrl = await callReplicateImageToVideo(imageUrl, videoPrompt);
         videoUrls.push(videoUrl);
         console.log(`Generated video ${i + 1}: ${videoUrl}`);
