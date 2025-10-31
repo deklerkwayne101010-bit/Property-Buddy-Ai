@@ -166,6 +166,8 @@ export default function VideoGenerator() {
           userId: user?.id,
           template: 'template1'
         }),
+        // Increase timeout for video generation requests
+        signal: AbortSignal.timeout(300000), // 5 minute timeout
       });
 
       if (!response.ok) {

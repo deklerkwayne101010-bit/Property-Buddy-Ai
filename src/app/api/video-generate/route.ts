@@ -217,8 +217,14 @@ async function stitchVideos(videoUrls: string[], outputFilename: string): Promis
 
 export async function POST(request: NextRequest) {
   try {
+    // Increase timeout for video generation requests
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout for initial request
+
     const body = await request.json();
     const { imageUrls, userId, template = 'template1' } = body;
+
+    clearTimeout(timeoutId);
 
     if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
       return NextResponse.json({ error: 'At least one image URL is required' }, { status: 400 });
@@ -253,8 +259,8 @@ export async function POST(request: NextRequest) {
       console.log(`Processing image ${i + 1}/${imageUrls.length}: ${imageUrl}`);
 
       try {
-        // Simple prompt for subtle camera motion
-        const videoPrompt = "Add a subtle camera motion to this image, do not add or replace anything, stay in the bounds of this image";
+        // Simple prompt for smooth slow camera motion
+        const videoPrompt = "add a smooth slow camera motion too this image, do not change anything, do not add anything, only use what you can see in this image";
 
         console.log(`Calling Replicate API for image ${i + 1} with prompt: ${videoPrompt}`);
         console.log(`This may take up to 60 minutes per image. Starting now...`);
