@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkCreditsAndDeduct } from '@/lib/creditUtils';
 import { supabaseAdmin } from '@/lib/supabase';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import path from 'path';
+import fs from 'fs';
+import ffmpegStatic from 'ffmpeg-static';
+
+const execAsync = promisify(exec);
 
 async function callReplicateImageToVideo(imageUrl: string, prompt: string): Promise<string> {
   const replicateToken = process.env.REPLICATE_API_TOKEN;
@@ -103,35 +110,109 @@ async function callReplicateImageToVideo(imageUrl: string, prompt: string): Prom
 }
 
 async function stitchVideos(videoUrls: string[], outputFilename: string): Promise<string> {
-  // For now, return the first video URL as a placeholder
-  // In a production implementation, you would:
-  // 1. Download all video files
-  // 2. Use FFmpeg to create smooth transitions between videos
-  // 3. Concatenate them into a single video
-  // 4. Upload the final video to storage
-
-  console.log(`Stitching ${videoUrls.length} videos together with smooth transitions`);
+  console.log(`🎬 Starting video stitching for ${videoUrls.length} videos`);
   console.log('Video URLs:', videoUrls);
 
-  // For this implementation, we'll return the first video as a placeholder
-  // The user can see the concept works, and in production you'd implement
-  // proper video stitching with FFmpeg or a cloud video processing service
-
   if (videoUrls.length === 1) {
+    console.log('Only one video, no stitching needed');
     return videoUrls[0];
   }
 
-  // Placeholder: return first video
-  // TODO: Implement actual video stitching with FFmpeg or similar
-  // Example FFmpeg command for smooth transitions:
-  // ffmpeg -i video1.mp4 -i video2.mp4 -filter_complex
-  // "[0:v][1:v]concat=n=2:v=1:a=0[v];[0:a][1:a]concat=n=2:v=0:a=1[a]"
-  // -map "[v]" -map "[a]" -c:v libx264 -c:a aac output.mp4
+  try {
+    // Create temp directory for video processing
+    const tempDir = path.join(process.cwd(), 'temp_videos');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
 
-  console.log('Video stitching placeholder: returning first video');
-  console.log('In production, this would create smooth transitions between all videos');
+    const downloadedVideos: string[] = [];
 
-  return videoUrls[0];
+    // Download all videos
+    console.log('📥 Downloading videos...');
+    for (let i = 0; i < videoUrls.length; i++) {
+      const videoUrl = videoUrls[i];
+      const videoPath = path.join(tempDir, `video_${i + 1}.mp4`);
+
+      console.log(`Downloading video ${i + 1}/${videoUrls.length}: ${videoUrl}`);
+
+      const response = await fetch(videoUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to download video ${i + 1}: ${response.status}`);
+      }
+
+      const buffer = await response.arrayBuffer();
+      fs.writeFileSync(videoPath, Buffer.from(buffer));
+      downloadedVideos.push(videoPath);
+
+      console.log(`✅ Downloaded video ${i + 1} to ${videoPath}`);
+    }
+
+    // Create FFmpeg concat file
+    const concatFile = path.join(tempDir, 'concat_list.txt');
+    const concatContent = downloadedVideos.map(video => `file '${video}'`).join('\n');
+    fs.writeFileSync(concatFile, concatContent);
+
+    // Output file path
+    const outputPath = path.join(tempDir, outputFilename);
+
+    console.log('🎞️ Running FFmpeg to stitch videos...');
+
+    // FFmpeg command for smooth concatenation
+    const ffmpegCommand = `"${ffmpegStatic}" -f concat -safe 0 -i "${concatFile}" -c:v libx264 -c:a aac -avoid_negative_ts make_zero -fflags +genpts -y "${outputPath}"`;
+
+    console.log('FFmpeg command:', ffmpegCommand);
+
+    const { stdout, stderr } = await execAsync(ffmpegCommand, { cwd: tempDir });
+
+    if (stdout) console.log('FFmpeg stdout:', stdout);
+    if (stderr) console.log('FFmpeg stderr:', stderr);
+
+    // Verify output file exists
+    if (!fs.existsSync(outputPath)) {
+      throw new Error('FFmpeg failed to create output video');
+    }
+
+    console.log('✅ Video stitching completed:', outputPath);
+
+    // Upload to Supabase Storage
+    const fileBuffer = fs.readFileSync(outputPath);
+    const fileName = `stitched_${Date.now()}_${outputFilename}`;
+
+    console.log('📤 Uploading stitched video to Supabase...');
+
+    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+      .from('video-assets')
+      .upload(fileName, fileBuffer, {
+        contentType: 'video/mp4',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw new Error(`Failed to upload stitched video: ${uploadError.message}`);
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabaseAdmin.storage
+      .from('video-assets')
+      .getPublicUrl(fileName);
+
+    console.log('✅ Stitched video uploaded successfully:', publicUrl);
+
+    // Cleanup temp files
+    try {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+      console.log('🧹 Cleaned up temporary files');
+    } catch (cleanupError) {
+      console.warn('Failed to cleanup temp files:', cleanupError);
+    }
+
+    return publicUrl;
+
+  } catch (error) {
+    console.error('❌ Video stitching failed:', error);
+    throw new Error(`Video stitching failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -192,7 +273,7 @@ export async function POST(request: NextRequest) {
       throw new Error('Failed to generate any videos from the provided images');
     }
 
-    console.log(`Generated ${videoUrls.length} individual videos, now stitching together...`);
+    console.log(`✅ Generated ${videoUrls.length} individual videos, now stitching together...`);
 
     // Stitch all videos together with smooth transitions
     const finalVideoUrl = await stitchVideos(videoUrls, `property-video-${Date.now()}.mp4`);

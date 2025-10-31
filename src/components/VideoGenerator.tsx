@@ -153,82 +153,69 @@ export default function VideoGenerator() {
 
     try {
       // Process images sequentially - one at a time to avoid timeouts
-      for (let i = 0; i < selectedImages.length; i++) {
-        setCurrentGeneratingIndex(i);
-        console.log(`Starting generation of clip ${i + 1}/${selectedImages.length}`);
+      // Images are already in the order they were selected/uploaded
+      console.log(`Starting sequential video generation for ${selectedImages.length} images in order`);
 
-        const response = await fetch('/api/video-generate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            imageUrls: [selectedImages[i].file_url], // Process one image at a time
-            userId: user?.id,
-            template: 'template1'
-          }),
-        });
+      const response = await fetch('/api/video-generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageUrls: selectedImages.map(img => img.file_url), // Send all images in selected order
+          userId: user?.id,
+          template: 'template1'
+        }),
+      });
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          console.error(`API call failed for image ${i + 1}:`, response.status, errorData);
-          throw new Error(`Failed to generate video for image ${i + 1}: ${errorData.error || response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log(`Video generation response for image ${i + 1}:`, data);
-
-        if (!data.videoUrl) {
-          console.error(`No video URL in response for image ${i + 1}:`, data);
-          throw new Error(`No video URL received for image ${i + 1}`);
-        }
-
-        // Save the individual video clip to database
-        const { data: insertData, error: dbError } = await supabase
-          .from('user_media')
-          .insert({
-            user_id: user?.id,
-            media_type: 'avatar_video',
-            file_name: `video_clip_${i + 1}_${Date.now()}.mp4`,
-            file_url: data.videoUrl,
-            file_size: 0,
-          })
-          .select();
-
-        if (dbError) {
-          console.error('Database error saving clip:', dbError);
-          throw new Error(`Failed to save video clip ${i + 1} to database`);
-        }
-
-        console.log(`Video clip ${i + 1} saved to database successfully:`, insertData);
-        setGeneratedClips(prev => [...prev, insertData[0]]);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('API call failed:', response.status, errorData);
+        throw new Error(`Failed to generate video: ${errorData.error || response.statusText}`);
       }
 
-      // After all clips are generated, create the final stitched video
-      setCurrentGeneratingIndex(null);
-      console.log(`All ${selectedImages.length} clips generated successfully`);
+      const data = await response.json();
+      console.log('Video generation response:', data);
 
-      // For now, use the first clip as the final video (stitching implementation needed)
-      // In production, this would combine all clips with smooth transitions
-      if (generatedClips.length > 0) {
-        setGeneratedVideo(generatedClips[0]);
-        console.log('Final video set from first clip');
+      if (!data.videoUrl) {
+        console.error('No video URL in response:', data);
+        throw new Error('No video URL received from API');
       }
+
+      // Save the final stitched video to database
+      const { data: insertData, error: dbError } = await supabase
+        .from('user_media')
+        .insert({
+          user_id: user?.id,
+          media_type: 'avatar_video',
+          file_name: `final_property_video_${Date.now()}.mp4`,
+          file_url: data.videoUrl,
+          file_size: 0,
+        })
+        .select();
+
+      if (dbError) {
+        console.error('Database error saving final video:', dbError);
+        throw new Error('Failed to save final video to database');
+      }
+
+      console.log('Final stitched video saved to database successfully:', insertData);
+      setGeneratedVideo(insertData[0]);
 
       setSelectedImages([]); // Clear selection after successful generation
-      alert(`Successfully generated ${selectedImages.length} video clips! The final video is ready.`);
+      alert(`Successfully generated and stitched ${selectedImages.length} video clips into a final property video!`);
 
     } catch (error) {
       console.error('Error generating video:', error);
-      setCurrentGeneratingIndex(null); // Reset generating state
 
       if (error instanceof Error) {
-        alert(`Error generating video: ${error.message}\n\nPlease try again. Video generation can take up to 60 minutes per clip.`);
+        alert(`Error generating video: ${error.message}\n\nPlease try again. Video generation and stitching can take considerable time.`);
       } else {
         alert('Error generating video. Please try again.');
       }
     } finally {
       setIsGeneratingVideo(false);
+      setCurrentGeneratingIndex(null);
     }
   };
 
@@ -439,45 +426,22 @@ export default function VideoGenerator() {
                   </div>
                 </div>
 
-                {/* Individual Clip Progress */}
+                {/* Overall Progress */}
                 <div className="space-y-3">
-                  <h3 className="text-md font-semibold text-gray-800">Video Clips Progress:</h3>
-                  {selectedImages.map((image, index) => {
-                    const isCompleted = generatedClips.some(clip =>
-                      clip.file_name.includes(`video_clip_${index + 1}_`)
-                    );
-                    const isGenerating = currentGeneratingIndex === index;
-
-                    return (
-                      <div key={image.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                          isCompleted
-                            ? 'bg-green-500 text-white'
-                            : isGenerating
-                            ? 'bg-blue-500 text-white animate-pulse'
-                            : 'bg-gray-300 text-gray-600'
-                        }`}>
-                          {isCompleted ? '✓' : isGenerating ? '⏳' : index + 1}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-800">
-                            Clip {index + 1}: {image.file_name}
-                          </p>
-                          <p className="text-xs text-gray-600">
-                            {isCompleted
-                              ? 'Completed'
-                              : isGenerating
-                              ? 'Generating video clip...'
-                              : 'Waiting to process'
-                            }
-                          </p>
-                        </div>
-                        {isGenerating && (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                        )}
+                  <h3 className="text-md font-semibold text-gray-800">Generation Progress:</h3>
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                      <div>
+                        <p className="text-sm font-medium text-blue-800">
+                          Processing {selectedImages.length} images sequentially
+                        </p>
+                        <p className="text-xs text-blue-600">
+                          Each image becomes a video clip, then all clips are stitched together
+                        </p>
                       </div>
-                    );
-                  })}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
