@@ -32,6 +32,11 @@ async function callReplicateImageToVideo(imageUrl: string, prompt: string): Prom
     }),
   });
 
+  console.log('Replicate API request sent for video generation');
+  console.log('Model: wan-video/wan-2.2-i2v-fast');
+  console.log('Image URL:', imageUrl);
+  console.log('Prompt:', prompt);
+
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Replicate API error response:', errorText);
@@ -171,12 +176,15 @@ export async function POST(request: NextRequest) {
         const videoPrompt = "Add a subtle camera motion to this image, do not add or replace anything, stay in the bounds of this image";
 
         console.log(`Calling Replicate API for image ${i + 1} with prompt: ${videoPrompt}`);
+        console.log(`This may take up to 60 minutes per image. Starting now...`);
+
         const videoUrl = await callReplicateImageToVideo(imageUrl, videoPrompt);
         videoUrls.push(videoUrl);
-        console.log(`Generated video ${i + 1}: ${videoUrl}`);
+        console.log(`✅ Generated video ${i + 1}: ${videoUrl}`);
       } catch (error) {
-        console.error(`Failed to generate video for image ${i + 1}:`, error);
+        console.error(`❌ Failed to generate video for image ${i + 1}:`, error);
         // Continue with other images even if one fails
+        console.log(`Continuing with remaining images...`);
       }
     }
 
