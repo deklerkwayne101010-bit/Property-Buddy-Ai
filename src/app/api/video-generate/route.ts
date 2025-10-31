@@ -217,34 +217,48 @@ async function stitchVideos(videoUrls: string[], outputFilename: string): Promis
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🎬 Video generation API called');
+    console.log('🎬 Video generation API called at', new Date().toISOString());
 
     const body = await request.json();
     const { imageUrls, userId, template = 'template1' } = body;
 
-    console.log('📋 Request body:', { imageUrls: imageUrls?.length, userId, template });
+    console.log('📋 Request body:', {
+      imageUrlsCount: imageUrls?.length,
+      userId: userId ? 'present' : 'missing',
+      template,
+      timestamp: new Date().toISOString()
+    });
 
+    // Validate inputs immediately
     if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
+      console.log('❌ Validation failed: No image URLs provided');
       return NextResponse.json({ error: 'At least one image URL is required' }, { status: 400 });
     }
 
     if (imageUrls.length > 10) {
+      console.log('❌ Validation failed: Too many images', imageUrls.length);
       return NextResponse.json({ error: 'Maximum 10 images allowed' }, { status: 400 });
     }
 
-    // Check credits and deduct for video generation (4 credits per video)
     if (!userId) {
+      console.log('❌ Validation failed: No user ID provided');
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
+    console.log('✅ Input validation passed');
+
+    // Check credits and deduct for video generation (4 credits per video)
+    console.log('💰 Checking user credits...');
     const creditResult = await checkCreditsAndDeduct(userId, 4); // 4 credits per video generation
     if (!creditResult.success) {
+      console.log('❌ Credit check failed:', creditResult.error);
       return NextResponse.json({
         error: 'Insufficient credits',
         details: creditResult.error,
         currentCredits: creditResult.newCredits
       }, { status: 402 });
     }
+    console.log('✅ Credits deducted successfully, remaining:', creditResult.newCredits);
 
     console.log(`🚀 Starting Video Template 1 generation for ${imageUrls.length} images`);
     console.log('📸 Image URLs:', imageUrls);
