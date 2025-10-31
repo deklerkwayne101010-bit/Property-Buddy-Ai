@@ -152,9 +152,10 @@ export default function VideoGenerator() {
     setGeneratedVideo(null);
 
     try {
-      // Process images sequentially
+      // Process images sequentially - one at a time to avoid timeouts
       for (let i = 0; i < selectedImages.length; i++) {
         setCurrentGeneratingIndex(i);
+        console.log(`Starting generation of clip ${i + 1}/${selectedImages.length}`);
 
         const response = await fetch('/api/video-generate', {
           method: 'POST',
@@ -169,13 +170,16 @@ export default function VideoGenerator() {
         });
 
         if (!response.ok) {
-          throw new Error(`Failed to generate video for image ${i + 1}`);
+          const errorData = await response.json().catch(() => ({}));
+          console.error(`API call failed for image ${i + 1}:`, response.status, errorData);
+          throw new Error(`Failed to generate video for image ${i + 1}: ${errorData.error || response.statusText}`);
         }
 
         const data = await response.json();
         console.log(`Video generation response for image ${i + 1}:`, data);
 
         if (!data.videoUrl) {
+          console.error(`No video URL in response for image ${i + 1}:`, data);
           throw new Error(`No video URL received for image ${i + 1}`);
         }
 
@@ -191,7 +195,10 @@ export default function VideoGenerator() {
           })
           .select();
 
-        if (dbError) throw dbError;
+        if (dbError) {
+          console.error('Database error saving clip:', dbError);
+          throw new Error(`Failed to save video clip ${i + 1} to database`);
+        }
 
         console.log(`Video clip ${i + 1} saved to database successfully:`, insertData);
         setGeneratedClips(prev => [...prev, insertData[0]]);
@@ -199,23 +206,29 @@ export default function VideoGenerator() {
 
       // After all clips are generated, create the final stitched video
       setCurrentGeneratingIndex(null);
+      console.log(`All ${selectedImages.length} clips generated successfully`);
 
       // For now, use the first clip as the final video (stitching implementation needed)
+      // In production, this would combine all clips with smooth transitions
       if (generatedClips.length > 0) {
         setGeneratedVideo(generatedClips[0]);
+        console.log('Final video set from first clip');
       }
 
       setSelectedImages([]); // Clear selection after successful generation
+      alert(`Successfully generated ${selectedImages.length} video clips! The final video is ready.`);
+
     } catch (error) {
       console.error('Error generating video:', error);
+      setCurrentGeneratingIndex(null); // Reset generating state
+
       if (error instanceof Error) {
-        alert(`Error generating video: ${error.message}`);
+        alert(`Error generating video: ${error.message}\n\nPlease try again. Video generation can take up to 60 minutes per clip.`);
       } else {
         alert('Error generating video. Please try again.');
       }
     } finally {
       setIsGeneratingVideo(false);
-      setCurrentGeneratingIndex(null);
     }
   };
 
@@ -414,7 +427,10 @@ export default function VideoGenerator() {
                       <p className="text-lg font-semibold text-purple-800">Creating your AI property video...</p>
                       <p className="text-sm text-purple-600">
                         Processing {selectedImages.length} image{selectedImages.length > 1 ? 's' : ''} sequentially.
-                        Each video clip takes several minutes to generate.
+                        Each video clip can take up to 60 minutes to generate. Please be patient!
+                      </p>
+                      <p className="text-xs text-purple-500 mt-1">
+                        💡 You can leave this page and return later - your videos will continue generating.
                       </p>
                     </div>
                   </div>

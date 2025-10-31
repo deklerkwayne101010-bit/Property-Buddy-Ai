@@ -42,38 +42,59 @@ async function callReplicateImageToVideo(imageUrl: string, prompt: string): Prom
 
   const prediction = await response.json();
 
-  // Poll for completion (extended timeout for video generation)
+  // Poll for completion (extended timeout for video generation - videos can take 30+ minutes)
   let result;
   let attempts = 0;
-  const maxAttempts = 240; // 20 minutes max (videos take longer)
+  const maxAttempts = 720; // 60 minutes max (videos can take a very long time)
+
+  console.log(`Starting to poll for video generation completion. Will check up to ${maxAttempts} times (60 minutes max).`);
 
   while (attempts < maxAttempts) {
     attempts++;
 
-    const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-      headers: {
-        'Authorization': `Bearer ${replicateToken}`,
-      },
-    });
+    try {
+      const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+        headers: {
+          'Authorization': `Bearer ${replicateToken}`,
+        },
+      });
 
-    result = await statusResponse.json();
+      if (!statusResponse.ok) {
+        console.error(`Status check failed with HTTP ${statusResponse.status}`);
+        // Continue polling even if status check fails temporarily
+        await new Promise(resolve => setTimeout(resolve, 10000)); // Wait longer on error
+        continue;
+      }
 
-    if (result.status === 'succeeded') {
-      console.log('Video generation succeeded, output:', result.output);
-      return result.output; // Video URL
-    } else if (result.status === 'failed') {
-      console.error('Video generation failed, error details:', result.error);
-      throw new Error(`Video generation failed: ${result.error}`);
-    } else if (result.status === 'cancelled') {
-      console.error('Video generation was cancelled');
-      throw new Error('Video generation was cancelled');
+      result = await statusResponse.json();
+
+      console.log(`Poll attempt ${attempts}/${maxAttempts}: Status = ${result.status}`);
+
+      if (result.status === 'succeeded') {
+        console.log('Video generation succeeded! Output:', result.output);
+        return result.output; // Video URL
+      } else if (result.status === 'failed') {
+        console.error('Video generation failed, error details:', result.error);
+        throw new Error(`Video generation failed: ${result.error || 'Unknown error'}`);
+      } else if (result.status === 'cancelled') {
+        console.error('Video generation was cancelled');
+        throw new Error('Video generation was cancelled');
+      } else if (result.status === 'processing' || result.status === 'starting') {
+        console.log(`Video still ${result.status}... continuing to wait`);
+      }
+
+      // Wait 5 seconds before checking again
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+    } catch (fetchError) {
+      console.error(`Poll attempt ${attempts} failed:`, fetchError);
+      // Continue polling even if there's a temporary network error
+      await new Promise(resolve => setTimeout(resolve, 10000)); // Wait longer on error
     }
-
-    // Wait 5 seconds before checking again
-    await new Promise(resolve => setTimeout(resolve, 5000));
   }
 
-  throw new Error('Video generation timed out after 20 minutes');
+  console.error(`Video generation timed out after ${maxAttempts} attempts (${Math.round(maxAttempts * 5 / 60)} minutes)`);
+  throw new Error(`Video generation timed out after 60 minutes. The AI model may be experiencing high demand. Please try again later.`);
 }
 
 async function stitchVideos(videoUrls: string[], outputFilename: string): Promise<string> {
