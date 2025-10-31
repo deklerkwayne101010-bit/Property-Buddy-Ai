@@ -167,8 +167,8 @@ export async function POST(request: NextRequest) {
       console.log(`Processing image ${i + 1}/${imageUrls.length}: ${imageUrl}`);
 
       try {
-        // Prompt that creates subtle video motion without changing the image
-        const videoPrompt = "Create a subtle cinematic video from this static image. Add gentle camera movement and lighting changes that make it feel like a professional real estate video, but keep all objects and details exactly the same - do not add, remove, or change anything in the image.";
+        // Simple prompt for subtle camera motion
+        const videoPrompt = "Add a subtle camera motion to this image, do not add or replace anything, stay in the bounds of this image";
 
         console.log(`Calling Replicate API for image ${i + 1} with prompt: ${videoPrompt}`);
         const videoUrl = await callReplicateImageToVideo(imageUrl, videoPrompt);
