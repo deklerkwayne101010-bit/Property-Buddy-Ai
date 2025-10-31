@@ -217,14 +217,12 @@ async function stitchVideos(videoUrls: string[], outputFilename: string): Promis
 
 export async function POST(request: NextRequest) {
   try {
-    // Increase timeout for video generation requests
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout for initial request
+    console.log('🎬 Video generation API called');
 
     const body = await request.json();
     const { imageUrls, userId, template = 'template1' } = body;
 
-    clearTimeout(timeoutId);
+    console.log('📋 Request body:', { imageUrls: imageUrls?.length, userId, template });
 
     if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
       return NextResponse.json({ error: 'At least one image URL is required' }, { status: 400 });
@@ -248,30 +246,33 @@ export async function POST(request: NextRequest) {
       }, { status: 402 });
     }
 
-    console.log(`Starting Video Template 1 generation for ${imageUrls.length} images`);
-    console.log('Image URLs:', imageUrls);
+    console.log(`🚀 Starting Video Template 1 generation for ${imageUrls.length} images`);
+    console.log('📸 Image URLs:', imageUrls);
 
     // Process each image into a 5-second video
     const videoUrls: string[] = [];
 
     for (let i = 0; i < imageUrls.length; i++) {
       const imageUrl = imageUrls[i];
-      console.log(`Processing image ${i + 1}/${imageUrls.length}: ${imageUrl}`);
+      console.log(`🎬 Processing image ${i + 1}/${imageUrls.length}: ${imageUrl.substring(0, 50)}...`);
 
       try {
         // Simple prompt for smooth slow camera motion
         const videoPrompt = "add a smooth slow camera motion too this image, do not change anything, do not add anything, only use what you can see in this image";
 
-        console.log(`Calling Replicate API for image ${i + 1} with prompt: ${videoPrompt}`);
-        console.log(`This may take up to 60 minutes per image. Starting now...`);
+        console.log(`🤖 Calling Replicate API for image ${i + 1} with prompt: "${videoPrompt}"`);
+        console.log(`⏱️ This may take up to 60 minutes per image. Starting now...`);
 
+        const startTime = Date.now();
         const videoUrl = await callReplicateImageToVideo(imageUrl, videoPrompt);
+        const duration = Math.round((Date.now() - startTime) / 1000 / 60); // minutes
+
         videoUrls.push(videoUrl);
-        console.log(`✅ Generated video ${i + 1}: ${videoUrl}`);
+        console.log(`✅ Generated video ${i + 1} in ${duration} minutes: ${videoUrl.substring(0, 50)}...`);
       } catch (error) {
         console.error(`❌ Failed to generate video for image ${i + 1}:`, error);
         // Continue with other images even if one fails
-        console.log(`Continuing with remaining images...`);
+        console.log(`⏭️ Continuing with remaining images...`);
       }
     }
 
