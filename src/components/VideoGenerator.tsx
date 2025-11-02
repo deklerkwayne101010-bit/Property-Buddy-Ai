@@ -126,14 +126,52 @@ export default function VideoGenerator() {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    // Upload multiple files
-    Array.from(files).forEach(file => {
-      if (file.type.startsWith('image/')) {
-        uploadImage(file);
-      } else {
+    // Validate file count (max 20 images at once to prevent overwhelming the UI)
+    if (files.length > 20) {
+      alert('Please select no more than 20 images at a time.');
+      return;
+    }
+
+    // Filter valid image files
+    const validFiles = Array.from(files).filter(file => {
+      if (!file.type.startsWith('image/')) {
         alert(`File "${file.name}" is not a valid image file.`);
+        return false;
       }
+      return true;
     });
+
+    if (validFiles.length === 0) return;
+
+    // Upload files with progress tracking
+    uploadMultipleImages(validFiles);
+  };
+
+  const uploadMultipleImages = async (files: File[]) => {
+    setIsUploading(true);
+    let uploadedCount = 0;
+    const totalFiles = files.length;
+
+    try {
+      // Upload files sequentially to avoid overwhelming the server
+      for (const file of files) {
+        await uploadImage(file);
+        uploadedCount++;
+
+        // Optional: Add progress feedback
+        console.log(`Uploaded ${uploadedCount}/${totalFiles} images`);
+      }
+
+      // Reload media to show all newly uploaded images
+      await loadUserMedia();
+
+      alert(`Successfully uploaded ${uploadedCount} image${uploadedCount > 1 ? 's' : ''}!`);
+    } catch (error) {
+      console.error('Error uploading multiple images:', error);
+      alert('Some images failed to upload. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const toggleImageSelection = (image: UserMedia) => {
@@ -315,14 +353,21 @@ export default function VideoGenerator() {
             </div>
             <div>
               <p className="text-lg font-medium text-gray-900">Upload Property Images</p>
-              <p className="text-gray-500">Upload multiple images of your property to create a video</p>
+              <p className="text-gray-500">Upload multiple images of your property to create a video (up to 20 at once)</p>
             </div>
             <button
               onClick={() => document.getElementById('image-upload')?.click()}
-              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isUploading}
             >
-              {isUploading ? 'Uploading...' : 'Upload Images'}
+              {isUploading ? (
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Uploading...</span>
+                </div>
+              ) : (
+                'Upload Images'
+              )}
             </button>
           </div>
         </div>
