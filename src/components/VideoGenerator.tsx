@@ -379,6 +379,7 @@ export default function VideoGenerator() {
           multiple
           onChange={handleImageUpload}
           className="hidden"
+          disabled={isUploading}
         />
       </div>
 
