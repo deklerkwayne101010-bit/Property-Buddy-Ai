@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -20,10 +20,20 @@ export default function VideoGenerator() {
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [generatedVideo, setGeneratedVideo] = useState<UserMedia | null>(null);
-  const [generatedClips, setGeneratedClips] = useState<UserMedia[]>([]);
-  const [currentGeneratingIndex, setCurrentGeneratingIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [generationProgress, setGenerationProgress] = useState<any[]>([]);
+  const [generationProgress, setGenerationProgress] = useState<GenerationProgressUpdate[]>([]);
+
+  interface GenerationProgressUpdate {
+    status: string;
+    message?: string;
+    currentImage?: number;
+    totalImages?: number;
+    videoUrl?: string;
+    duration?: number;
+    error?: string;
+    creditsRemaining?: number;
+    videosGenerated?: number;
+  }
 
   // Load existing user media on component mount
   useEffect(() => {
@@ -38,8 +48,6 @@ export default function VideoGenerator() {
       setUploadedImages([]);
       setSelectedImages([]);
       setGeneratedVideo(null);
-      setGeneratedClips([]);
-      setCurrentGeneratingIndex(null);
       setLoading(false);
     }
   }, [user]);
@@ -80,7 +88,7 @@ export default function VideoGenerator() {
       const fileName = `${user.id}/image_${Date.now()}.${fileExt}`;
 
       // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('images')
         .upload(fileName, file);
 
@@ -149,7 +157,6 @@ export default function VideoGenerator() {
     }
 
     setIsGeneratingVideo(true);
-    setGeneratedClips([]);
     setGeneratedVideo(null);
     setGenerationProgress([]);
 
@@ -183,7 +190,7 @@ export default function VideoGenerator() {
       }
 
       let buffer = '';
-      const progressUpdates: any[] = [];
+      const progressUpdates: GenerationProgressUpdate[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -251,7 +258,6 @@ export default function VideoGenerator() {
       }
     } finally {
       setIsGeneratingVideo(false);
-      setCurrentGeneratingIndex(null);
     }
   };
 
