@@ -124,6 +124,8 @@ export default function VideoGenerator() {
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
+    console.log('Files selected:', files?.length, files);
+
     if (!files || files.length === 0) return;
 
     // Validate file count (max 20 images at once to prevent overwhelming the UI)
@@ -134,6 +136,7 @@ export default function VideoGenerator() {
 
     // Filter valid image files
     const validFiles = Array.from(files).filter(file => {
+      console.log('Checking file:', file.name, file.type);
       if (!file.type.startsWith('image/')) {
         alert(`File "${file.name}" is not a valid image file.`);
         return false;
@@ -141,6 +144,7 @@ export default function VideoGenerator() {
       return true;
     });
 
+    console.log('Valid files:', validFiles.length);
     if (validFiles.length === 0) return;
 
     // Upload files with progress tracking
@@ -376,9 +380,8 @@ export default function VideoGenerator() {
                 accept="image/*"
                 multiple
                 onChange={handleImageUpload}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                 disabled={isUploading}
-                style={{ display: 'block' }}
               />
             </div>
           </div>
