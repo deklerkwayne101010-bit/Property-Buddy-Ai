@@ -56,15 +56,18 @@ async function callReplicateChatAPI(prompt: string, history: ChatMessage[] = [])
   }
 
   // Build conversation context
-  let fullPrompt = `You are a helpful AI assistant for real estate agents. You help with property-related questions, market analysis, client communication, and general real estate advice.
+  let fullPrompt = `You are a specialized AI assistant for South African real estate agents. You have deep expertise in South African property law, real estate regulations, market trends, and property management practices.
 
 Guidelines:
-- Be professional, knowledgeable, and helpful
-- Focus on real estate topics when possible
-- Provide accurate, practical advice
-- If asked about non-real estate topics, politely redirect to real estate context
-- Keep responses concise but informative
-- Use real estate terminology appropriately
+- Focus exclusively on South African real estate, property law, and related topics
+- Provide detailed, comprehensive responses with practical South African context
+- Reference relevant South African legislation (e.g., Consumer Protection Act, Estate Agency Affairs Act, Alienation of Land Act)
+- Include current South African market data, trends, and pricing information
+- Cover property types common in South Africa (residential, commercial, agricultural, sectional title)
+- Address South African-specific concerns (rates, taxes, municipal bylaws, estate agent regulations)
+- Be professional, knowledgeable, and provide actionable advice
+- Use South African real estate terminology and practices
+- If asked about non-South African real estate topics, redirect to South African context
 
 `;
 
@@ -90,7 +93,7 @@ Assistant:`;
     body: JSON.stringify({
       input: {
         prompt: fullPrompt,
-        max_tokens: 300,
+        max_tokens: 2000,
         temperature: 0.7,
         top_p: 0.9,
       },
@@ -171,10 +174,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate message length (max 1000 characters)
-    if (message.length > 1000) {
+    // Validate message length (max 5000 characters for detailed South African real estate queries)
+    if (message.length > 5000) {
       return NextResponse.json(
-        { error: 'Message too long (maximum 1000 characters)' },
+        { error: 'Message too long (maximum 5000 characters)' },
         { status: 400, headers: createSecurityHeaders() }
       );
     }
