@@ -23,6 +23,7 @@ export default function VideoGenerator() {
   const [generatedClips, setGeneratedClips] = useState<UserMedia[]>([]);
   const [currentGeneratingIndex, setCurrentGeneratingIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [generationProgress, setGenerationProgress] = useState<any[]>([]);
 
   // Load existing user media on component mount
   useEffect(() => {
@@ -150,11 +151,10 @@ export default function VideoGenerator() {
     setIsGeneratingVideo(true);
     setGeneratedClips([]);
     setGeneratedVideo(null);
+    setGenerationProgress([]);
 
     try {
-      // Process images sequentially - one at a time to avoid timeouts
-      // Images are already in the order they were selected/uploaded
-      console.log(`Starting sequential video generation for ${selectedImages.length} images in order`);
+      console.log('🎬 Starting video generation with streaming response...');
 
       const response = await fetch('/api/video-generate', {
         method: 'POST',
@@ -166,46 +166,80 @@ export default function VideoGenerator() {
           userId: user?.id,
           template: 'template1'
         }),
-        // Increase timeout for video generation requests
-        signal: AbortSignal.timeout(300000), // 5 minute timeout
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('API call failed:', response.status, errorData);
-        throw new Error(`Failed to generate video: ${errorData.error || response.statusText}`);
+        const errorText = await response.text();
+        console.error('API call failed:', response.status, errorText);
+        throw new Error(`Failed to start video generation: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json();
-      console.log('Video generation response:', data);
+      // Read the streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
 
-      if (!data.videoUrl) {
-        console.error('No video URL in response:', data);
-        throw new Error('No video URL received from API');
+      if (!reader) {
+        throw new Error('No response body reader available');
       }
 
-      // Save the final stitched video to database
-      const { data: insertData, error: dbError } = await supabase
-        .from('user_media')
-        .insert({
-          user_id: user?.id,
-          media_type: 'avatar_video',
-          file_name: `final_property_video_${Date.now()}.mp4`,
-          file_url: data.videoUrl,
-          file_size: 0,
-        })
-        .select();
+      let buffer = '';
+      const progressUpdates: any[] = [];
 
-      if (dbError) {
-        console.error('Database error saving final video:', dbError);
-        throw new Error('Failed to save final video to database');
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+
+        // Process complete lines
+        for (let i = 0; i < lines.length - 1; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+
+          try {
+            const data = JSON.parse(line);
+            console.log('📡 Stream update:', data);
+
+            progressUpdates.push(data);
+            setGenerationProgress([...progressUpdates]);
+
+            if (data.status === 'completed' && data.videoUrl) {
+              // Save the final stitched video to database
+              const { data: insertData, error: dbError } = await supabase
+                .from('user_media')
+                .insert({
+                  user_id: user?.id,
+                  media_type: 'avatar_video',
+                  file_name: `final_property_video_${Date.now()}.mp4`,
+                  file_url: data.videoUrl,
+                  file_size: 0,
+                })
+                .select();
+
+              if (dbError) {
+                console.error('Database error saving final video:', dbError);
+                throw new Error('Failed to save final video to database');
+              }
+
+              console.log('Final stitched video saved to database successfully:', insertData);
+              setGeneratedVideo(insertData[0]);
+
+              setSelectedImages([]); // Clear selection after successful generation
+              alert(`Successfully generated and stitched ${selectedImages.length} video clips into a final property video!`);
+
+            } else if (data.status === 'error') {
+              throw new Error(data.error || data.details || 'Video generation failed');
+            }
+
+          } catch (parseError) {
+            console.warn('Failed to parse stream line:', line, parseError);
+          }
+        }
+
+        buffer = lines[lines.length - 1]; // Keep incomplete line for next iteration
       }
-
-      console.log('Final stitched video saved to database successfully:', insertData);
-      setGeneratedVideo(insertData[0]);
-
-      setSelectedImages([]); // Clear selection after successful generation
-      alert(`Successfully generated and stitched ${selectedImages.length} video clips into a final property video!`);
 
     } catch (error) {
       console.error('Error generating video:', error);
@@ -428,23 +462,50 @@ export default function VideoGenerator() {
                   </div>
                 </div>
 
-                {/* Overall Progress */}
-                <div className="space-y-3">
-                  <h3 className="text-md font-semibold text-gray-800">Generation Progress:</h3>
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-                      <div>
-                        <p className="text-sm font-medium text-blue-800">
-                          Processing {selectedImages.length} images sequentially
-                        </p>
-                        <p className="text-xs text-blue-600">
-                          Each image becomes a video clip, then all clips are stitched together
-                        </p>
-                      </div>
+                {/* Real-time Progress Updates */}
+                {generationProgress.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-md font-semibold text-gray-800">Live Generation Progress:</h3>
+                    <div className="max-h-64 overflow-y-auto space-y-2">
+                      {generationProgress.map((update, index) => (
+                        <div key={index} className={`p-3 rounded-lg border ${
+                          update.status === 'started' ? 'bg-blue-50 border-blue-200' :
+                          update.status === 'processing' ? 'bg-yellow-50 border-yellow-200' :
+                          update.status === 'processing_image' ? 'bg-orange-50 border-orange-200' :
+                          update.status === 'image_completed' ? 'bg-green-50 border-green-200' :
+                          update.status === 'stitching' ? 'bg-purple-50 border-purple-200' :
+                          update.status === 'completed' ? 'bg-emerald-50 border-emerald-200' :
+                          update.status === 'error' ? 'bg-red-50 border-red-200' :
+                          'bg-gray-50 border-gray-200'
+                        }`}>
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-2 h-2 rounded-full ${
+                              update.status === 'error' ? 'bg-red-500' :
+                              update.status === 'completed' ? 'bg-green-500' :
+                              'bg-blue-500 animate-pulse'
+                            }`}></div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">
+                                {update.message || update.status}
+                              </p>
+                              {update.currentImage && update.totalImages && (
+                                <p className="text-xs text-gray-600">
+                                  Image {update.currentImage} of {update.totalImages}
+                                  {update.duration && ` (${update.duration} min)`}
+                                </p>
+                              )}
+                              {update.creditsRemaining && (
+                                <p className="text-xs text-gray-600">
+                                  Credits remaining: {update.creditsRemaining}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>

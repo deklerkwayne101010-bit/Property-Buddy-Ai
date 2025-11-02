@@ -219,46 +219,73 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🎬 Video generation API called at', new Date().toISOString());
 
-    const body = await request.json();
-    const { imageUrls, userId, template = 'template1' } = body;
+    // Send immediate response to prevent timeout
+    const responseStream = new ReadableStream({
+      start(controller) {
+        (async () => {
+          try {
+            const body = await request.json();
+            const { imageUrls, userId, template = 'template1' } = body;
 
-    console.log('📋 Request body:', {
-      imageUrlsCount: imageUrls?.length,
-      userId: userId ? 'present' : 'missing',
-      template,
-      timestamp: new Date().toISOString()
-    });
+            console.log('📋 Request body:', {
+              imageUrlsCount: imageUrls?.length,
+              userId: userId ? 'present' : 'missing',
+              template,
+              timestamp: new Date().toISOString()
+            });
 
-    // Validate inputs immediately
-    if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
-      console.log('❌ Validation failed: No image URLs provided');
-      return NextResponse.json({ error: 'At least one image URL is required' }, { status: 400 });
-    }
+            // Validate inputs immediately
+            if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
+              console.log('❌ Validation failed: No image URLs provided');
+              controller.enqueue(JSON.stringify({ error: 'At least one image URL is required', status: 'error' }));
+              controller.close();
+              return;
+            }
 
-    if (imageUrls.length > 10) {
-      console.log('❌ Validation failed: Too many images', imageUrls.length);
-      return NextResponse.json({ error: 'Maximum 10 images allowed' }, { status: 400 });
-    }
+            if (imageUrls.length > 10) {
+              console.log('❌ Validation failed: Too many images', imageUrls.length);
+              controller.enqueue(JSON.stringify({ error: 'Maximum 10 images allowed', status: 'error' }));
+              controller.close();
+              return;
+            }
 
-    if (!userId) {
-      console.log('❌ Validation failed: No user ID provided');
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
-    }
+            if (!userId) {
+              console.log('❌ Validation failed: No user ID provided');
+              controller.enqueue(JSON.stringify({ error: 'User ID is required', status: 'error' }));
+              controller.close();
+              return;
+            }
 
-    console.log('✅ Input validation passed');
+            console.log('✅ Input validation passed');
 
-    // Check credits and deduct for video generation (4 credits per video)
-    console.log('💰 Checking user credits...');
-    const creditResult = await checkCreditsAndDeduct(userId, 4); // 4 credits per video generation
-    if (!creditResult.success) {
-      console.log('❌ Credit check failed:', creditResult.error);
-      return NextResponse.json({
-        error: 'Insufficient credits',
-        details: creditResult.error,
-        currentCredits: creditResult.newCredits
-      }, { status: 402 });
-    }
-    console.log('✅ Credits deducted successfully, remaining:', creditResult.newCredits);
+            // Send initial success response
+            controller.enqueue(JSON.stringify({
+              status: 'started',
+              message: 'Video generation started successfully',
+              totalImages: imageUrls.length
+            }));
+
+            // Check credits and deduct for video generation (4 credits per video)
+            console.log('💰 Checking user credits...');
+            const creditResult = await checkCreditsAndDeduct(userId, 4); // 4 credits per video generation
+            if (!creditResult.success) {
+              console.log('❌ Credit check failed:', creditResult.error);
+              controller.enqueue(JSON.stringify({
+                status: 'error',
+                error: 'Insufficient credits',
+                details: creditResult.error,
+                currentCredits: creditResult.newCredits
+              }));
+              controller.close();
+              return;
+            }
+            console.log('✅ Credits deducted successfully, remaining:', creditResult.newCredits);
+
+            controller.enqueue(JSON.stringify({
+              status: 'processing',
+              message: 'Credits validated, starting video generation',
+              creditsRemaining: creditResult.newCredits
+            }));
 
     console.log(`🚀 Starting Video Template 1 generation for ${imageUrls.length} images`);
     console.log('📸 Image URLs:', imageUrls);
@@ -269,6 +296,13 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < imageUrls.length; i++) {
       const imageUrl = imageUrls[i];
       console.log(`🎬 Processing image ${i + 1}/${imageUrls.length}: ${imageUrl.substring(0, 50)}...`);
+
+      controller.enqueue(JSON.stringify({
+        status: 'processing_image',
+        currentImage: i + 1,
+        totalImages: imageUrls.length,
+        message: `Processing image ${i + 1} of ${imageUrls.length}`
+      }));
 
       try {
         // Simple prompt for smooth slow camera motion
@@ -283,40 +317,93 @@ export async function POST(request: NextRequest) {
 
         videoUrls.push(videoUrl);
         console.log(`✅ Generated video ${i + 1} in ${duration} minutes: ${videoUrl.substring(0, 50)}...`);
+
+        controller.enqueue(JSON.stringify({
+          status: 'image_completed',
+          currentImage: i + 1,
+          totalImages: imageUrls.length,
+          videoUrl: videoUrl,
+          duration: duration,
+          message: `Image ${i + 1} completed in ${duration} minutes`
+        }));
+
       } catch (error) {
         console.error(`❌ Failed to generate video for image ${i + 1}:`, error);
         // Continue with other images even if one fails
         console.log(`⏭️ Continuing with remaining images...`);
+
+        controller.enqueue(JSON.stringify({
+          status: 'image_failed',
+          currentImage: i + 1,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          message: `Image ${i + 1} failed, continuing with others`
+        }));
       }
     }
 
     if (videoUrls.length === 0) {
-      throw new Error('Failed to generate any videos from the provided images');
+      controller.enqueue(JSON.stringify({
+        status: 'error',
+        error: 'Failed to generate any videos from the provided images'
+      }));
+      controller.close();
+      return;
     }
 
     console.log(`✅ Generated ${videoUrls.length} individual videos, now stitching together...`);
+
+    controller.enqueue(JSON.stringify({
+      status: 'stitching',
+      message: `Stitching ${videoUrls.length} videos together`,
+      videosGenerated: videoUrls.length
+    }));
 
     // Stitch all videos together with smooth transitions
     const finalVideoUrl = await stitchVideos(videoUrls, `property-video-${Date.now()}.mp4`);
 
     console.log('Video generation completed successfully:', finalVideoUrl);
 
-    return NextResponse.json({
+    controller.enqueue(JSON.stringify({
+      status: 'completed',
       success: true,
       videoUrl: finalVideoUrl,
       creditsDeducted: 4,
       remainingCredits: creditResult.newCredits,
       videosGenerated: videoUrls.length,
-      template: 'template1'
-    });
+      template: 'template1',
+      message: 'Video generation completed successfully!'
+    }));
+
+    controller.close();
+
   } catch (error) {
     console.error('Video generation API error:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to generate video',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    controller.enqueue(JSON.stringify({
+      status: 'error',
+      error: 'Failed to generate video',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }));
+    controller.close();
   }
+})();
+}
+});
+
+return new Response(responseStream, {
+headers: {
+'Content-Type': 'text/plain; charset=utf-8',
+'Cache-Control': 'no-cache',
+'Connection': 'keep-alive',
+},
+});
+} catch (error) {
+console.error('Video generation API setup error:', error);
+return NextResponse.json(
+{
+error: 'Failed to initialize video generation',
+details: error instanceof Error ? error.message : 'Unknown error'
+},
+{ status: 500 }
+);
+}
 }
