@@ -355,32 +355,35 @@ export default function VideoGenerator() {
               <p className="text-lg font-medium text-gray-900">Upload Property Images</p>
               <p className="text-gray-500">Upload multiple images of your property to create a video (up to 20 at once)</p>
             </div>
-            <button
-              onClick={() => document.getElementById('image-upload')?.click()}
-              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Uploading...</span>
-                </div>
-              ) : (
-                'Upload Images'
-              )}
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => document.getElementById('image-upload')?.click()}
+                className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isUploading}
+              >
+                {isUploading ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Uploading...</span>
+                  </div>
+                ) : (
+                  'Upload Images'
+                )}
+              </button>
+              <input
+                id="image-upload"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                disabled={isUploading}
+                style={{ display: 'block' }}
+              />
+            </div>
           </div>
         </div>
 
-        <input
-          id="image-upload"
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={handleImageUpload}
-          className="hidden"
-          disabled={isUploading}
-        />
       </div>
 
       {/* Uploaded Images Gallery */}
