@@ -65,11 +65,23 @@ export default function PhotoEditor() {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedEditType, setSelectedEditType] = useState<'object-remover' | 'image-enhancer' | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
+  const [showSavePromptDialog, setShowSavePromptDialog] = useState(false);
+  const [promptName, setPromptName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load uploaded images on component mount
+  interface SavedPrompt {
+    id: string;
+    name: string;
+    prompt: string;
+    editType: 'object-remover' | 'image-enhancer';
+    createdAt: string;
+  }
+
+  // Load uploaded images and saved prompts on component mount
   useEffect(() => {
     loadUploadedImages();
+    loadSavedPrompts();
   }, []);
 
   const loadUploadedImages = async () => {
@@ -102,6 +114,88 @@ export default function PhotoEditor() {
       setUploadedImages(images);
     } catch (error) {
       console.error('Error loading uploaded images:', error);
+    }
+  };
+
+  const loadSavedPrompts = async () => {
+    try {
+      const { data: prompts, error } = await supabase
+        .from('user_prompts')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading saved prompts:', error);
+        return;
+      }
+
+      setSavedPrompts(prompts || []);
+    } catch (error) {
+      console.error('Error loading saved prompts:', error);
+    }
+  };
+
+  const savePrompt = async () => {
+    if (!user || !agentInstruction || !selectedEditType || !promptName.trim()) {
+      alert('Please enter a name for your prompt and ensure you have instructions and edit type selected.');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('user_prompts')
+        .insert({
+          user_id: user.id,
+          name: promptName.trim(),
+          prompt: agentInstruction,
+          edit_type: selectedEditType
+        });
+
+      if (error) {
+        console.error('Error saving prompt:', error);
+        alert('Failed to save prompt. Please try again.');
+        return;
+      }
+
+      await loadSavedPrompts();
+      setPromptName('');
+      setShowSavePromptDialog(false);
+      alert('Prompt saved successfully!');
+    } catch (error) {
+      console.error('Error saving prompt:', error);
+      alert('Failed to save prompt. Please try again.');
+    }
+  };
+
+  const loadPrompt = (prompt: SavedPrompt) => {
+    setAgentInstruction(prompt.prompt);
+    setSelectedEditType(prompt.editType);
+  };
+
+  const deletePrompt = async (promptId: string) => {
+    if (!confirm('Are you sure you want to delete this saved prompt?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('user_prompts')
+        .delete()
+        .eq('id', promptId)
+        .eq('user_id', user?.id);
+
+      if (error) {
+        console.error('Error deleting prompt:', error);
+        alert('Failed to delete prompt. Please try again.');
+        return;
+      }
+
+      await loadSavedPrompts();
+      alert('Prompt deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting prompt:', error);
+      alert('Failed to delete prompt. Please try again.');
     }
   };
 
@@ -719,6 +813,21 @@ export default function PhotoEditor() {
                   </div>
                 </div>
 
+                {/* Save Prompt Button */}
+                {agentInstruction && selectedEditType && (
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setShowSavePromptDialog(true)}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 flex items-center"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                      </svg>
+                      Save Prompt
+                    </button>
+                  </div>
+                )}
+
                 {/* Quick Examples */}
                 <div className="space-y-3">
                   <p className="text-sm font-medium text-slate-700">Quick suggestions:</p>
@@ -750,6 +859,49 @@ export default function PhotoEditor() {
                     ))}
                   </div>
                 </div>
+
+                {/* Saved Prompts Section */}
+                {savedPrompts.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium text-slate-700">Your saved prompts:</p>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {savedPrompts.map((prompt) => (
+                        <div
+                          key={prompt.id}
+                          className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors duration-200"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm font-medium text-slate-800">{prompt.name}</span>
+                              <span className={`px-2 py-0.5 text-xs rounded-full ${
+                                prompt.editType === 'object-remover'
+                                  ? 'bg-red-100 text-red-700'
+                                  : 'bg-blue-100 text-blue-700'
+                              }`}>
+                                {prompt.editType === 'object-remover' ? 'Remove' : 'Enhance'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-600 truncate mt-1">{prompt.prompt}</p>
+                          </div>
+                          <div className="flex items-center space-x-2 ml-3">
+                            <button
+                              onClick={() => loadPrompt(prompt)}
+                              className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors duration-200"
+                            >
+                              Use
+                            </button>
+                            <button
+                              onClick={() => deletePrompt(prompt.id)}
+                              className="px-2 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded transition-colors duration-200"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1007,6 +1159,51 @@ export default function PhotoEditor() {
           )}
         </div>
       </div>
+
+      {/* Save Prompt Dialog */}
+      {showSavePromptDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-slate-800 mb-4">Save Your Prompt</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Prompt Name
+                </label>
+                <input
+                  type="text"
+                  value={promptName}
+                  onChange={(e) => setPromptName(e.target.value)}
+                  placeholder="e.g., Remove background clutter"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  maxLength={50}
+                />
+              </div>
+              <div className="text-sm text-slate-600">
+                <p><strong>Edit Type:</strong> {selectedEditType === 'object-remover' ? 'Object Remover' : 'Image Enhancer'}</p>
+                <p className="mt-1"><strong>Prompt:</strong> {agentInstruction}</p>
+              </div>
+            </div>
+            <div className="flex space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowSavePromptDialog(false);
+                  setPromptName('');
+                }}
+                className="flex-1 px-4 py-2 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={savePrompt}
+                className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200"
+              >
+                Save Prompt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
     </DashboardLayout>
   );

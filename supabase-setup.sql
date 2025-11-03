@@ -128,6 +128,16 @@ CREATE TABLE IF NOT EXISTS user_media (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create user_prompts table for storing saved AI prompts
+CREATE TABLE IF NOT EXISTS user_prompts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  edit_type TEXT NOT NULL CHECK (edit_type IN ('object-remover', 'image-enhancer')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create indexes for better performance (only if they don't exist)
 -- Note: CREATE INDEX IF NOT EXISTS is not directly supported in some Supabase versions
 -- So we'll use a more compatible approach
@@ -175,6 +185,7 @@ ALTER TABLE templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE billing_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE usage_tracking ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_media ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_prompts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payment_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 
@@ -196,6 +207,10 @@ DROP POLICY IF EXISTS "Users can view own media" ON user_media;
 DROP POLICY IF EXISTS "Users can insert own media" ON user_media;
 DROP POLICY IF EXISTS "Users can update own media" ON user_media;
 DROP POLICY IF EXISTS "Users can delete own media" ON user_media;
+DROP POLICY IF EXISTS "Users can view own prompts" ON user_prompts;
+DROP POLICY IF EXISTS "Users can insert own prompts" ON user_prompts;
+DROP POLICY IF EXISTS "Users can update own prompts" ON user_prompts;
+DROP POLICY IF EXISTS "Users can delete own prompts" ON user_prompts;
 DROP POLICY IF EXISTS "Users can view own payment sessions" ON payment_sessions;
 DROP POLICY IF EXISTS "Users can view own payments" ON payments;
 
@@ -232,16 +247,29 @@ CREATE POLICY "Users can view own usage" ON usage_tracking
 
 -- User media: Users can only access their own media files
 CREATE POLICY "Users can view own media" ON user_media
-   FOR SELECT USING (auth.uid() = user_id);
+    FOR SELECT USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can insert own media" ON user_media
-   FOR INSERT WITH CHECK (auth.uid() = user_id);
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can update own media" ON user_media
-   FOR UPDATE USING (auth.uid() = user_id);
+    FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete own media" ON user_media
-   FOR DELETE USING (auth.uid() = user_id);
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- User prompts: Users can only access their own saved prompts
+CREATE POLICY "Users can view own prompts" ON user_prompts
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own prompts" ON user_prompts
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own prompts" ON user_prompts
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own prompts" ON user_prompts
+    FOR DELETE USING (auth.uid() = user_id);
 
 -- Payment sessions: Users can only access their own payment sessions
 CREATE POLICY "Users can view own payment sessions" ON payment_sessions
