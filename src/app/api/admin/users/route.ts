@@ -85,8 +85,25 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform the data to include actual credit values
-    const transformedUsers = usersWithEmails.map(user => {
+    const transformedUsers = await Promise.all(usersWithEmails.map(async (user) => {
       const profile = users.find(p => p.id === user.id);
+
+      // Calculate credits used this month for this user
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { data: usageData, error: usageError } = await supabase
+        .from('usage_tracking')
+        .select('credits_used')
+        .eq('user_id', user.id)
+        .gte('created_at', startOfMonth.toISOString());
+
+      let creditsUsedThisMonth = 0;
+      if (!usageError && usageData) {
+        creditsUsedThisMonth = usageData.reduce((sum, record) => sum + (record.credits_used || 0), 0);
+      }
+
       return {
         id: user.id,
         email: user.email,
@@ -94,9 +111,9 @@ export async function GET(request: NextRequest) {
         created_at: user.created_at,
         last_sign_in_at: user.last_sign_in_at,
         credits_remaining: profile?.credits_balance || 0,
-        credits_used_this_month: 0 // TODO: Calculate actual usage this month
+        credits_used_this_month: creditsUsedThisMonth
       };
-    });
+    }));
 
     return NextResponse.json({
       success: true,
