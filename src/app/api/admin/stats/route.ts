@@ -97,11 +97,31 @@ export async function GET(request: NextRequest) {
     // Convert from cents to rand
     totalRevenue = totalRevenue / 100;
 
+    // Get credits used this month
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const { data: creditsData, error: creditsError } = await supabase
+      .from('usage_tracking')
+      .select('credits_used')
+      .gte('created_at', startOfMonth.toISOString());
+
+    let creditsUsedThisMonth = 0;
+    if (!creditsError && creditsData) {
+      creditsUsedThisMonth = creditsData.reduce((sum, record) => sum + (record.credits_used || 0), 0);
+    }
+
+    if (creditsError) {
+      console.error('Error calculating credits used this month:', creditsError);
+    }
+
     const stats = {
       totalUsers: totalUsers || 0,
       activeSubscriptions: activeSubscriptions || 0,
       totalRevenue: Math.round(totalRevenue),
-      monthlyActiveUsers: monthlyActiveUsers || 0
+      monthlyActiveUsers: monthlyActiveUsers || 0,
+      creditsUsedThisMonth
     };
 
     return NextResponse.json({
