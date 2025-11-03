@@ -1,18 +1,81 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import DashboardLayout from '../../components/DashboardLayout';
 import ProtectedRoute from '../../components/ProtectedRoute';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 export default function DashboardPage() {
-  const [stats] = useState({
+  const { user } = useAuth();
+  const [stats, setStats] = useState({
     totalLeads: 0,
     totalProperties: 0,
     photosEdited: 0,
     videosGenerated: 0
   });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      loadDashboardStats();
+    }
+  }, [user]);
+
+  const loadDashboardStats = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+
+      // Get total leads for this user
+      const { count: totalLeads, error: leadsError } = await supabase
+        .from('leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      // Get total properties for this user
+      const { count: totalProperties, error: propertiesError } = await supabase
+        .from('properties')
+        .select('*', { count: 'exact', head: true });
+
+      // Get photos edited this month (usage tracking for photo edits)
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { data: photoUsage, error: photoError } = await supabase
+        .from('usage_tracking')
+        .select('credits_used')
+        .eq('user_id', user.id)
+        .eq('feature', 'photo_edit')
+        .gte('created_at', startOfMonth.toISOString());
+
+      // Get videos generated this month
+      const { data: videoUsage, error: videoError } = await supabase
+        .from('usage_tracking')
+        .select('credits_used')
+        .eq('user_id', user.id)
+        .eq('feature', 'video_gen')
+        .gte('created_at', startOfMonth.toISOString());
+
+      const photosEdited = photoUsage ? photoUsage.reduce((sum, record) => sum + (record.credits_used || 0), 0) : 0;
+      const videosGenerated = videoUsage ? videoUsage.reduce((sum, record) => sum + (record.credits_used || 0), 0) : 0;
+
+      setStats({
+        totalLeads: totalLeads || 0,
+        totalProperties: totalProperties || 0,
+        photosEdited,
+        videosGenerated
+      });
+    } catch (error) {
+      console.error('Error loading dashboard stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const quickActions = [
     {
@@ -86,10 +149,10 @@ export default function DashboardPage() {
           transition={{ duration: 0.6, delay: 0.2 }}
         >
           {[
-            { label: 'Total Leads', value: stats.totalLeads, icon: '👥', color: 'from-blue-500 to-blue-600' },
-            { label: 'Properties', value: stats.totalProperties, icon: '🏠', color: 'from-green-500 to-green-600' },
-            { label: 'Photos Edited', value: stats.photosEdited, icon: '🖼️', color: 'from-purple-500 to-purple-600' },
-            { label: 'Videos Generated', value: stats.videosGenerated, icon: '🎥', color: 'from-orange-500 to-orange-600' }
+            { label: 'Total Leads', value: loading ? '...' : stats.totalLeads, icon: '👥', color: 'from-blue-500 to-blue-600' },
+            { label: 'Properties', value: loading ? '...' : stats.totalProperties, icon: '🏠', color: 'from-green-500 to-green-600' },
+            { label: 'Photos Edited', value: loading ? '...' : stats.photosEdited, icon: '🖼️', color: 'from-purple-500 to-purple-600' },
+            { label: 'Videos Generated', value: loading ? '...' : stats.videosGenerated, icon: '🎥', color: 'from-orange-500 to-orange-600' }
           ].map((stat, index) => (
             <motion.div
               key={stat.label}
