@@ -93,6 +93,9 @@ async function callReplicateImageToVideo(imageUrl: string, prompt: string): Prom
         throw new Error('Video generation was cancelled');
       } else if (result.status === 'processing' || result.status === 'starting') {
         console.log(`Video still ${result.status}... continuing to wait`);
+      } else {
+        console.warn(`Unexpected status: ${result.status}, continuing to poll...`);
+        // Don't throw error for unexpected status, just continue polling
       }
 
       // Wait 5 seconds before checking again
