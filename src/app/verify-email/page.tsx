@@ -77,7 +77,7 @@ export default function VerifyEmailPage() {
               Check Your Email
             </motion.h1>
             <p className="text-slate-600">
-              We've sent you a verification link to complete your registration
+              We&apos;ve sent you a verification link to complete your registration
             </p>
           </div>
 
@@ -116,7 +116,7 @@ export default function VerifyEmailPage() {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
-                Didn't receive the email? Enter your email to resend:
+                Didn&apos;t receive the email? Enter your email to resend:
               </label>
               <input
                 id="email"
