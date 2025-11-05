@@ -1,17 +1,36 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center px-4">
+        <div className="max-w-md w-full">
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <div className="flex items-center justify-center">
+              <LoadingSpinner />
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <VerifyEmailForm />
+    </Suspense>
+  );
+}
+
+function VerifyEmailForm() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
 
   useEffect(() => {
     // Get email from URL params if available
@@ -19,7 +38,7 @@ export default function VerifyEmailPage() {
     if (emailParam) {
       setEmail(emailParam);
     }
-  }, [searchParams]);
+  }, []);
 
   const handleResendVerification = async () => {
     if (!email) {
@@ -77,7 +96,7 @@ export default function VerifyEmailPage() {
               Check Your Email
             </motion.h1>
             <p className="text-slate-600">
-              We&apos;ve sent you a verification link to complete your registration
+              We've sent you a verification link to complete your registration
             </p>
           </div>
 
@@ -116,7 +135,7 @@ export default function VerifyEmailPage() {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
-                Didn&apos;t receive the email? Enter your email to resend:
+                Didn't receive the email? Enter your email to resend:
               </label>
               <input
                 id="email"
