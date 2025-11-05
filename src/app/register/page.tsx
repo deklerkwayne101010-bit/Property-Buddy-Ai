@@ -43,8 +43,8 @@ export default function RegisterPage() {
       if (error) {
         setError(error.message);
       } else {
-        // Redirect to login with success message
-        router.push('/login?message=Check your email to confirm your account');
+        // Redirect to verify email page
+        router.push(`/verify-email?email=${encodeURIComponent(email)}`);
       }
     } catch (err) {
       setError('An unexpected error occurred');
