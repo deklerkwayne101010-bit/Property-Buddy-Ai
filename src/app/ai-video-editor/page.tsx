@@ -170,12 +170,15 @@ export default function AiVideoEditorPage() {
       const data = await response.json();
       console.log('Webhook response data:', data);
 
+      console.log('Full response data:', data);
+
       if (data.finalVideoUrl) {
         setResult(data);
         setProcessingProgress(100);
       } else {
         console.error('Invalid response format:', data);
-        throw new Error('Invalid response from video processing service. Missing finalVideoUrl.');
+        // Show the actual response data to help debug
+        throw new Error(`Invalid response from video processing service. Missing finalVideoUrl. Response received: ${JSON.stringify(data)}`);
       }
 
     } catch (err) {
