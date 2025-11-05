@@ -143,33 +143,44 @@ export default function AiVideoEditorPage() {
         throw new Error('Some images failed to upload. Please try again.');
       }
 
+      console.log('Sending to webhook:', imageUrls);
+
       // Send to n8n webhook
       const response = await fetch('https://propbuddy.app.n8n.cloud/webhook/property-video', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
           images: imageUrls
         })
       });
 
+      console.log('Webhook response status:', response.status);
+      console.log('Webhook response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        throw new Error(`Processing failed: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('Webhook error response:', errorText);
+        throw new Error(`Processing failed: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('Webhook response data:', data);
 
       if (data.finalVideoUrl) {
         setResult(data);
         setProcessingProgress(100);
       } else {
-        throw new Error('Invalid response from video processing service');
+        console.error('Invalid response format:', data);
+        throw new Error('Invalid response from video processing service. Missing finalVideoUrl.');
       }
 
     } catch (err) {
       console.error('Processing error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to process video. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to process video. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsProcessing(false);
     }
