@@ -152,6 +152,7 @@ export default function AiVideoEditorPage() {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
+        mode: 'cors',
         body: JSON.stringify({
           images: imageUrls
         })
