@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -14,9 +14,14 @@ interface UploadedImage {
   url?: string;
 }
 
+interface VideoClip {
+  imageUrl: string;
+  videoUrl: string;
+}
+
 interface ProcessingResult {
-  finalVideoUrl: string;
-  individualClips: string[];
+  videoClips: VideoClip[];
+  videoCount: number;
   processingTime: number;
 }
 
@@ -27,7 +32,9 @@ export default function AiVideoEditorPage() {
   const [processingProgress, setProcessingProgress] = useState(0);
   const [result, setResult] = useState<ProcessingResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [processingStatus, setProcessingStatus] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleFileSelect = useCallback(async (files: FileList) => {
     const maxFiles = 10;
@@ -132,6 +139,8 @@ export default function AiVideoEditorPage() {
     setIsProcessing(true);
     setError(null);
     setProcessingProgress(0);
+    setProcessingStatus('Initializing video processing...');
+    const startTime = Date.now();
 
     try {
       // Get public URLs for all uploaded images
@@ -144,6 +153,21 @@ export default function AiVideoEditorPage() {
       }
 
       console.log('Sending to webhook:', imageUrls);
+
+      // Start progress tracking based on estimated time (15s per image)
+      const totalExpectedTime = imageUrls.length * 15; // 15 seconds per image
+      let currentProgress = 0;
+
+      progressIntervalRef.current = setInterval(() => {
+        currentProgress += (100 / totalExpectedTime) * 2; // Update every 2 seconds
+        if (currentProgress < 90) { // Don't exceed 90% until we get the response
+          setProcessingProgress(Math.min(currentProgress, 90));
+          const secondsElapsed = Math.floor(currentProgress * totalExpectedTime / 100);
+          const minutes = Math.floor(secondsElapsed / 60);
+          const seconds = secondsElapsed % 60;
+          setProcessingStatus(`Processing ${imageUrls.length} video clips... ${minutes}:${seconds.toString().padStart(2, '0')} elapsed`);
+        }
+      }, 2000);
 
       // Send to n8n webhook
       const response = await fetch('https://propbuddy.app.n8n.cloud/webhook/property-video', {
@@ -158,6 +182,12 @@ export default function AiVideoEditorPage() {
         })
       });
 
+      // Clear the progress interval
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+
       console.log('Webhook response status:', response.status);
       console.log('Webhook response headers:', Object.fromEntries(response.headers.entries()));
 
@@ -170,23 +200,36 @@ export default function AiVideoEditorPage() {
       const data = await response.json();
       console.log('Webhook response data:', data);
 
-      console.log('Full response data:', data);
+      const endTime = Date.now();
+      setProcessingProgress(100);
+      setProcessingStatus('Video processing complete!');
 
-      if (data.finalVideoUrl) {
-        setResult(data);
-        setProcessingProgress(100);
+      // Check for the new response format
+      if (data.videoClips && Array.isArray(data.videoClips)) {
+        setResult({
+          videoClips: data.videoClips,
+          videoCount: data.videoCount || data.videoClips.length,
+          processingTime: endTime - startTime
+        });
       } else {
         console.error('Invalid response format:', data);
-        // Show the actual response data to help debug
-        throw new Error(`Invalid response from video processing service. Missing finalVideoUrl. Response received: ${JSON.stringify(data)}`);
+        throw new Error(`Invalid response from video processing service. Expected videoClips array. Response received: ${JSON.stringify(data)}`);
       }
 
     } catch (err) {
       console.error('Processing error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to process video. Please try again.';
       setError(errorMessage);
+      setProcessingStatus('');
     } finally {
       setIsProcessing(false);
+      setProcessingProgress(0);
+      
+      // Clear progress interval if it exists
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
     }
   };
 
@@ -202,7 +245,17 @@ export default function AiVideoEditorPage() {
     setResult(null);
     setError(null);
     setProcessingProgress(0);
+    setProcessingStatus('');
   };
+
+  // Cleanup function for interval on unmount
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, []);
 
   if (!user) {
     return (
@@ -329,9 +382,9 @@ export default function AiVideoEditorPage() {
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">Creating Your Video</h3>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">Creating Your Video Clips</h3>
                 <p className="text-slate-600 mb-4">
-                  This may take several minutes depending on the number of images...
+                  {processingStatus || 'This may take several minutes depending on the number of images...'}
                 </p>
                 <div className="w-full bg-slate-200 rounded-full h-2">
                   <div
@@ -339,7 +392,7 @@ export default function AiVideoEditorPage() {
                     style={{ width: `${processingProgress}%` }}
                   ></div>
                 </div>
-                <p className="text-sm text-slate-500 mt-2">{processingProgress}% complete</p>
+                <p className="text-sm text-slate-500 mt-2">{Math.round(processingProgress)}% complete</p>
               </div>
             </div>
           )}
@@ -353,36 +406,56 @@ export default function AiVideoEditorPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">Video Created Successfully!</h3>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">Video Clips Created Successfully!</h3>
                 <p className="text-slate-600 mb-6">
-                  Processing time: {Math.round(result.processingTime / 1000)} seconds
+                  Processing time: {Math.round(result.processingTime / 1000)} seconds | {result.videoCount} clips generated
                 </p>
 
-                {/* Video Player */}
-                <div className="mb-6">
-                  <video
-                    controls
-                    className="max-w-full h-auto rounded-lg border border-slate-200 mx-auto"
-                    style={{ maxHeight: '400px' }}
-                  >
-                    <source src={result.finalVideoUrl} type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
+                {/* Video Clips Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                  {result.videoClips.map((clip, index) => (
+                    <div key={index} className="border border-slate-200 rounded-lg overflow-hidden">
+                      {/* Image Preview */}
+                      <div className="relative">
+                        <img
+                          src={clip.imageUrl}
+                          alt={`Property image ${index + 1}`}
+                          className="w-full h-48 object-cover"
+                        />
+                        <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                          Image {index + 1}
+                        </div>
+                      </div>
+                      
+                      {/* Video Player */}
+                      <div className="p-3">
+                        <video
+                          controls
+                          className="w-full h-32 object-cover rounded mb-2"
+                          poster={clip.imageUrl}
+                        >
+                          <source src={clip.videoUrl} type="video/mp4" />
+                          Your browser does not support the video tag.
+                        </video>
+                        
+                        {/* Download Button */}
+                        <a
+                          href={clip.videoUrl}
+                          download={`property-video-${index + 1}.mp4`}
+                          className="w-full bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <span>Download</span>
+                        </a>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Download Button */}
+                {/* Action Buttons */}
                 <div className="flex justify-center space-x-4">
-                  <a
-                    href={result.finalVideoUrl}
-                    download
-                    className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center space-x-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <span>Download Video</span>
-                  </a>
-
                   <button
                     onClick={resetEditor}
                     className="bg-slate-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-slate-700 transition-colors"
@@ -390,26 +463,6 @@ export default function AiVideoEditorPage() {
                     Create Another Video
                   </button>
                 </div>
-
-                {/* Individual Clips (if available) */}
-                {result.individualClips && result.individualClips.length > 0 && (
-                  <div className="mt-8">
-                    <h4 className="text-md font-semibold text-slate-900 mb-4">Individual Clips</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {result.individualClips.map((clipUrl, index) => (
-                        <div key={index} className="border border-slate-200 rounded-lg p-2">
-                          <video
-                            controls
-                            className="w-full h-24 object-cover rounded"
-                          >
-                            <source src={clipUrl} type="video/mp4" />
-                          </video>
-                          <p className="text-sm text-slate-600 mt-1">Clip {index + 1}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           )}
