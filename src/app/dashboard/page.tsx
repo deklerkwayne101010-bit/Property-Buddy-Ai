@@ -107,9 +107,9 @@ export default function DashboardPage() {
       color: 'from-violet-500 to-purple-600'
     },
     {
-      title: 'AI Video Generator',
+      title: 'AI Video Editor',
       description: 'Create stunning property videos',
-      href: '/video-generator',
+      href: '/ai-video-editor',
       icon: '🎥',
       color: 'from-orange-500 to-red-600'
     },

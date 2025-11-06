@@ -220,7 +220,7 @@ export default function LandingPage() {
               </motion.div>
             </motion.div>
 
-            {/* AI Video Generator */}
+            {/* AI Video Editor */}
             <motion.div
               className="group bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 border border-slate-100"
               variants={staggerItem}
@@ -239,16 +239,16 @@ export default function LandingPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </motion.div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">AI Video Generator</h3>
+              <h3 className="text-xl font-bold text-slate-900 mb-3">AI Video Editor</h3>
               <p className="text-slate-600 mb-4">
-                Create stunning property videos with AI-generated content, voiceovers, and professional editing.
+                Edit and enhance your property videos with AI-powered tools for a professional finish.
               </p>
               <motion.div
                 whileHover={{ x: 5 }}
                 transition={{ duration: 0.2 }}
               >
                 <Link
-                  href="/video-generator"
+                  href="/ai-video-editor"
                   className="text-orange-600 font-semibold hover:text-orange-700 transition-colors duration-200"
                 >
                   Try Now →

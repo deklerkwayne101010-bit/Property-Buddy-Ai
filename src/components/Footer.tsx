@@ -13,7 +13,6 @@ const Footer = () => {
         { name: 'AI Photo Editor', href: '/photo-editor' },
         { name: 'Property Descriptions', href: '/property-descriptions' },
         { name: 'AI Chat Assistant', href: '/ai-chat' },
-        { name: 'Video Generator', href: '/video-generator' },
         { name: 'Marketing Materials', href: '/marketing-materials' },
         { name: 'Templates', href: '/templates' }
       ]
