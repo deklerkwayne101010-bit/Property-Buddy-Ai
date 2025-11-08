@@ -85,6 +85,22 @@ export default function AiVideoEditorPage() {
           .from('video-assets')
           .getPublicUrl(fileName);
 
+        // Record the upload in the database for cleanup tracking
+        const { error: dbError } = await supabase
+          .from('user_media')
+          .insert({
+            user_id: user?.id,
+            media_type: 'image',
+            file_name: fileName,
+            file_url: publicUrl,
+            file_size: file.size
+          });
+
+        if (dbError) {
+          console.error('Database error:', dbError);
+          // Don't fail the upload for database errors, but log it
+        }
+
         uploadedImagesData.push({
           id: Date.now().toString() + Math.random().toString(36).substring(2),
           file,
