@@ -94,8 +94,8 @@ export async function POST(request: NextRequest) {
       const file = files[i];
       const fileName = `${user.id}/${job.id}/${Date.now()}-${i}-${file.name}`;
 
-      // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      // Upload to Supabase Storage using service role
+      const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
         .from('video-assets')
         .upload(fileName, file, {
           contentType: file.type,
@@ -103,12 +103,12 @@ export async function POST(request: NextRequest) {
         });
 
       if (uploadError) {
-        console.error('Error uploading file:', uploadError);
+        console.error('Error uploading file:', uploadError, 'File:', fileName);
         continue; // Skip this file but continue with others
       }
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
+      // Get public URL using service role
+      const { data: { publicUrl } } = supabaseAdmin.storage
         .from('video-assets')
         .getPublicUrl(fileName);
 
