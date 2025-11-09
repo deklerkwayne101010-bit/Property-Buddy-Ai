@@ -167,6 +167,8 @@ export async function POST(
         const generatedPrompt = Array.isArray(result.output) ? result.output[0] : result.output;
 
         console.log(`GPT-4o generated prompt for image ${image.id}:`, generatedPrompt);
+        console.log(`Prompt type:`, typeof generatedPrompt);
+        console.log(`Prompt length:`, generatedPrompt?.length || 0);
 
         // Update image with generated prompt
         const updateResult = await supabaseAdmin
