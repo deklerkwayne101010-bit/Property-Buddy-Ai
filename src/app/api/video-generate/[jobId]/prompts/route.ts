@@ -109,11 +109,17 @@ export async function POST(
           })
           .eq('id', image.id);
 
-        // Generate prompt using GPT-4o
+        // Generate prompt using GPT-4o with correct JSON format
         const promptResult = await replicate.run("openai/gpt-4o", {
           input: {
-            image: image.image_url,
-            prompt: `Analyze this property image and create a detailed prompt for video generation. Focus ONLY on what's visible in the image. Do not add or hallucinate any elements. Stay within the frame boundaries. Create a cinematic prompt suitable for property video that describes the scene accurately without adding fictional elements.`
+            top_p: 1,
+            prompt: "Analyze this property image and create a detailed prompt for video generation. Focus ONLY on what's visible in the image. Do not add or hallucinate any elements. Stay within the frame boundaries. Create a cinematic prompt suitable for property video that describes the scene accurately without adding fictional elements.",
+            image_input: [image.image_url],
+            temperature: 1,
+            system_prompt: "You are a expert ai image to video creator and video maker.",
+            presence_penalty: 0,
+            frequency_penalty: 0,
+            max_completion_tokens: 4096
           }
         });
 
