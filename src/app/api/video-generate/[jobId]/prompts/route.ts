@@ -125,7 +125,15 @@ export async function POST(
 
         // Replicate returns a prediction object, not the direct result
         // We need to poll until the status is "succeeded"
-        let result: any = prediction;
+        let result: {
+          status: string;
+          urls: { get: string };
+          output?: unknown;
+        } = prediction as {
+          status: string;
+          urls: { get: string };
+          output?: unknown;
+        };
         let attempts = 0;
         const maxAttempts = 30; // 30 attempts * 2 seconds = 1 minute timeout
 
