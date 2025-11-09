@@ -471,7 +471,7 @@ export default function AiVideoEditorPage() {
           )}
 
           {/* Prompts Review Section */}
-          {jobStatus && jobStatus.job.status === 'processing_prompts' && jobStatus.progress.prompts.completed > 0 && (
+          {jobStatus && jobStatus.job.status === 'processing_prompts' && (
             <div className="bg-white rounded-xl p-6 border border-slate-200">
               <div className="text-center mb-6">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
