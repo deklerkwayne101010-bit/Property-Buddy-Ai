@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
           presence_penalty: 0,
           frequency_penalty: 0,
           max_completion_tokens: 2048
-        }
+        } as any
       }),
     });
 
