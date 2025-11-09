@@ -80,13 +80,13 @@ export default function DashboardPage() {
   const quickActions = [
     {
       title: 'AI Photo Editor',
-      description: 'Enhance property photos with AI',
+      description: 'Enhance photos with AI',
       href: '/photo-editor',
       icon: '🖼️',
       color: 'from-slate-500 to-blue-600'
     },
     {
-      title: 'AI Property Descriptions',
+      title: 'AI Descriptions',
       description: 'Generate compelling descriptions',
       href: '/property-descriptions',
       icon: '📝',
@@ -101,14 +101,14 @@ export default function DashboardPage() {
     },
     {
       title: 'CRM Dashboard',
-      description: 'Manage leads and properties',
+      description: 'Manage leads and content',
       href: '/crm',
       icon: '👥',
       color: 'from-violet-500 to-purple-600'
     },
     {
       title: 'AI Video Editor',
-      description: 'Create stunning property videos',
+      description: 'Create stunning videos',
       href: '/ai-video-editor',
       icon: '🎥',
       color: 'from-orange-500 to-red-600'
@@ -134,10 +134,10 @@ export default function DashboardPage() {
           transition={{ duration: 0.6 }}
         >
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-            Welcome to Your AI Real Estate Dashboard
+            Welcome to Your Stagefy Dashboard
           </h1>
           <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-            Access all your AI-powered tools to enhance your real estate business workflow.
+            Access all your AI-powered tools to enhance your content creation workflow.
           </p>
         </motion.div>
 

@@ -1,6 +1,6 @@
-# AI Photo Editor for Agents
+# Stagefy - AI Content Creation Platform
 
-A Next.js + React + Tailwind web application that allows real estate agents to upload property photos and use AI to edit them with simple text instructions like "Remove microwave" or "Fix glare in window".
+Stagefy is a comprehensive AI-powered content creation platform that enables creators to transform their content workflow with cutting-edge artificial intelligence tools.
 
 ## Features
 

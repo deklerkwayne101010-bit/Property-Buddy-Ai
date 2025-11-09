@@ -44,7 +44,7 @@ export default function LandingPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: 0.5 }}
               >
-                Real Estate Agents
+                Stagefy
               </motion.span>
             </motion.h1>
             <motion.p
@@ -53,7 +53,7 @@ export default function LandingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.7 }}
             >
-              Transform your real estate workflow with cutting-edge AI technology.
+              Transform your content creation workflow with cutting-edge AI technology.
               Create stunning visuals, compelling descriptions, and manage your business effortlessly.
             </motion.p>
             <motion.div
@@ -101,7 +101,7 @@ export default function LandingPage() {
               Powerful AI Tools at Your Fingertips
             </h2>
             <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              Everything you need to elevate your real estate business with artificial intelligence.
+              Everything you need to elevate your content creation with artificial intelligence.
             </p>
           </motion.div>
 
@@ -133,7 +133,7 @@ export default function LandingPage() {
               </motion.div>
               <h3 className="text-xl font-bold text-slate-900 mb-3">AI Photo Editor</h3>
               <p className="text-slate-600 mb-4">
-                Enhance property photos with AI-powered editing. Remove objects, adjust lighting, and create professional listings.
+                Enhance photos with AI-powered editing. Remove objects, adjust lighting, and create professional content.
               </p>
               <motion.div
                 whileHover={{ x: 5 }}
@@ -169,7 +169,7 @@ export default function LandingPage() {
               </motion.div>
               <h3 className="text-xl font-bold text-slate-900 mb-3">AI Property Descriptions</h3>
               <p className="text-slate-600 mb-4">
-                Generate compelling, SEO-optimized property descriptions that highlight key features and attract buyers.
+                Generate compelling, SEO-optimized descriptions that highlight key features and attract audiences.
               </p>
               <motion.div
                 whileHover={{ x: 5 }}
@@ -205,7 +205,7 @@ export default function LandingPage() {
               </motion.div>
               <h3 className="text-xl font-bold text-slate-900 mb-3">CRM System</h3>
               <p className="text-slate-600 mb-4">
-                Manage leads, track properties, and streamline your client relationships with our integrated CRM.
+                Manage leads, track content, and streamline your client relationships with our integrated CRM.
               </p>
               <motion.div
                 whileHover={{ x: 5 }}
@@ -241,7 +241,7 @@ export default function LandingPage() {
               </motion.div>
               <h3 className="text-xl font-bold text-slate-900 mb-3">AI Video Editor</h3>
               <p className="text-slate-600 mb-4">
-                Edit and enhance your property videos with AI-powered tools for a professional finish.
+                Edit and enhance your videos with AI-powered tools for a professional finish.
               </p>
               <motion.div
                 whileHover={{ x: 5 }}
@@ -275,7 +275,7 @@ export default function LandingPage() {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            Ready to Transform Your Real Estate Business?
+            Ready to Transform Your Content Creation?
           </motion.h2>
           <motion.p
             className="text-xl text-slate-100 mb-8"
@@ -284,7 +284,7 @@ export default function LandingPage() {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.4 }}
           >
-            Join thousands of agents who are already using AI to close more deals.
+            Join thousands of creators who are already using AI to create stunning content.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
