@@ -9,12 +9,12 @@ import {
   filterContent
 } from '../../../../lib/security';
 
-// Rate limiting: 5 requests per minute per IP for video generation
+// Rate limiting: 10 requests per minute per IP for prompt generation
 const RATE_LIMIT_CONFIG = {
   maxRequestSize: 1024 * 1024, // 1MB
   allowedOrigins: ['http://localhost:3000', 'https://yourdomain.com'],
   rateLimitWindow: 60 * 1000, // 1 minute
-  rateLimitMax: 5,
+  rateLimitMax: 10,
 };
 
 export async function POST(request: NextRequest) {
@@ -58,12 +58,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Call Kling AI API
+    // Call GPT-4o API via Replicate
     const replicateToken = process.env.REPLICATE_API_TOKEN;
     if (!replicateToken) {
       return NextResponse.json({
-        videoUrl: null,
-        message: "AI video generation service is currently unavailable. Please try again later."
+        prompt: null,
+        error: "AI prompt generation service is currently unavailable. Please try again later."
       }, { headers: createSecurityHeaders() });
     }
 
@@ -74,44 +74,40 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        version: "kwaivgi/kling-v2.5-turbo-pro",
+        version: "meta/gpt-4o",
+        poll: true, // Use poll: true to get final result and avoid streaming
         input: {
-          prompt: prompt + ". Keep everything identical. Do not hallucinate or add objects. Only create camera motion animation.",
-          duration: 5,
-          start_image: imageUrl,
-          aspect_ratio: "16:9",
-          negative_prompt: ""
-        },
-        poll: true // ✅ This prevents SSE streaming and JSON parsing errors
+          prompt: "Analyze this real estate image and decide the exact camera movement that keeps everything identical, does not hallucinate anything, stays fully inside the frame boundaries, and produces a professional cinematic effect. Suggest a smooth motion like slow dolly-in, left-to-right pan, gentle zoom etc. Never invent or change anything in the image.",
+          image_input: [imageUrl]
+        }
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Kling AI error: ${response.status} - ${errorText}`);
+      throw new Error(`GPT-4o error: ${response.status} - ${errorText}`);
     }
 
     const prediction = await response.json();
-    console.log('Kling AI prediction response:', JSON.stringify(prediction, null, 2));
+    console.log('GPT-4o prediction response:', JSON.stringify(prediction, null, 2));
 
     // With poll: true, Replicate waits and returns final result directly
-    // No need for manual polling - just check the response
     if (prediction.status === 'succeeded') {
-      const videoUrl = prediction.output;
-      console.log('Video generation succeeded:', videoUrl);
+      const prompt = prediction.output;
+      console.log('Prompt generation succeeded:', prompt);
       return NextResponse.json({
-        videoUrl: videoUrl,
-        message: "Video generated successfully!",
+        prompt: prompt,
+        message: "Prompt generated successfully!",
         metadata: {
           timestamp: new Date().toISOString(),
-          model: "kwaivgi/kling-v2.5-turbo-pro",
+          model: "meta/gpt-4o",
           poll: true,
-          duration: "Completed with poll: true"
+          imageUrl: imageUrl
         }
       }, { headers: createSecurityHeaders() });
     } else if (prediction.status === 'failed') {
-      console.error('Kling AI generation failed:', prediction.error);
-      throw new Error(`Kling AI generation failed: ${prediction.error}`);
+      console.error('GPT-4o generation failed:', prediction.error);
+      throw new Error(`GPT-4o generation failed: ${prediction.error}`);
     } else {
       // This shouldn't happen with poll: true, but handle it just in case
       console.log('Unexpected status with poll: true:', prediction.status);
@@ -120,19 +116,19 @@ export async function POST(request: NextRequest) {
     }
 
     // This should not be reached with poll: true, but handle it just in case
-    throw new Error('Unexpected end of Kling AI processing. The video generation may have failed.');
+    throw new Error('Unexpected end of GPT-4o processing. The prompt generation may have failed.');
 
   } catch (error) {
-    console.error('Error in Kling AI video generation:', error);
+    console.error('Error in GPT-4o prompt generation:', error);
     logSecurityEvent('API_ERROR', {
-      endpoint: '/api/video-generate/kling',
+      endpoint: '/api/video-generate/generate-prompts',
       error: error instanceof Error ? error.message : 'Unknown error',
       ip: clientIP
     });
 
     return NextResponse.json(
       {
-        error: 'Failed to generate video',
+        error: 'Failed to generate prompt',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500, headers: createSecurityHeaders() }
