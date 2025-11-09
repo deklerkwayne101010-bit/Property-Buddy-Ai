@@ -6,6 +6,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 interface UploadedImage {
   id: string;
@@ -465,6 +466,84 @@ export default function AiVideoEditorPage() {
                 <p className="text-sm text-slate-500 mt-2">
                   {Math.round((jobStatus.progress.prompts.completed + jobStatus.progress.videos.completed) / (jobStatus.job.totalImages * 2) * 100)}% complete
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Prompts Review Section */}
+          {jobStatus && jobStatus.job.status === 'processing_prompts' && jobStatus.progress.prompts.completed === jobStatus.job.totalImages && (
+            <div className="bg-white rounded-xl p-6 border border-slate-200">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">Prompts Generated Successfully!</h3>
+                <p className="text-slate-600">Review the generated prompts below and click continue to start video generation.</p>
+              </div>
+
+              {/* Prompts List */}
+              <div className="space-y-4 mb-6">
+                {jobStatus.images.map((image, index) => (
+                  <div key={image.id} className="border border-slate-200 rounded-lg p-4">
+                    <div className="flex items-start space-x-4">
+                      <img
+                        src={image.imageUrl}
+                        alt={`Property image ${index + 1}`}
+                        className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                      />
+                      <div className="flex-1">
+                        <h4 className="font-medium text-slate-900 mb-2">Image {index + 1}</h4>
+                        <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded border">
+                          {image.gpt4oPrompt || 'Prompt not yet generated...'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Continue Button */}
+              <div className="flex justify-center">
+                <button
+                  onClick={async () => {
+                    setProcessingStatus('Starting video generation...');
+
+                    try {
+                      // Get auth token
+                      const { data: { session } } = await supabase.auth.getSession();
+                      if (!session?.access_token) {
+                        throw new Error('Authentication required');
+                      }
+
+                      // Start video generation
+                      const videosResponse = await fetch(`/api/video-generate/${jobStatus.job.id}/videos`, {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${session.access_token}`
+                        }
+                      });
+
+                      if (!videosResponse.ok) {
+                        const errorData = await videosResponse.json();
+                        throw new Error(errorData.error || 'Failed to start video generation');
+                      }
+
+                      setProcessingStatus('Video generation started...');
+                    } catch (error) {
+                      console.error('Error starting video generation:', error);
+                      setError(error instanceof Error ? error.message : 'Failed to start video generation');
+                      setProcessingStatus('');
+                    }
+                  }}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-lg font-semibold hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Continue to Video Generation</span>
+                </button>
               </div>
             </div>
           )}
