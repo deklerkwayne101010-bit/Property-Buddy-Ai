@@ -109,8 +109,8 @@ export async function POST(
           })
           .eq('id', image.id);
 
-        // Generate prompt using GPT-4o with correct JSON format
-        const promptResult = await replicate.run("openai/gpt-4o", {
+        // Generate prompt using GPT-4o with correct JSON format and async polling
+        const prediction = await replicate.run("openai/gpt-4o", {
           input: {
             top_p: 1,
             prompt: "Analyze this property image and create a detailed prompt for video generation. Focus ONLY on what's visible in the image. Do not add or hallucinate any elements. Stay within the frame boundaries. Create a cinematic prompt suitable for property video that describes the scene accurately without adding fictional elements.",
@@ -123,7 +123,40 @@ export async function POST(
           }
         });
 
-        const generatedPrompt = Array.isArray(promptResult) ? promptResult[0] : promptResult;
+        // Replicate returns a prediction object, not the direct result
+        // We need to poll until the status is "succeeded"
+        let result: any = prediction;
+        let attempts = 0;
+        const maxAttempts = 30; // 30 attempts * 2 seconds = 1 minute timeout
+
+        while (
+          result.status === "starting" ||
+          result.status === "processing" ||
+          result.status === "queued"
+        ) {
+          if (attempts >= maxAttempts) {
+            throw new Error(`GPT-4o prediction timed out after ${maxAttempts * 2} seconds`);
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 2000)); // wait 2 seconds
+          attempts++;
+
+          // Poll the prediction endpoint
+          const checkResponse = await fetch(result.urls.get, {
+            headers: {
+              Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+          });
+
+          result = await checkResponse.json();
+        }
+
+        if (result.status !== "succeeded") {
+          throw new Error(`GPT-4o prediction failed: ${result.status} - ${JSON.stringify(result)}`);
+        }
+
+        const generatedPrompt = Array.isArray(result.output) ? result.output[0] : result.output;
 
         // Update image with generated prompt
         await supabaseAdmin
