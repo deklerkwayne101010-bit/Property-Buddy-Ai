@@ -166,8 +166,10 @@ export async function POST(
 
         const generatedPrompt = Array.isArray(result.output) ? result.output[0] : result.output;
 
+        console.log(`GPT-4o generated prompt for image ${image.id}:`, generatedPrompt);
+
         // Update image with generated prompt
-        await supabaseAdmin
+        const updateResult = await supabaseAdmin
           .from('video_job_images')
           .update({
             prompt_status: 'completed',
@@ -176,6 +178,13 @@ export async function POST(
             updated_at: new Date().toISOString()
           })
           .eq('id', image.id);
+
+        if (updateResult.error) {
+          console.error('Error updating image with prompt:', updateResult.error);
+          throw new Error(`Failed to save prompt: ${updateResult.error.message}`);
+        }
+
+        console.log(`Successfully saved prompt for image ${image.id}:`, generatedPrompt.substring(0, 100) + '...');
 
         processedImages.push({
           id: image.id,
