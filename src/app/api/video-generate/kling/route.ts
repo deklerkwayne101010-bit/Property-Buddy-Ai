@@ -111,7 +111,18 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        result = await statusResponse.json();
+        const responseText = await statusResponse.text();
+        console.log(`Status response (attempt ${attempts + 1}):`, responseText.substring(0, 200) + '...');
+
+        try {
+          result = JSON.parse(responseText);
+        } catch (parseError) {
+          console.log(`JSON parse error (attempt ${attempts + 1}):`, parseError);
+          console.log('Response text:', responseText);
+          attempts++;
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          continue;
+        }
 
         if (result.status === 'succeeded') {
           const videoUrl = result.output;
@@ -130,6 +141,8 @@ export async function POST(request: NextRequest) {
           throw new Error(`Kling AI generation failed: ${result.error}`);
         } else if (result.status === 'processing' || result.status === 'starting') {
           console.log(`Video generation in progress (${result.status}), attempt ${attempts + 1}/${maxAttempts}`);
+        } else {
+          console.log(`Unknown status: ${result.status}, continuing to poll...`);
         }
 
         attempts++;
