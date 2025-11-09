@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     const prediction = await response.json();
+    console.log('Kling AI prediction response:', JSON.stringify(prediction, null, 2));
 
     // With poll: true, Replicate waits and returns final result directly
     // No need for manual polling - just check the response
@@ -109,10 +110,12 @@ export async function POST(request: NextRequest) {
         }
       }, { headers: createSecurityHeaders() });
     } else if (prediction.status === 'failed') {
+      console.error('Kling AI generation failed:', prediction.error);
       throw new Error(`Kling AI generation failed: ${prediction.error}`);
     } else {
       // This shouldn't happen with poll: true, but handle it just in case
       console.log('Unexpected status with poll: true:', prediction.status);
+      console.log('Full prediction object:', prediction);
       throw new Error(`Unexpected status: ${prediction.status}`);
     }
 
