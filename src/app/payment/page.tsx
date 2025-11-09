@@ -103,13 +103,14 @@ const paymentPlans: PaymentPlan[] = [
   {
     id: 'elite-monthly',
     name: 'Elite',
-    price: 59900, // R599 in cents
+    price: 59900, // R599 in cents (scaling from Pro)
     currency: 'ZAR',
     interval: 'month',
     features: [
-      '200 credits included',
-      'Supports up to 150 photo edits',
-      'Generate 7–8 AI property videos',
+      '400 credits included',
+      'Designed for about 12 listings per month',
+      'Allows 240+ photo edits',
+      'Generate 12–16 AI property videos',
       'Unlimited access to premium templates',
       'Team collaboration tools',
       'Priority support'
@@ -122,9 +123,10 @@ const paymentPlans: PaymentPlan[] = [
     currency: 'ZAR',
     interval: 'year',
     features: [
-      '200 credits included monthly',
-      'Supports up to 150 photo edits',
-      'Generate 7–8 AI property videos',
+      '400 credits included monthly',
+      'Designed for about 12 listings per month',
+      'Allows 240+ photo edits',
+      'Generate 12–16 AI property videos',
       'Unlimited access to premium templates',
       'Team collaboration tools',
       'Priority support',
@@ -136,13 +138,14 @@ const paymentPlans: PaymentPlan[] = [
   {
     id: 'agency-monthly',
     name: 'Agency+',
-    price: 99900, // R999 in cents
+    price: 99900, // R999 in cents (scaling from Elite)
     currency: 'ZAR',
     interval: 'month',
     features: [
-      '400 credits included',
-      'Supports 300 photo edits',
-      'Generate 12+ AI videos',
+      '600 credits included',
+      'Designed for about 18 listings per month',
+      'Allows 360+ photo edits',
+      'Generate 18–24 AI property videos',
       'Team & multi-agent access',
       'Custom branding & template setup',
       'Dedicated support'
@@ -155,9 +158,10 @@ const paymentPlans: PaymentPlan[] = [
     currency: 'ZAR',
     interval: 'year',
     features: [
-      '400 credits included monthly',
-      'Supports 300 photo edits',
-      'Generate 12+ AI videos',
+      '600 credits included monthly',
+      'Designed for about 18 listings per month',
+      'Allows 360+ photo edits',
+      'Generate 18–24 AI property videos',
       'Team & multi-agent access',
       'Custom branding & template setup',
       'Dedicated support',
@@ -174,7 +178,7 @@ function PaymentPageContent() {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month');
-  const [activeTab, setActiveTab] = useState<'pricing' | 'billing'>('pricing');
+  const [activeTab, setActiveTab] = useState<'pricing'>('pricing');
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [paymentCanceled, setPaymentCanceled] = useState(false);
   const [currentSubscription, setCurrentSubscription] = useState('free');
@@ -234,7 +238,6 @@ function PaymentPageContent() {
 
     if (success === 'true') {
       setPaymentSuccess(true);
-      setActiveTab('billing');
       // Clear URL parameters
       router.replace('/payment', undefined);
     } else if (canceled === 'true') {
@@ -377,7 +380,7 @@ function PaymentPageContent() {
             </div>
           )}
 
-          {/* Tab Navigation */}
+          {/* Tab Navigation - Removed Billing & Credits tab */}
           <div className="mb-8">
             <div className="border-b border-slate-200">
               <nav className="-mb-px flex space-x-8">
@@ -391,31 +394,19 @@ function PaymentPageContent() {
                 >
                   Pricing Plans
                 </button>
-                <button
-                  onClick={() => setActiveTab('billing')}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === 'billing'
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                  }`}
-                >
-                  Billing & Credits
-                </button>
               </nav>
             </div>
           </div>
 
-          {activeTab === 'pricing' ? (
-            <>
-              {/* Header */}
-              <div className="text-center py-8">
-                <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-                  Choose Your Plan
-                </h1>
-                <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-                  Unlock the full potential of AI-powered real estate tools with our flexible pricing plans.
-                </p>
-              </div>
+          {/* Header */}
+          <div className="text-center py-8">
+            <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
+              Choose Your Plan
+            </h1>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+              Unlock the full potential of AI-powered real estate tools with our flexible pricing plans.
+            </p>
+          </div>
 
           {/* Billing Toggle */}
           <div className="flex items-center justify-center mb-8">
@@ -547,54 +538,54 @@ function PaymentPageContent() {
                 {
                   id: '50',
                   name: '50 Credits',
-                  price: 'R250',
-                  usdPrice: '$12.50',
+                  price: 'R100',
+                  usdPrice: '$5.00',
                   credits: 50,
                   description: 'Perfect for trying out our services',
                   icon: '💰',
                   gradient: 'from-green-400 to-blue-500',
                   popular: false,
                   savings: null,
-                  costPerCredit: 'R5.00'
+                  costPerCredit: 'R2.00'
                 },
                 {
                   id: '100',
                   name: '100 Credits',
-                  price: 'R400',
-                  usdPrice: '$20.00',
+                  price: 'R200',
+                  usdPrice: '$10.00',
                   credits: 100,
                   description: 'Great for occasional use',
                   icon: '💎',
                   gradient: 'from-blue-500 to-purple-600',
                   popular: false,
-                  savings: 'Save 20%',
-                  costPerCredit: 'R4.00'
+                  savings: null,
+                  costPerCredit: 'R2.00'
                 },
                 {
                   id: '200',
                   name: '200 Credits',
-                  price: 'R700',
-                  usdPrice: '$35.00',
+                  price: 'R400',
+                  usdPrice: '$20.00',
                   credits: 200,
                   description: 'Best value for regular users',
                   icon: '⭐',
                   gradient: 'from-purple-600 to-pink-600',
                   popular: true,
-                  savings: 'Save 30%',
-                  costPerCredit: 'R3.50'
+                  savings: null,
+                  costPerCredit: 'R2.00'
                 },
                 {
                   id: '300',
                   name: '300 Credits',
-                  price: 'R900',
-                  usdPrice: '$45.00',
+                  price: 'R600',
+                  usdPrice: '$30.00',
                   credits: 300,
                   description: 'Ideal for agencies and power users',
                   icon: '🏆',
                   gradient: 'from-pink-600 to-red-600',
                   popular: false,
-                  savings: 'Save 40%',
-                  costPerCredit: 'R3.00'
+                  savings: null,
+                  costPerCredit: 'R2.00'
                 }
               ].map((pkg) => (
                 <div
@@ -738,10 +729,6 @@ function PaymentPageContent() {
               Your payment information is never stored on our servers.
             </p>
           </div>
-            </>
-          ) : (
-            <BillingTab />
-          )}
         </div>
       </DashboardLayout>
     </ProtectedRoute>

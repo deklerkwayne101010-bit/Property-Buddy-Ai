@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check authentication (optional for demo - allow unauthenticated payments)
+    // Check authentication - required for payments
     let user = null;
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -91,6 +91,14 @@ export async function POST(request: NextRequest) {
       console.log('User authenticated:', user?.id, 'email:', user?.email);
     } catch (authError) {
       console.log('Auth not available, proceeding without authentication for demo');
+    }
+
+    // Require authentication for payments
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required for payments' },
+        { status: 401, headers: createSecurityHeaders() }
+      );
     }
 
     const body: CheckoutRequest = await request.json();
@@ -145,30 +153,30 @@ export async function POST(request: NextRequest) {
 
     const yocoResponse = await createYocoCheckout(checkoutData);
 
-    // Store checkout session in database for tracking (optional - skip if table doesn't exist)
-    if (user) {
-      try {
-        const { error: dbError } = await supabase
-          .from('payment_sessions')
-          .insert({
-            id: yocoResponse.id,
-            user_id: user.id,
-            amount: amount,
-            currency: currency,
-            status: 'pending',
-            yoco_checkout_id: yocoResponse.id,
-            metadata: checkoutData.metadata,
-            created_at: new Date().toISOString()
-          });
+    // Store checkout session in database for tracking (required for webhook processing)
+    try {
+      const { error: dbError } = await supabase
+        .from('payment_sessions')
+        .insert({
+          id: yocoResponse.id,
+          user_id: user.id,
+          amount: amount,
+          currency: currency,
+          status: 'pending',
+          yoco_checkout_id: yocoResponse.id,
+          metadata: checkoutData.metadata,
+          created_at: new Date().toISOString()
+        });
 
-        if (dbError) {
-          console.error('Database error storing payment session:', dbError);
-          // Don't fail the request, just log it
-        }
-      } catch (dbError) {
-        console.error('Database not available for payment tracking:', dbError);
-        // Continue without database tracking
+      if (dbError) {
+        console.error('Database error storing payment session:', dbError);
+        // Don't fail the request, just log it
+      } else {
+        console.log('Payment session stored successfully for user:', user.id);
       }
+    } catch (dbError) {
+      console.error('Database not available for payment tracking:', dbError);
+      // Continue without database tracking
     }
 
     logSecurityEvent('PAYMENT_CHECKOUT_CREATED', {

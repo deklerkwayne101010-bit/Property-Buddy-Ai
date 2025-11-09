@@ -50,14 +50,17 @@ export async function POST(request: NextRequest) {
     // Handle different webhook event types
     switch (type) {
       case 'payment.succeeded':
+        console.log('Processing payment.succeeded event');
         await handlePaymentSucceeded(data as PaymentData);
         break;
 
       case 'payment.failed':
+        console.log('Processing payment.failed event');
         await handlePaymentFailed(data as PaymentData);
         break;
 
       case 'payment.cancelled':
+        console.log('Processing payment.cancelled event');
         await handlePaymentCancelled(data as PaymentData);
         break;
 
@@ -98,18 +101,59 @@ interface PaymentData {
 async function handlePaymentSucceeded(paymentData: PaymentData) {
   const { id: paymentId, amount, currency, metadata } = paymentData;
 
-  try {
-    // Update payment session status
-    const { error: updateError } = await supabase
-      .from('payment_sessions')
-      .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        yoco_payment_id: paymentId
-      })
-      .eq('yoco_checkout_id', paymentData.checkoutId);
+  console.log('=== PAYMENT SUCCEEDED HANDLER ===');
+  console.log('Payment ID:', paymentId);
+  console.log('Amount:', amount);
+  console.log('Metadata received:', JSON.stringify(metadata, null, 2));
 
-    if (updateError) {
+  try {
+    // Update payment session status - try multiple ways to find the session
+    let updateError = null;
+    let sessionFound = false;
+
+    // First try with checkoutId
+    if (paymentData.checkoutId) {
+      console.log('Trying to update with checkoutId:', paymentData.checkoutId);
+      const { error } = await supabase
+        .from('payment_sessions')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          yoco_payment_id: paymentId
+        })
+        .eq('yoco_checkout_id', paymentData.checkoutId);
+
+      if (!error) {
+        sessionFound = true;
+        console.log('Payment session updated successfully with checkoutId');
+      } else {
+        console.log('Failed to update with checkoutId:', error);
+        updateError = error;
+      }
+    }
+
+    // If that didn't work, try with paymentId as fallback
+    if (!sessionFound) {
+      console.log('Trying to update with paymentId:', paymentId);
+      const { error } = await supabase
+        .from('payment_sessions')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          yoco_payment_id: paymentId
+        })
+        .eq('id', paymentId);
+
+      if (!error) {
+        sessionFound = true;
+        console.log('Payment session updated successfully with paymentId');
+      } else {
+        console.log('Failed to update with paymentId:', error);
+        updateError = error;
+      }
+    }
+
+    if (updateError && !sessionFound) {
       console.error('Error updating payment session:', updateError);
     }
 
@@ -132,16 +176,20 @@ async function handlePaymentSucceeded(paymentData: PaymentData) {
     }
 
     // Handle different payment types based on metadata
-    console.log('Processing payment with metadata:', metadata);
+    console.log('Processing payment with metadata:', JSON.stringify(metadata, null, 2));
+    console.log('Payment type:', metadata?.type);
+
     if (metadata?.type === 'subscription') {
+      console.log('Handling subscription payment');
       await handleSubscriptionPayment(metadata, amount);
     } else if (metadata?.type === 'credits') {
-      console.log('Processing credits purchase');
+      console.log('Processing credits purchase - calling handleCreditsPurchase');
       await handleCreditsPurchase(metadata, amount);
     } else if (metadata?.type === 'template') {
+      console.log('Handling template purchase');
       await handleTemplatePurchase(metadata, amount);
     } else {
-      console.log('Unknown payment type:', metadata?.type);
+      console.log('Unknown payment type:', metadata?.type, 'Available metadata keys:', Object.keys(metadata || {}));
     }
 
     logSecurityEvent('PAYMENT_SUCCEEDED', {
@@ -248,7 +296,7 @@ async function handleSubscriptionPayment(metadata: Record<string, unknown> | und
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('credits_balance')
-      .eq('id', metadata.userId)
+      .eq('id', userId)
       .single();
 
     if (profileError && profileError.code !== 'PGRST116') {
@@ -297,20 +345,30 @@ async function handleSubscriptionPayment(metadata: Record<string, unknown> | und
 async function handleCreditsPurchase(metadata: Record<string, unknown> | undefined, amount: number) {
   // Handle AI credits purchase
   // Add credits to user account based on package purchased
-  console.log('handleCreditsPurchase called with metadata:', JSON.stringify(metadata, null, 2));
-  if (!metadata?.userId || !metadata?.credits) {
-    console.error('Missing userId or credits in metadata for credits purchase');
+  console.log('=== HANDLE CREDITS PURCHASE ===');
+  console.log('Metadata received:', JSON.stringify(metadata, null, 2));
+
+  if (!metadata?.userId) {
+    console.error('❌ Missing userId in metadata for credits purchase');
     console.error('Available metadata keys:', Object.keys(metadata || {}));
     return;
   }
 
-  try {
-    const creditsToAdd = metadata.credits as number;
-    console.log('Credits to add:', creditsToAdd);
-    if (!creditsToAdd || creditsToAdd <= 0) {
-      console.error('Invalid credits amount:', creditsToAdd);
-      return;
-    }
+  if (!metadata?.credits) {
+    console.error('❌ Missing credits in metadata for credits purchase');
+    console.error('Available metadata keys:', Object.keys(metadata || {}));
+    return;
+  }
+
+  const userId = metadata.userId as string;
+  const creditsToAdd = metadata.credits as number;
+
+  console.log('✅ Processing credits purchase for user:', userId, 'credits to add:', creditsToAdd);
+
+  if (!creditsToAdd || creditsToAdd <= 0) {
+    console.error('❌ Invalid credits amount:', creditsToAdd);
+    return;
+  }
 
     // First get current credits (or create profile if it doesn't exist)
     const { data: profile, error: profileError } = await supabase
@@ -328,11 +386,11 @@ async function handleCreditsPurchase(metadata: Record<string, unknown> | undefin
     const newCredits = currentCredits + creditsToAdd;
 
     // Update or insert user credits in profiles table
-    console.log('Updating user credits - userId:', metadata.userId, 'currentCredits:', currentCredits, 'creditsToAdd:', creditsToAdd, 'newCredits:', newCredits);
+    console.log('Updating user credits - userId:', userId, 'currentCredits:', currentCredits, 'creditsToAdd:', creditsToAdd, 'newCredits:', newCredits);
     const { error: updateError } = await supabase
       .from('profiles')
       .upsert({
-        id: metadata.userId,
+        id: userId,
         credits_balance: newCredits,
         subscription_tier: 'starter' // Default tier if not set
       });
@@ -348,7 +406,7 @@ async function handleCreditsPurchase(metadata: Record<string, unknown> | undefin
     const { error: logError } = await supabase
       .from('usage_tracking')
       .insert({
-        user_id: metadata.userId,
+        user_id: userId,
         feature: 'credit_purchase',
         credits_used: -creditsToAdd, // Negative to indicate addition
         created_at: new Date().toISOString()
@@ -362,7 +420,7 @@ async function handleCreditsPurchase(metadata: Record<string, unknown> | undefin
     const { error: billingError } = await supabase
       .from('billing_history')
       .insert({
-        user_id: metadata.userId,
+        user_id: userId,
         amount: amount / 100, // Convert cents to rand
         currency: 'ZAR',
         status: 'completed',
@@ -373,9 +431,10 @@ async function handleCreditsPurchase(metadata: Record<string, unknown> | undefin
       console.error('Error logging billing transaction:', billingError);
     }
 
-    console.log(`Added ${creditsToAdd} credits to user ${metadata.userId} for ${creditsToAdd} credit purchase`);
+    console.log(`✅ Successfully added ${creditsToAdd} credits to user ${userId}`);
+    console.log(`📊 Credits summary: ${currentCredits} → ${newCredits}`);
   } catch (error) {
-    console.error('Error processing credits purchase:', error);
+    console.error('❌ Error processing credits purchase:', error);
   }
 }
 
