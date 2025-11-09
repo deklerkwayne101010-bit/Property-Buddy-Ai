@@ -66,9 +66,18 @@ export async function POST(
 
     console.log('Image URL received:', imageUrl);
 
+    // Check if Replicate API token is available
+    const replicateToken = process.env.REPLICATE_API_TOKEN;
+    console.log('Replicate API token present:', !!replicateToken);
+
+    if (!replicateToken) {
+      throw new Error('REPLICATE_API_TOKEN environment variable is not set');
+    }
+
     console.log(`Processing camera movement for image: ${imageUrl}`);
 
     // Call GPT-4o with camera movement prompt
+    console.log('Calling Replicate API...');
     const prediction = await replicate.run("openai/gpt-4o", {
       input: {
         top_p: 1,
