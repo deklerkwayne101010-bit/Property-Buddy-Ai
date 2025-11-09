@@ -81,7 +81,8 @@ export async function POST(request: NextRequest) {
           start_image: imageUrl,
           aspect_ratio: "16:9",
           negative_prompt: ""
-        }
+        },
+        poll: true // ✅ This prevents SSE streaming and JSON parsing errors
       }),
     });
 
@@ -92,67 +93,31 @@ export async function POST(request: NextRequest) {
 
     const prediction = await response.json();
 
-    // Poll for completion - video generation can take up to 5 minutes
-    let result = prediction;
-    const maxAttempts = 150; // 150 * 2 seconds = 5 minutes max
-    let attempts = 0;
-
-    while (
-      result.status === "starting" ||
-      result.status === "processing" ||
-      result.status === "queued"
-    ) {
-      if (attempts >= maxAttempts) {
-        throw new Error(`Video generation timed out after ${maxAttempts * 2} seconds. The video may still be processing on Replicate.`);
-      }
-
-      console.log(`Waiting for video generation... Status: ${result.status}, attempt ${attempts + 1}/${maxAttempts}`);
-
-      // Wait 2 seconds before checking again
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      try {
-        const statusResponse = await fetch(result.urls.get, {
-          headers: {
-            'Authorization': `Bearer ${replicateToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!statusResponse.ok) {
-          console.log(`Status check failed with ${statusResponse.status}, retrying...`);
-          attempts++;
-          continue;
+    // With poll: true, Replicate waits and returns final result directly
+    // No need for manual polling - just check the response
+    if (prediction.status === 'succeeded') {
+      const videoUrl = prediction.output;
+      console.log('Video generation succeeded:', videoUrl);
+      return NextResponse.json({
+        videoUrl: videoUrl,
+        message: "Video generated successfully!",
+        metadata: {
+          timestamp: new Date().toISOString(),
+          model: "kwaivgi/kling-v2.5-turbo-pro",
+          poll: true,
+          duration: "Completed with poll: true"
         }
-
-        result = await statusResponse.json();
-        attempts++;
-
-        if (result.status === 'succeeded') {
-          const videoUrl = result.output;
-          console.log('Video generation succeeded:', videoUrl);
-          return NextResponse.json({
-            videoUrl: videoUrl,
-            message: "Video generated successfully!",
-            metadata: {
-              timestamp: new Date().toISOString(),
-              model: "kwaivgi/kling-v2.5-turbo-pro",
-              attempts: attempts,
-              duration: attempts * 2
-            }
-          }, { headers: createSecurityHeaders() });
-        } else if (result.status === 'failed') {
-          throw new Error(`Kling AI generation failed: ${result.error}`);
-        }
-
-      } catch (pollError) {
-        console.log(`Polling error (attempt ${attempts + 1}):`, pollError);
-        attempts++;
-      }
+      }, { headers: createSecurityHeaders() });
+    } else if (prediction.status === 'failed') {
+      throw new Error(`Kling AI generation failed: ${prediction.error}`);
+    } else {
+      // This shouldn't happen with poll: true, but handle it just in case
+      console.log('Unexpected status with poll: true:', prediction.status);
+      throw new Error(`Unexpected status: ${prediction.status}`);
     }
 
-    // If we get here, we've exceeded max attempts
-    throw new Error(`Video generation timed out after ${maxAttempts * 2} seconds. The video may still be processing on Replicate.`);
+    // This should not be reached with poll: true, but handle it just in case
+    throw new Error('Unexpected end of Kling AI processing. The video generation may have failed.');
 
   } catch (error) {
     console.error('Error in Kling AI video generation:', error);
