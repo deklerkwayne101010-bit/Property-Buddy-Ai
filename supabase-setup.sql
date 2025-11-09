@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   full_name TEXT,
   company_name TEXT,
   subscription_tier TEXT DEFAULT 'free' CHECK (subscription_tier IN ('free', 'starter', 'pro', 'elite', 'agency')),
-  credits_balance INTEGER DEFAULT 100,
+  credits_balance INTEGER DEFAULT 5,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

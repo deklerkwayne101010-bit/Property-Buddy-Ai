@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     console.log(`Found ${oldFiles.length} files to clean up`);
 
     let filesDeleted = 0;
-    let errors = [];
+    const errors: string[] = [];
 
     // Process each file
     for (const file of oldFiles) {
