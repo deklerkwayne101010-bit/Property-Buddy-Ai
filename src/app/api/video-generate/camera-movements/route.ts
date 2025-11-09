@@ -1,84 +1,144 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import Replicate from 'replicate';
+import { supabase } from '../../../../lib/supabase';
+import {
+  checkRateLimit,
+  validateRequestSize,
+  getClientIP,
+  createSecurityHeaders,
+  logSecurityEvent,
+  filterContent
+} from '../../../../lib/security';
 
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
-});
+// Rate limiting: 10 requests per minute per IP for camera movements
+const RATE_LIMIT_CONFIG = {
+  maxRequestSize: 1024 * 1024, // 1MB
+  allowedOrigins: ['http://localhost:3000', 'https://yourdomain.com'],
+  rateLimitWindow: 60 * 1000, // 1 minute
+  rateLimitMax: 10,
+};
 
-// Create Supabase client for auth verification
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
-// Security headers helper
-const createSecurityHeaders = () => ({
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
-  'X-XSS-Protection': '1; mode=block',
-  'Referrer-Policy': 'strict-origin-when-cross-origin',
-});
-
-export async function POST(
-  request: NextRequest
-) {
-  console.log('Camera movements API called');
+export async function POST(request: NextRequest) {
+  const clientIP = getClientIP(request);
 
   try {
-    const authHeader = request.headers.get('authorization');
-    console.log('Auth header present:', !!authHeader);
-
-    if (!authHeader?.startsWith('Bearer ')) {
-      console.log('No Bearer token found');
+    // Security checks
+    // Check rate limiting
+    const rateLimitResult = checkRateLimit(clientIP, RATE_LIMIT_CONFIG);
+    if (!rateLimitResult.allowed) {
+      logSecurityEvent('RATE_LIMIT_EXCEEDED', { ip: clientIP });
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401, headers: createSecurityHeaders() }
+        {
+          error: 'Rate limit exceeded',
+          retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString(),
+            ...createSecurityHeaders()
+          }
+        }
       );
     }
 
-    const token = authHeader.substring(7);
-    console.log('Token extracted, length:', token.length);
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    console.log('Supabase auth result:', { user: !!user, error: authError?.message });
-
-    if (authError || !user) {
-      console.log('Auth failed:', authError);
+    // Check request size
+    if (!validateRequestSize(request)) {
+      logSecurityEvent('REQUEST_TOO_LARGE', { ip: clientIP });
       return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401, headers: createSecurityHeaders() }
+        { error: 'Request too large' },
+        { status: 413, headers: createSecurityHeaders() }
       );
     }
 
-    const requestBody = await request.json();
-    console.log('Request body:', requestBody);
+    const body = await request.json();
+    const { imageUrl } = body;
 
-    const { imageUrl } = requestBody;
-
-    if (!imageUrl) {
-      console.log('No imageUrl provided');
+    // Validate required fields
+    if (!imageUrl || typeof imageUrl !== 'string' || imageUrl.trim().length === 0) {
       return NextResponse.json(
-        { error: 'Image URL is required' },
+        { error: 'Image URL is required and must be a non-empty string' },
         { status: 400, headers: createSecurityHeaders() }
       );
     }
 
-    console.log('Image URL received:', imageUrl);
-
-    // Check if Replicate API token is available
+    // Call GPT-4o with camera movement prompt using the same pattern as chat API
     const replicateToken = process.env.REPLICATE_API_TOKEN;
-    console.log('Replicate API token present:', !!replicateToken);
-
     if (!replicateToken) {
-      throw new Error('REPLICATE_API_TOKEN environment variable is not set');
+      // Fallback response when API is not configured
+      return NextResponse.json({
+        cameraMovement: "I'm sorry, but the AI camera movement analysis service is currently unavailable. Please try again later or contact support for assistance.",
+        imageUrl
+      }, { headers: createSecurityHeaders() });
     }
 
-    console.log(`Processing camera movement for image: ${imageUrl}`);
+    const response = await fetch('https://api.replicate.com/v1/models/openai/gpt-4o/predictions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${replicateToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        input: {
+          top_p: 1,
+          prompt: "Analyze this property image and give the perfect camera movement for this image, to turn it into a 5 second video that does not change or alter anything. Focus ONLY on what's visible in the image. Do not add or hallucinate any elements. Stay within the frame boundaries. Describe the camera movement in detail for a cinematic 5-second video.",
+          image_input: [imageUrl],
+          temperature: 1,
+          system_prompt: "You are an expert video director and cinematographer specializing in real estate photography. Provide detailed camera movement instructions for property videos.",
+          presence_penalty: 0,
+          frequency_penalty: 0,
+          max_completion_tokens: 2048
+        }
+      }),
+    });
 
-    // Call GPT-4o with camera movement prompt
-    console.log('Calling Replicate API...');
-    const prediction = await replicate.run("openai/gpt-4o", {
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Replicate API error: ${response.status} - ${errorText}`);
+    }
+
+    const prediction = await response.json();
+
+    // Poll for completion using the same pattern as chat API
+    let result;
+    while (true) {
+      const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+        headers: {
+          'Authorization': `Bearer ${replicateToken}`,
+        },
+      });
+
+      result = await statusResponse.json();
+
+      if (result.status === 'succeeded') {
+        const cameraMovement = result.output.join('').replace(/\s+/g, ' ').trim();
+
+        // Filter content for inappropriate material
+        const filtered = filterContent(cameraMovement);
+
+        // Log if content was flagged
+        if (filtered.flagged) {
+          logSecurityEvent('CONTENT_FLAGGED', {
+            endpoint: '/api/video-generate/camera-movements',
+            reasons: filtered.reasons,
+            ip: clientIP
+          });
+        }
+
+        return NextResponse.json({
+          cameraMovement: filtered.filtered,
+          imageUrl,
+          metadata: {
+            timestamp: new Date().toISOString(),
+            filtered: filtered.flagged
+          }
+        }, { headers: createSecurityHeaders() });
+      } else if (result.status === 'failed') {
+        throw new Error(`Replicate prediction failed: ${result.error}`);
+      }
+
+      // Wait 1 second before checking again
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
       input: {
         top_p: 1,
         prompt: "Analyze this property image and give the perfect camera movement for this image, to turn it into a 5 second video that does not change or alter anything. Focus ONLY on what's visible in the image. Do not add or hallucinate any elements. Stay within the frame boundaries. Describe the camera movement in detail for a cinematic 5-second video.",
