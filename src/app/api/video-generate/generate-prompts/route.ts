@@ -74,18 +74,12 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        version: "openai/gpt-4o",
+        version: "llava-hf/llava-v1.6-mistral-7b-die:16e7c47ce16ee6c630be22821f1c4126d95aa40a1b5c8a09e3b17dca50a7e9f5",
         poll: true, // Use poll: true to get final result and avoid streaming
         input: {
-          "top_p": 1,
           "prompt": "Analyze this real estate image and decide the exact camera movement that keeps everything identical, does not hallucinate anything, stays fully inside the frame boundaries, and produces a professional cinematic effect. Suggest a smooth motion like slow dolly-in, left-to-right pan, gentle zoom etc. Never invent or change anything in the image.",
-          "messages": [],
-          "image_input": [imageUrl],
-          "temperature": 1,
-          "system_prompt": "You are a helpful assistant.",
-          "presence_penalty": 0,
-          "frequency_penalty": 0,
-          "max_completion_tokens": 4096
+          "image": imageUrl,
+          "temperature": 0.7
         }
       }),
     });
@@ -107,7 +101,7 @@ export async function POST(request: NextRequest) {
         message: "Prompt generated successfully!",
         metadata: {
           timestamp: new Date().toISOString(),
-          model: "openai/gpt-4o",
+          model: "llava-hf/llava-v1.6-mistral-7b-die",
           poll: true,
           imageUrl: imageUrl
         }
