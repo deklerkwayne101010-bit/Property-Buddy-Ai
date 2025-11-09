@@ -135,41 +135,6 @@ const paymentPlans: PaymentPlan[] = [
     savings: 'Save 20%',
     monthlyEquivalent: 'R480/month'
   },
-  {
-    id: 'agency-monthly',
-    name: 'Agency+',
-    price: 99900, // R999 in cents (scaling from Elite)
-    currency: 'ZAR',
-    interval: 'month',
-    features: [
-      '600 credits included',
-      'Designed for about 18 listings per month',
-      'Allows 360+ photo edits',
-      'Generate 18–24 AI property videos',
-      'Team & multi-agent access',
-      'Custom branding & template setup',
-      'Dedicated support'
-    ]
-  },
-  {
-    id: 'agency-yearly',
-    name: 'Agency+ Annual',
-    price: 959040, // R9,590.40 in cents (20% discount)
-    currency: 'ZAR',
-    interval: 'year',
-    features: [
-      '600 credits included monthly',
-      'Designed for about 18 listings per month',
-      'Allows 360+ photo edits',
-      'Generate 18–24 AI property videos',
-      'Team & multi-agent access',
-      'Custom branding & template setup',
-      'Dedicated support',
-      'Save R2,398/year (20% off)'
-    ],
-    savings: 'Save 20%',
-    monthlyEquivalent: 'R800/month'
-  }
 ];
 
 function PaymentPageContent() {
