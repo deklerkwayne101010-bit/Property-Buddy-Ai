@@ -33,12 +33,14 @@ export default function AiVideoMakerPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = useCallback(async (files: FileList) => {
-    const maxFiles = 10;
-    const currentCount = uploadedImages.length;
-    const availableSlots = maxFiles - currentCount;
+    // Only allow single image upload
+    if (uploadedImages.length > 0) {
+      setError('You can only upload one image at a time. Please clear the current image first.');
+      return;
+    }
 
-    if (files.length > availableSlots) {
-      setError(`You can only upload ${availableSlots} more image(s). Maximum is ${maxFiles} images.`);
+    if (files.length > 1) {
+      setError('Please select only one image.');
       return;
     }
 
@@ -149,71 +151,49 @@ export default function AiVideoMakerPage() {
     });
     setUploadedImages([]);
     setProcessingResults([]);
-    setCurrentProcessingIndex(-1);
     setError(null);
   };
 
   const processImagesSequentially = async () => {
     if (uploadedImages.length === 0) {
-      setError('Please upload at least one image');
+      setError('Please upload an image first');
       return;
     }
 
     setIsProcessing(true);
     setError(null);
 
-    // Initialize processing results
-    const initialResults: ProcessingResult[] = uploadedImages.map(img => ({
-      imageId: img.id,
-      imageUrl: img.url || img.preview,
-      status: 'pending'
-    }));
+    // Initialize processing result for single image
+    const initialResult: ProcessingResult = {
+      imageId: uploadedImages[0].id,
+      imageUrl: uploadedImages[0].url || uploadedImages[0].preview,
+      status: 'processing'
+    };
 
-    setProcessingResults(initialResults);
-    setCurrentProcessingIndex(0);
+    setProcessingResults([initialResult]);
 
-    // Process images one by one
-    for (let i = 0; i < uploadedImages.length; i++) {
-      try {
-        setCurrentProcessingIndex(i);
+    try {
+      // Call GPT-4o API for the single image
+      const result = await processImageWithGPT4o(uploadedImages[0]);
 
-        // Update status to processing
-        setProcessingResults(prev => prev.map((result, idx) =>
-          idx === i ? { ...result, status: 'processing' } : result
-        ));
+      // Update result to completed
+      setProcessingResults([{
+        ...initialResult,
+        status: 'completed',
+        gpt4oResult: result
+      }]);
 
-        // Call GPT-4o API
-        const result = await processImageWithGPT4o(uploadedImages[i]);
+    } catch (error) {
+      console.error('Error processing image:', error);
 
-        // Update result
-        setProcessingResults(prev => prev.map((res, idx) =>
-          idx === i ? {
-            ...res,
-            status: 'completed',
-            gpt4oResult: result
-          } : res
-        ));
-
-        // Wait a bit before processing next image
-        if (i < uploadedImages.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-
-      } catch (error) {
-        console.error(`Error processing image ${i + 1}:`, error);
-
-        // Update result with error
-        setProcessingResults(prev => prev.map((res, idx) =>
-          idx === i ? {
-            ...res,
-            status: 'failed',
-            error: error instanceof Error ? error.message : 'Processing failed'
-          } : res
-        ));
-      }
+      // Update result with error
+      setProcessingResults([{
+        ...initialResult,
+        status: 'failed',
+        error: error instanceof Error ? error.message : 'Processing failed'
+      }]);
     }
 
-    setCurrentProcessingIndex(-1);
     setIsProcessing(false);
   };
 
@@ -282,25 +262,24 @@ export default function AiVideoMakerPage() {
               </div>
               <h3 className="text-lg font-semibold text-slate-900 mb-2">Upload Property Images</h3>
               <p className="text-slate-600 mb-4">
-                Drag and drop up to 10 images, or click to browse
+                Drag and drop an image, or click to browse
               </p>
               <input
                 ref={fileInputRef}
                 type="file"
-                multiple
                 accept="image/*"
                 onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
                 className="hidden"
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                disabled={uploadedImages.length >= 10 || isUploading}
+                disabled={uploadedImages.length >= 1 || isUploading}
                 className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isUploading ? 'Uploading...' : 'Choose Images'}
+                {isUploading ? 'Uploading...' : 'Choose Image'}
               </button>
               <p className="text-sm text-slate-500 mt-2">
-                {uploadedImages.length}/10 images uploaded
+                {uploadedImages.length}/1 image uploaded
               </p>
             </div>
 
@@ -365,8 +344,8 @@ export default function AiVideoMakerPage() {
               </div>
             )}
 
-            {/* Continue Button */}
-            {uploadedImages.length > 0 && (
+            {/* Continue Button - Show only after image is uploaded */}
+            {uploadedImages.length === 1 && uploadedImages[0].url && (
               <div className="flex justify-center">
                 <button
                   onClick={processImagesSequentially}
@@ -376,78 +355,78 @@ export default function AiVideoMakerPage() {
                   {isProcessing ? (
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      <span>Processing Images...</span>
+                      <span>Analyzing Image...</span>
                     </>
                   ) : (
                     <>
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
-                      <span>Continue</span>
+                      <span>Analyze Image</span>
                     </>
                   )}
                 </button>
               </div>
             )}
 
-            {/* Processing Results Table */}
+            {/* Image and Result Display - Side by Side */}
             {processingResults.length > 0 && (
               <div className="bg-white rounded-xl p-6 border border-slate-200">
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">GPT-4o Camera Movement Analysis</h3>
-                <div className="space-y-4">
-                  {processingResults.map((result, index) => (
-                    <div key={result.imageId} className="border border-slate-200 rounded-lg overflow-hidden">
-                      <table className="w-full">
-                        <tbody>
-                          <tr className="border-b border-slate-200">
-                            <td className="p-4 bg-slate-50 w-32">
-                              <div className="flex items-center space-x-2">
-                                <span className="font-medium text-slate-700">Image {index + 1}</span>
-                                {result.status === 'processing' && currentProcessingIndex === index && (
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                )}
-                                {result.status === 'completed' && (
-                                  <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                  </div>
-                                )}
-                                {result.status === 'failed' && (
-                                  <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
-                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                    </svg>
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                            <td className="p-4">
-                              <img
-                                src={result.imageUrl}
-                                alt={`Image ${index + 1}`}
-                                className="w-20 h-20 object-cover rounded-lg border border-slate-200"
-                              />
-                            </td>
-                          </tr>
-                          <tr>
-                            <td className="p-4 bg-slate-50 font-medium text-slate-700">GPT-4o Result:</td>
-                            <td className="p-4">
-                              {result.status === 'processing' ? (
-                                <div className="text-blue-600 italic">Generating camera movement...</div>
-                              ) : result.status === 'completed' ? (
-                                <div className="text-slate-900 whitespace-pre-wrap">{result.gpt4oResult}</div>
-                              ) : result.status === 'failed' ? (
-                                <div className="text-red-600">Error: {result.error}</div>
-                              ) : (
-                                <div className="text-slate-500 italic">Pending...</div>
-                              )}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
+                <h3 className="text-lg font-semibold text-slate-900 mb-6">Image Analysis Result</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Image Box */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-slate-700">Uploaded Image</h4>
+                    <div className="border border-slate-200 rounded-lg overflow-hidden">
+                      <img
+                        src={processingResults[0].imageUrl}
+                        alt="Analyzed image"
+                        className="w-full h-64 object-cover"
+                      />
                     </div>
-                  ))}
+                  </div>
+
+                  {/* GPT-4o Result Box */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <h4 className="font-medium text-slate-700">GPT-4o Camera Movement Analysis</h4>
+                      {processingResults[0].status === 'processing' && (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      )}
+                      {processingResults[0].status === 'completed' && (
+                        <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )}
+                      {processingResults[0].status === 'failed' && (
+                        <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    <div className="border border-slate-200 rounded-lg p-4 min-h-64">
+                      {processingResults[0].status === 'processing' ? (
+                        <div className="text-blue-600 italic flex items-center space-x-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                          <span>Analyzing image with GPT-4o...</span>
+                        </div>
+                      ) : processingResults[0].status === 'completed' ? (
+                        <div className="text-slate-900 whitespace-pre-wrap text-sm leading-relaxed">
+                          {processingResults[0].gpt4oResult}
+                        </div>
+                      ) : processingResults[0].status === 'failed' ? (
+                        <div className="text-red-600 text-sm">
+                          <strong>Error:</strong> {processingResults[0].error}
+                        </div>
+                      ) : (
+                        <div className="text-slate-500 italic text-sm">Waiting for analysis...</div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
