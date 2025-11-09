@@ -296,7 +296,7 @@ async function handleSubscriptionPayment(metadata: Record<string, unknown> | und
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('credits_balance')
-      .eq('id', userId)
+      .eq('id', metadata.userId)
       .single();
 
     if (profileError && profileError.code !== 'PGRST116') {
@@ -436,7 +436,6 @@ async function handleCreditsPurchase(metadata: Record<string, unknown> | undefin
   } catch (error) {
     console.error('❌ Error processing credits purchase:', error);
   }
-}
 
 async function handleTemplatePurchase(metadata: Record<string, unknown> | undefined, amount: number) {
   // Handle template purchase
