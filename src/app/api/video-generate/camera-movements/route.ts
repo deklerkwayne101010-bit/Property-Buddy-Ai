@@ -78,6 +78,8 @@ export async function POST(
       output?: unknown;
     };
 
+    console.log(`Initial prediction status:`, result.status);
+
     let attempts = 0;
     const maxAttempts = 30; // 30 attempts * 2 seconds = 1 minute timeout
 
@@ -90,6 +92,7 @@ export async function POST(
         throw new Error(`GPT-4o prediction timed out after ${maxAttempts * 2} seconds`);
       }
 
+      console.log(`Polling attempt ${attempts + 1}/${maxAttempts}, status: ${result.status}`);
       await new Promise((resolve) => setTimeout(resolve, 2000)); // wait 2 seconds
       attempts++;
 
@@ -101,12 +104,20 @@ export async function POST(
         },
       });
 
+      if (!checkResponse.ok) {
+        throw new Error(`Failed to poll prediction: ${checkResponse.status} ${checkResponse.statusText}`);
+      }
+
       result = await checkResponse.json();
+      console.log(`Polled status: ${result.status}`);
     }
 
     if (result.status !== "succeeded") {
+      console.error(`Prediction failed with status: ${result.status}`, result);
       throw new Error(`GPT-4o prediction failed: ${result.status} - ${JSON.stringify(result)}`);
     }
+
+    console.log(`Prediction succeeded, output:`, result.output);
 
     // Extract the camera movement description
     let cameraMovement: string;
@@ -125,8 +136,13 @@ export async function POST(
 
     console.log(`GPT-4o camera movement result:`, cameraMovement);
 
+    // Ensure we have a valid result
+    if (!cameraMovement || cameraMovement.trim() === '') {
+      throw new Error('GPT-4o returned empty result');
+    }
+
     return NextResponse.json({
-      cameraMovement,
+      cameraMovement: cameraMovement.trim(),
       imageUrl
     }, { headers: createSecurityHeaders() });
 
