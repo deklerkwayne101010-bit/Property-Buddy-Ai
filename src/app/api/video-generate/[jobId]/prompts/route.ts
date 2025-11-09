@@ -164,9 +164,22 @@ export async function POST(
           throw new Error(`GPT-4o prediction failed: ${result.status} - ${JSON.stringify(result)}`);
         }
 
-        const generatedPrompt = Array.isArray(result.output) ? result.output[0] : result.output;
+        // GPT-4o returns a prediction response, extract the text content
+        let generatedPrompt: string;
 
-        console.log(`GPT-4o generated prompt for image ${image.id}:`, generatedPrompt);
+        if (Array.isArray(result.output)) {
+          generatedPrompt = result.output[0] as string;
+        } else if (typeof result.output === 'string') {
+          generatedPrompt = result.output;
+        } else if (result.output && typeof result.output === 'object') {
+          // Sometimes GPT-4o returns an object with text field
+          generatedPrompt = (result.output as any).text || (result.output as any).content || JSON.stringify(result.output);
+        } else {
+          generatedPrompt = String(result.output || '');
+        }
+
+        console.log(`GPT-4o raw output:`, result.output);
+        console.log(`GPT-4o processed prompt for image ${image.id}:`, generatedPrompt);
         console.log(`Prompt type:`, typeof generatedPrompt);
         console.log(`Prompt length:`, generatedPrompt?.length || 0);
 
