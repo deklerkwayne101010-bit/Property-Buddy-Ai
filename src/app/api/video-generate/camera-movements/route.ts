@@ -23,9 +23,14 @@ const createSecurityHeaders = () => ({
 export async function POST(
   request: NextRequest
 ) {
+  console.log('Camera movements API called');
+
   try {
     const authHeader = request.headers.get('authorization');
+    console.log('Auth header present:', !!authHeader);
+
     if (!authHeader?.startsWith('Bearer ')) {
+      console.log('No Bearer token found');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401, headers: createSecurityHeaders() }
@@ -33,23 +38,33 @@ export async function POST(
     }
 
     const token = authHeader.substring(7);
+    console.log('Token extracted, length:', token.length);
+
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    console.log('Supabase auth result:', { user: !!user, error: authError?.message });
 
     if (authError || !user) {
+      console.log('Auth failed:', authError);
       return NextResponse.json(
         { error: 'Invalid token' },
         { status: 401, headers: createSecurityHeaders() }
       );
     }
 
-    const { imageUrl } = await request.json();
+    const requestBody = await request.json();
+    console.log('Request body:', requestBody);
+
+    const { imageUrl } = requestBody;
 
     if (!imageUrl) {
+      console.log('No imageUrl provided');
       return NextResponse.json(
         { error: 'Image URL is required' },
         { status: 400, headers: createSecurityHeaders() }
       );
     }
+
+    console.log('Image URL received:', imageUrl);
 
     console.log(`Processing camera movement for image: ${imageUrl}`);
 
@@ -150,8 +165,9 @@ export async function POST(
 
   } catch (error) {
     console.error('Error in camera movement generation:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : String(error) },
       { status: 500, headers: createSecurityHeaders() }
     );
   }
