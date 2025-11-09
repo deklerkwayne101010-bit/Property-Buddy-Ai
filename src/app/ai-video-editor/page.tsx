@@ -14,27 +14,59 @@ interface UploadedImage {
   url?: string;
 }
 
-interface VideoClip {
-  imageUrl: string;
-  videoUrl: string;
+interface VideoJob {
+  id: string;
+  status: string;
+  totalImages: number;
+  completedImages: number;
+  errorMessage?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-interface ProcessingResult {
-  videoClips: VideoClip[];
-  videoCount: number;
-  processingTime: number;
+interface JobProgress {
+  prompts: {
+    completed: number;
+    processing: number;
+    failed: number;
+    total: number;
+  };
+  videos: {
+    completed: number;
+    processing: number;
+    failed: number;
+    total: number;
+  };
+}
+
+interface JobImage {
+  id: string;
+  imageUrl: string;
+  imageName: string;
+  promptStatus: string;
+  videoStatus: string;
+  gpt4oPrompt?: string;
+  klingVideoUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface JobStatus {
+  job: VideoJob;
+  progress: JobProgress;
+  images: JobImage[];
 }
 
 export default function AiVideoEditorPage() {
   const { user } = useAuth();
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processingProgress, setProcessingProgress] = useState(0);
-  const [result, setResult] = useState<ProcessingResult | null>(null);
+  const [currentJob, setCurrentJob] = useState<VideoJob | null>(null);
+  const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [processingStatus, setProcessingStatus] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleFileSelect = useCallback(async (files: FileList) => {
     const maxFiles = 10;
@@ -154,97 +186,100 @@ export default function AiVideoEditorPage() {
 
     setIsProcessing(true);
     setError(null);
-    setProcessingProgress(0);
-    setProcessingStatus('Initializing video processing...');
-    const startTime = Date.now();
+    setProcessingStatus('Uploading images...');
 
     try {
-      // Get public URLs for all uploaded images
-      const imageUrls = uploadedImages
-        .map(img => img.url)
-        .filter(url => url !== undefined) as string[];
-
-      if (imageUrls.length !== uploadedImages.length) {
-        throw new Error('Some images failed to upload. Please try again.');
+      // Get auth token for API calls
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Authentication required');
       }
 
-      console.log('Sending to webhook:', imageUrls);
-
-      // Start progress tracking based on estimated time (15s per image)
-      const totalExpectedTime = imageUrls.length * 15; // 15 seconds per image
-      let currentProgress = 0;
-
-      progressIntervalRef.current = setInterval(() => {
-        currentProgress += (100 / totalExpectedTime) * 2; // Update every 2 seconds
-        if (currentProgress < 90) { // Don't exceed 90% until we get the response
-          setProcessingProgress(Math.min(currentProgress, 90));
-          const secondsElapsed = Math.floor(currentProgress * totalExpectedTime / 100);
-          const minutes = Math.floor(secondsElapsed / 60);
-          const seconds = secondsElapsed % 60;
-          setProcessingStatus(`Processing ${imageUrls.length} video clips... ${minutes}:${seconds.toString().padStart(2, '0')} elapsed`);
-        }
-      }, 2000);
-
-      // Send to n8n webhook
-      const response = await fetch('https://propbuddy.app.n8n.cloud/webhook/property-video', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        mode: 'cors',
-        body: JSON.stringify({
-          images: imageUrls
-        })
+      // Upload images and create job
+      const formData = new FormData();
+      uploadedImages.forEach((image, index) => {
+        formData.append('images', image.file);
       });
 
-      // Clear the progress interval
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
+      const uploadResponse = await fetch('/api/video-generate/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: formData
+      });
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
+        throw new Error(errorData.error || 'Failed to upload images');
       }
 
-      console.log('Webhook response status:', response.status);
-      console.log('Webhook response headers:', Object.fromEntries(response.headers.entries()));
+      const uploadData = await uploadResponse.json();
+      const jobId = uploadData.jobId;
+      setCurrentJob({ id: jobId, status: 'pending', totalImages: uploadedImages.length, completedImages: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Webhook error response:', errorText);
-        throw new Error(`Processing failed: ${response.status} ${response.statusText}`);
+      setProcessingStatus('Images uploaded. Generating AI prompts...');
+
+      // Start status polling
+      statusIntervalRef.current = setInterval(async () => {
+        try {
+          const statusResponse = await fetch(`/api/video-generate/${jobId}/status`, {
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`
+            }
+          });
+
+          if (statusResponse.ok) {
+            const statusData: JobStatus = await statusResponse.json();
+            setJobStatus(statusData);
+
+            if (statusData.job.status === 'processing_prompts') {
+              setProcessingStatus(`Generating prompts... ${statusData.progress.prompts.completed}/${statusData.progress.prompts.total} completed`);
+            } else if (statusData.job.status === 'generating_videos') {
+              setProcessingStatus(`Creating videos... ${statusData.progress.videos.completed}/${statusData.progress.videos.total} completed`);
+            } else if (statusData.job.status === 'completed') {
+              setProcessingStatus('Video generation complete!');
+              if (statusIntervalRef.current) {
+                clearInterval(statusIntervalRef.current);
+                statusIntervalRef.current = null;
+              }
+              setIsProcessing(false);
+            } else if (statusData.job.status === 'failed') {
+              throw new Error(statusData.job.errorMessage || 'Video generation failed');
+            }
+          }
+        } catch (error) {
+          console.error('Status check error:', error);
+        }
+      }, 3000);
+
+      // Step 2: Generate prompts
+      const promptsResponse = await fetch(`/api/video-generate/${jobId}/prompts`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (!promptsResponse.ok) {
+        const errorData = await promptsResponse.json();
+        throw new Error(errorData.error || 'Failed to start prompt generation');
       }
 
-      const data = await response.json();
-      console.log('Webhook response data:', data);
-
-      const endTime = Date.now();
-      setProcessingProgress(100);
-      setProcessingStatus('Video processing complete!');
-
-      // Check for the new response format
-      if (data.videoClips && Array.isArray(data.videoClips)) {
-        setResult({
-          videoClips: data.videoClips,
-          videoCount: data.videoCount || data.videoClips.length,
-          processingTime: endTime - startTime
-        });
-      } else {
-        console.error('Invalid response format:', data);
-        throw new Error(`Invalid response from video processing service. Expected videoClips array. Response received: ${JSON.stringify(data)}`);
-      }
+      // Step 3: Generate videos (this will be called automatically after prompts complete)
+      // The status polling above will handle the progress updates
 
     } catch (err) {
       console.error('Processing error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to process video. Please try again.';
       setError(errorMessage);
       setProcessingStatus('');
-    } finally {
       setIsProcessing(false);
-      setProcessingProgress(0);
-      
-      // Clear progress interval if it exists
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
+
+      // Clear status interval if it exists
+      if (statusIntervalRef.current) {
+        clearInterval(statusIntervalRef.current);
+        statusIntervalRef.current = null;
       }
     }
   };
@@ -258,17 +293,23 @@ export default function AiVideoEditorPage() {
     });
 
     setUploadedImages([]);
-    setResult(null);
+    setCurrentJob(null);
+    setJobStatus(null);
     setError(null);
-    setProcessingProgress(0);
     setProcessingStatus('');
+
+    // Clear status interval if it exists
+    if (statusIntervalRef.current) {
+      clearInterval(statusIntervalRef.current);
+      statusIntervalRef.current = null;
+    }
   };
 
   // Cleanup function for interval on unmount
   useEffect(() => {
     return () => {
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
+      if (statusIntervalRef.current) {
+        clearInterval(statusIntervalRef.current);
       }
     };
   }, []);
@@ -296,7 +337,7 @@ export default function AiVideoEditorPage() {
           </div>
 
           {/* Upload Section */}
-          {!result && (
+          {!jobStatus && (
             <div className="space-y-6">
               {/* Upload Area */}
               <div
@@ -375,7 +416,7 @@ export default function AiVideoEditorPage() {
                     {isProcessing ? (
                       <>
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                        <span>Processing Video... ({processingProgress}%)</span>
+                        <span>Processing...</span>
                       </>
                     ) : (
                       <>
@@ -392,7 +433,7 @@ export default function AiVideoEditorPage() {
           )}
 
           {/* Processing Progress */}
-          {isProcessing && (
+          {isProcessing && jobStatus && (
             <div className="bg-white rounded-xl p-6 border border-slate-200">
               <div className="text-center">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -402,19 +443,34 @@ export default function AiVideoEditorPage() {
                 <p className="text-slate-600 mb-4">
                   {processingStatus || 'This may take several minutes depending on the number of images...'}
                 </p>
+
+                {/* Progress Stats */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">{jobStatus.progress.prompts.completed}</div>
+                    <div className="text-sm text-slate-500">Prompts Generated</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">{jobStatus.progress.videos.completed}</div>
+                    <div className="text-sm text-slate-500">Videos Created</div>
+                  </div>
+                </div>
+
                 <div className="w-full bg-slate-200 rounded-full h-2">
                   <div
                     className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${processingProgress}%` }}
+                    style={{ width: `${(jobStatus.progress.prompts.completed + jobStatus.progress.videos.completed) / (jobStatus.job.totalImages * 2) * 100}%` }}
                   ></div>
                 </div>
-                <p className="text-sm text-slate-500 mt-2">{Math.round(processingProgress)}% complete</p>
+                <p className="text-sm text-slate-500 mt-2">
+                  {Math.round((jobStatus.progress.prompts.completed + jobStatus.progress.videos.completed) / (jobStatus.job.totalImages * 2) * 100)}% complete
+                </p>
               </div>
             </div>
           )}
 
           {/* Result */}
-          {result && (
+          {jobStatus && jobStatus.job.status === 'completed' && (
             <div className="bg-white rounded-xl p-6 border border-slate-200">
               <div className="text-center">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -424,17 +480,19 @@ export default function AiVideoEditorPage() {
                 </div>
                 <h3 className="text-lg font-semibold text-slate-900 mb-2">Video Clips Created Successfully!</h3>
                 <p className="text-slate-600 mb-6">
-                  Processing time: {Math.round(result.processingTime / 1000)} seconds | {result.videoCount} clips generated
+                  {jobStatus.progress.videos.completed} video clips generated from {jobStatus.job.totalImages} images
                 </p>
 
                 {/* Video Clips Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                  {result.videoClips.map((clip, index) => (
-                    <div key={index} className="border border-slate-200 rounded-lg overflow-hidden">
+                  {jobStatus.images
+                    .filter(img => img.videoStatus === 'completed' && img.klingVideoUrl)
+                    .map((image, index) => (
+                    <div key={image.id} className="border border-slate-200 rounded-lg overflow-hidden">
                       {/* Image Preview */}
                       <div className="relative">
                         <img
-                          src={clip.imageUrl}
+                          src={image.imageUrl}
                           alt={`Property image ${index + 1}`}
                           className="w-full h-48 object-cover"
                         />
@@ -442,21 +500,21 @@ export default function AiVideoEditorPage() {
                           Image {index + 1}
                         </div>
                       </div>
-                      
+
                       {/* Video Player */}
                       <div className="p-3">
                         <video
                           controls
                           className="w-full h-32 object-cover rounded mb-2"
-                          poster={clip.imageUrl}
+                          poster={image.imageUrl}
                         >
-                          <source src={clip.videoUrl} type="video/mp4" />
+                          <source src={image.klingVideoUrl} type="video/mp4" />
                           Your browser does not support the video tag.
                         </video>
-                        
+
                         {/* Download Button */}
                         <a
-                          href={clip.videoUrl}
+                          href={image.klingVideoUrl}
                           download={`property-video-${index + 1}.mp4`}
                           className="w-full bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
                         >

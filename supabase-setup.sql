@@ -138,6 +138,34 @@ CREATE TABLE IF NOT EXISTS user_prompts (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create video_generation_jobs table for tracking video generation jobs
+CREATE TABLE IF NOT EXISTS video_generation_jobs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing_prompts', 'generating_videos', 'completed', 'failed')),
+  total_images INTEGER NOT NULL,
+  completed_images INTEGER DEFAULT 0,
+  error_message TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create video_job_images table for individual image processing within jobs
+CREATE TABLE IF NOT EXISTS video_job_images (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  job_id UUID REFERENCES video_generation_jobs(id) ON DELETE CASCADE,
+  image_url TEXT NOT NULL,
+  image_name TEXT,
+  prompt_status TEXT DEFAULT 'pending' CHECK (prompt_status IN ('pending', 'processing', 'completed', 'failed')),
+  video_status TEXT DEFAULT 'pending' CHECK (video_status IN ('pending', 'processing', 'completed', 'failed')),
+  gpt4o_prompt TEXT,
+  kling_video_url TEXT,
+  replicate_prompt_id TEXT,
+  replicate_video_id TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create indexes for better performance (only if they don't exist)
 -- Note: CREATE INDEX IF NOT EXISTS is not directly supported in some Supabase versions
 -- So we'll use a more compatible approach
@@ -188,6 +216,8 @@ ALTER TABLE user_media ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_prompts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payment_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE video_generation_jobs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE video_job_images ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies (basic policies - you may want to customize these)
 -- For now, allowing authenticated users to access their own data
@@ -278,6 +308,32 @@ CREATE POLICY "Users can view own payment sessions" ON payment_sessions
 -- Payments: Users can only access their own payment records
 CREATE POLICY "Users can view own payments" ON payments
    FOR SELECT USING (auth.uid() = user_id);
+
+-- Video generation jobs: Users can only access their own jobs
+CREATE POLICY "Users can view own video jobs" ON video_generation_jobs
+   FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own video jobs" ON video_generation_jobs
+   FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own video jobs" ON video_generation_jobs
+   FOR UPDATE USING (auth.uid() = user_id);
+
+-- Video job images: Users can only access images from their own jobs
+CREATE POLICY "Users can view own video job images" ON video_job_images
+   FOR SELECT USING (
+     auth.uid() = (SELECT user_id FROM video_generation_jobs WHERE id = job_id)
+   );
+
+CREATE POLICY "Users can insert own video job images" ON video_job_images
+   FOR INSERT WITH CHECK (
+     auth.uid() = (SELECT user_id FROM video_generation_jobs WHERE id = job_id)
+   );
+
+CREATE POLICY "Users can update own video job images" ON video_job_images
+   FOR UPDATE USING (
+     auth.uid() = (SELECT user_id FROM video_generation_jobs WHERE id = job_id)
+   );
 
 -- Drop existing policies if they exist (to avoid conflicts)
 DROP POLICY IF EXISTS "Authenticated users can view leads" ON leads;
