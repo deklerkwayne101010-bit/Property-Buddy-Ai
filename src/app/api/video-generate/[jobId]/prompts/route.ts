@@ -173,7 +173,8 @@ export async function POST(
           generatedPrompt = result.output;
         } else if (result.output && typeof result.output === 'object') {
           // Sometimes GPT-4o returns an object with text field
-          generatedPrompt = (result.output as any).text || (result.output as any).content || JSON.stringify(result.output);
+          const outputObj = result.output as Record<string, unknown>;
+          generatedPrompt = (outputObj.text as string) || (outputObj.content as string) || JSON.stringify(result.output);
         } else {
           generatedPrompt = String(result.output || '');
         }
