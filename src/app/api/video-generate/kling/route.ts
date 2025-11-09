@@ -91,34 +91,60 @@ export async function POST(request: NextRequest) {
 
     const prediction = await response.json();
 
-    // Poll for completion
+    // Poll for completion - video generation can take up to 5 minutes
     let result;
-    while (true) {
-      const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-        headers: {
-          'Authorization': `Bearer ${replicateToken}`,
-        },
-      });
+    const maxAttempts = 150; // 150 * 2 seconds = 5 minutes max
+    let attempts = 0;
 
-      result = await statusResponse.json();
+    while (attempts < maxAttempts) {
+      try {
+        const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+          headers: {
+            'Authorization': `Bearer ${replicateToken}`,
+          },
+        });
 
-      if (result.status === 'succeeded') {
-        const videoUrl = result.output;
-        return NextResponse.json({
-          videoUrl: videoUrl,
-          message: "Video generated successfully!",
-          metadata: {
-            timestamp: new Date().toISOString(),
-            model: "kwaivgi/kling-v2.5-turbo-pro"
-          }
-        }, { headers: createSecurityHeaders() });
-      } else if (result.status === 'failed') {
-        throw new Error(`Kling AI generation failed: ${result.error}`);
+        if (!statusResponse.ok) {
+          console.log(`Status check failed with ${statusResponse.status}, retrying...`);
+          attempts++;
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          continue;
+        }
+
+        result = await statusResponse.json();
+
+        if (result.status === 'succeeded') {
+          const videoUrl = result.output;
+          console.log('Video generation succeeded:', videoUrl);
+          return NextResponse.json({
+            videoUrl: videoUrl,
+            message: "Video generated successfully!",
+            metadata: {
+              timestamp: new Date().toISOString(),
+              model: "kwaivgi/kling-v2.5-turbo-pro",
+              attempts: attempts,
+              duration: attempts * 2
+            }
+          }, { headers: createSecurityHeaders() });
+        } else if (result.status === 'failed') {
+          throw new Error(`Kling AI generation failed: ${result.error}`);
+        } else if (result.status === 'processing' || result.status === 'starting') {
+          console.log(`Video generation in progress (${result.status}), attempt ${attempts + 1}/${maxAttempts}`);
+        }
+
+        attempts++;
+        // Wait 2 seconds before checking again
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+      } catch (pollError) {
+        console.log(`Polling error (attempt ${attempts + 1}):`, pollError);
+        attempts++;
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
-
-      // Wait 2 seconds before checking again (video generation takes longer)
-      await new Promise(resolve => setTimeout(resolve, 2000));
     }
+
+    // If we get here, we've exceeded max attempts
+    throw new Error(`Video generation timed out after ${maxAttempts * 2} seconds. The video may still be processing on Replicate.`);
 
   } catch (error) {
     console.error('Error in Kling AI video generation:', error);
