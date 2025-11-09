@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../../../../../lib/supabase';
 import { createSecurityHeaders } from '../../../../../lib/security';
+import { createClient } from '@supabase/supabase-js';
 
 export async function GET(
   request: NextRequest,
@@ -27,8 +28,14 @@ export async function GET(
 
     const { jobId } = await params;
 
+    // Use service role to bypass RLS for job queries
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     // Get job status
-    const { data: job, error: jobError } = await supabase
+    const { data: job, error: jobError } = await supabaseAdmin
       .from('video_generation_jobs')
       .select('*')
       .eq('id', jobId)
@@ -36,14 +43,15 @@ export async function GET(
       .single();
 
     if (jobError || !job) {
+      console.error('Job lookup error:', jobError);
       return NextResponse.json(
-        { error: 'Job not found' },
+        { error: 'Job not found', details: jobError?.message },
         { status: 404, headers: createSecurityHeaders() }
       );
     }
 
     // Get all images for this job with their status
-    const { data: images, error: imagesError } = await supabase
+    const { data: images, error: imagesError } = await supabaseAdmin
       .from('video_job_images')
       .select('*')
       .eq('job_id', jobId)

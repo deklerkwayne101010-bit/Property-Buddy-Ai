@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../../../../../lib/supabase';
 import { createSecurityHeaders } from '../../../../../lib/security';
+import { createClient } from '@supabase/supabase-js';
 import Replicate from 'replicate';
 
 const replicate = new Replicate({
@@ -32,8 +33,14 @@ export async function POST(
 
     const { jobId } = await params;
 
+    // Use service role to bypass RLS for job queries
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     // Verify job ownership
-    const { data: job, error: jobError } = await supabase
+    const { data: job, error: jobError } = await supabaseAdmin
       .from('video_generation_jobs')
       .select('*')
       .eq('id', jobId)
@@ -41,8 +48,9 @@ export async function POST(
       .single();
 
     if (jobError || !job) {
+      console.error('Job lookup error:', jobError);
       return NextResponse.json(
-        { error: 'Job not found' },
+        { error: 'Job not found', details: jobError?.message },
         { status: 404, headers: createSecurityHeaders() }
       );
     }
@@ -55,7 +63,7 @@ export async function POST(
     }
 
     // Update job status
-    await supabase
+    await supabaseAdmin
       .from('video_generation_jobs')
       .update({
         status: 'processing_prompts',
@@ -64,14 +72,14 @@ export async function POST(
       .eq('id', jobId);
 
     // Get all images for this job
-    const { data: images, error: imagesError } = await supabase
+    const { data: images, error: imagesError } = await supabaseAdmin
       .from('video_job_images')
       .select('*')
       .eq('job_id', jobId)
       .order('created_at');
 
     if (imagesError || !images) {
-      await supabase
+      await supabaseAdmin
         .from('video_generation_jobs')
         .update({
           status: 'failed',
@@ -93,7 +101,7 @@ export async function POST(
     for (const image of images) {
       try {
         // Update image status to processing
-        await supabase
+        await supabaseAdmin
           .from('video_job_images')
           .update({
             prompt_status: 'processing',
@@ -112,7 +120,7 @@ export async function POST(
         const generatedPrompt = Array.isArray(promptResult) ? promptResult[0] : promptResult;
 
         // Update image with generated prompt
-        await supabase
+        await supabaseAdmin
           .from('video_job_images')
           .update({
             prompt_status: 'completed',
@@ -130,7 +138,7 @@ export async function POST(
         completedCount++;
 
         // Update job progress
-        await supabase
+        await supabaseAdmin
           .from('video_generation_jobs')
           .update({
             completed_images: completedCount,
@@ -142,7 +150,7 @@ export async function POST(
         console.error(`Error processing prompt for image ${image.id}:`, error);
 
         // Mark this image as failed
-        await supabase
+        await supabaseAdmin
           .from('video_job_images')
           .update({
             prompt_status: 'failed',
@@ -156,7 +164,7 @@ export async function POST(
     const successfulPrompts = processedImages.length;
 
     if (successfulPrompts === 0) {
-      await supabase
+      await supabaseAdmin
         .from('video_generation_jobs')
         .update({
           status: 'failed',
@@ -172,7 +180,7 @@ export async function POST(
     }
 
     // Update job status to ready for video generation
-    await supabase
+    await supabaseAdmin
       .from('video_generation_jobs')
       .update({
         status: 'processing_prompts', // Keep as processing_prompts until videos start
@@ -194,7 +202,12 @@ export async function POST(
     // Update job status on error
     const resolvedParams = await params;
     if (resolvedParams.jobId) {
-      await supabase
+      const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+
+      await supabaseAdmin
         .from('video_generation_jobs')
         .update({
           status: 'failed',
