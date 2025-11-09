@@ -71,24 +71,29 @@ export async function POST(request: NextRequest) {
       }, { headers: createSecurityHeaders() });
     }
 
+    // Extract the prompt to avoid TypeScript parsing issues
+    const cameraMovementPrompt = "Analyze this property image and give the perfect camera movement for this image, to turn it into a 5 second video that does not change or alter anything. Focus ONLY on what's visible in the image. Do not add or hallucinate any elements. Stay within the frame boundaries. Describe the camera movement in detail for a cinematic 5-second video.";
+
+    const systemPrompt = "You are an expert video director and cinematographer specializing in real estate photography. Provide detailed camera movement instructions for property videos.";
+
+    // Use the same pattern as the working chat API - direct fetch call
+    const requestBody = {
+      input: {
+        prompt: cameraMovementPrompt,
+        image_input: [imageUrl],
+        temperature: 1,
+        system_prompt: systemPrompt,
+        max_tokens: 2000
+      }
+    };
+
     const response = await fetch('https://api.replicate.com/v1/models/openai/gpt-4o/predictions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${replicateToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        input: {
-          top_p: 1,
-          prompt: "Analyze this property image and give the perfect camera movement for this image, to turn it into a 5 second video that does not change or alter anything. Focus ONLY on what's visible in the image. Do not add or hallucinate any elements. Stay within the frame boundaries. Describe the camera movement in detail for a cinematic 5-second video.",
-          image_input: [imageUrl],
-          temperature: 1,
-          system_prompt: "You are an expert video director and cinematographer specializing in real estate photography. Provide detailed camera movement instructions for property videos.",
-          presence_penalty: 0,
-          frequency_penalty: 0,
-          max_completion_tokens: 2048
-        } as any
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
