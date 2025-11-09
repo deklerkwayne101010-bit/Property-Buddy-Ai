@@ -120,10 +120,12 @@ export async function POST(
     console.log(`Prediction succeeded, output:`, result.output);
 
     // Extract the camera movement description
+    // GPT-4o returns an array of strings that need to be joined
     let cameraMovement: string;
 
     if (Array.isArray(result.output)) {
-      cameraMovement = result.output[0] as string;
+      // Join all array elements and clean up extra spaces
+      cameraMovement = result.output.join('').replace(/\s+/g, ' ').trim();
     } else if (typeof result.output === 'string') {
       cameraMovement = result.output;
     } else if (result.output && typeof result.output === 'object') {
