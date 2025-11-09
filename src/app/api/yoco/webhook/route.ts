@@ -370,6 +370,7 @@ async function handleCreditsPurchase(metadata: Record<string, unknown> | undefin
     return;
   }
 
+  try {
     // First get current credits (or create profile if it doesn't exist)
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -436,6 +437,7 @@ async function handleCreditsPurchase(metadata: Record<string, unknown> | undefin
   } catch (error) {
     console.error('❌ Error processing credits purchase:', error);
   }
+}
 
 async function handleTemplatePurchase(metadata: Record<string, unknown> | undefined, amount: number) {
   // Handle template purchase
