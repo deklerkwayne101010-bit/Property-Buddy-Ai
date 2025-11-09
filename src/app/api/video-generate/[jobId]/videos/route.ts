@@ -9,7 +9,7 @@ const replicate = new Replicate({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -30,7 +30,7 @@ export async function POST(
       );
     }
 
-    const jobId = params.jobId;
+    const { jobId } = await params;
 
     // Verify job ownership and status
     const { data: job, error: jobError } = await supabase
@@ -284,7 +284,8 @@ export async function POST(
     console.error('Error in video generation:', error);
 
     // Update job status on error
-    if (params.jobId) {
+    const resolvedParams = await params;
+    if (resolvedParams.jobId) {
       await supabase
         .from('video_generation_jobs')
         .update({
@@ -292,7 +293,7 @@ export async function POST(
           error_message: 'Video generation failed',
           updated_at: new Date().toISOString()
         })
-        .eq('id', params.jobId);
+        .eq('id', resolvedParams.jobId);
     }
 
     return NextResponse.json(

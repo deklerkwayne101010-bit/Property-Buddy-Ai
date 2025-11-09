@@ -4,7 +4,7 @@ import { createSecurityHeaders } from '../../../../../lib/security';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -25,7 +25,7 @@ export async function GET(
       );
     }
 
-    const jobId = params.jobId;
+    const { jobId } = await params;
 
     // Get job status
     const { data: job, error: jobError } = await supabase
