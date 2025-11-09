@@ -37,14 +37,14 @@ export default function LandingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              AI-Powered Tools for
+              Stagefy
               <motion.span
                 className="block bg-gradient-to-r from-slate-600 to-blue-600 bg-clip-text text-transparent"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: 0.5 }}
               >
-                Stagefy
+                AI-powered tools for real estate
               </motion.span>
             </motion.h1>
             <motion.p
