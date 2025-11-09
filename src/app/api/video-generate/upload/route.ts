@@ -68,8 +68,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create video generation job
-    const { data: job, error: jobError } = await supabase
+    // Create video generation job using service role
+    const { data: job, error: jobError } = await supabaseAdmin
       .from('video_generation_jobs')
       .insert({
         user_id: user.id,
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     if (jobError || !job) {
       console.error('Error creating video job:', jobError);
       return NextResponse.json(
-        { error: 'Failed to create video generation job' },
+        { error: 'Failed to create video generation job', details: jobError?.message },
         { status: 500, headers: createSecurityHeaders() }
       );
     }
@@ -112,8 +112,8 @@ export async function POST(request: NextRequest) {
         .from('video-assets')
         .getPublicUrl(fileName);
 
-      // Create image record in database
-      const { data: imageRecord, error: imageError } = await supabase
+      // Create image record in database using service role
+      const { data: imageRecord, error: imageError } = await supabaseAdmin
         .from('video_job_images')
         .insert({
           job_id: job.id,
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
 
     if (uploadedImages.length === 0) {
       // Clean up the job if no images were uploaded
-      await supabase
+      await supabaseAdmin
         .from('video_generation_jobs')
         .update({ status: 'failed', error_message: 'No images could be uploaded' })
         .eq('id', job.id);
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update job with actual uploaded count
-    await supabase
+    await supabaseAdmin
       .from('video_generation_jobs')
       .update({ total_images: uploadedImages.length })
       .eq('id', job.id);
