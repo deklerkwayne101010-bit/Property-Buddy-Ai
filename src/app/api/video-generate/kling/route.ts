@@ -67,13 +67,14 @@ export async function POST(request: NextRequest) {
       }, { headers: createSecurityHeaders() });
     }
 
-    const response = await fetch('https://api.replicate.com/v1/models/kwaivgi/kling-v2.5-turbo-pro/predictions', {
+    const response = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${replicateToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        version: "kwaivgi/kling-v2.5-turbo-pro",
         input: {
           prompt: "create a subtle and smooth camera motion for this image, that does not remove or change anything, keep everything exactly as it is and make sure your camera movement only stays in the bounds of the original image",
           duration: 5,
@@ -92,37 +93,40 @@ export async function POST(request: NextRequest) {
     const prediction = await response.json();
 
     // Poll for completion - video generation can take up to 5 minutes
-    let result;
+    let result = prediction;
     const maxAttempts = 150; // 150 * 2 seconds = 5 minutes max
     let attempts = 0;
 
-    while (attempts < maxAttempts) {
+    while (
+      result.status === "starting" ||
+      result.status === "processing" ||
+      result.status === "queued"
+    ) {
+      if (attempts >= maxAttempts) {
+        throw new Error(`Video generation timed out after ${maxAttempts * 2} seconds. The video may still be processing on Replicate.`);
+      }
+
+      console.log(`Waiting for video generation... Status: ${result.status}, attempt ${attempts + 1}/${maxAttempts}`);
+
+      // Wait 2 seconds before checking again
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
       try {
-        const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+        const statusResponse = await fetch(result.urls.get, {
           headers: {
             'Authorization': `Bearer ${replicateToken}`,
+            'Content-Type': 'application/json',
           },
         });
 
         if (!statusResponse.ok) {
           console.log(`Status check failed with ${statusResponse.status}, retrying...`);
           attempts++;
-          await new Promise(resolve => setTimeout(resolve, 2000));
           continue;
         }
 
-        const responseText = await statusResponse.text();
-        console.log(`Status response (attempt ${attempts + 1}):`, responseText.substring(0, 200) + '...');
-
-        try {
-          result = JSON.parse(responseText);
-        } catch (parseError) {
-          console.log(`JSON parse error (attempt ${attempts + 1}):`, parseError);
-          console.log('Response text:', responseText);
-          attempts++;
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          continue;
-        }
+        result = await statusResponse.json();
+        attempts++;
 
         if (result.status === 'succeeded') {
           const videoUrl = result.output;
@@ -139,20 +143,11 @@ export async function POST(request: NextRequest) {
           }, { headers: createSecurityHeaders() });
         } else if (result.status === 'failed') {
           throw new Error(`Kling AI generation failed: ${result.error}`);
-        } else if (result.status === 'processing' || result.status === 'starting') {
-          console.log(`Video generation in progress (${result.status}), attempt ${attempts + 1}/${maxAttempts}`);
-        } else {
-          console.log(`Unknown status: ${result.status}, continuing to poll...`);
         }
-
-        attempts++;
-        // Wait 2 seconds before checking again
-        await new Promise(resolve => setTimeout(resolve, 2000));
 
       } catch (pollError) {
         console.log(`Polling error (attempt ${attempts + 1}):`, pollError);
         attempts++;
-        await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
 
