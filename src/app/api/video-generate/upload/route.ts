@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../../../../lib/supabase';
 import { createSecurityHeaders } from '../../../../lib/security';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,16 +40,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check user credits (4 credits per video)
-    const { data: profile, error: profileError } = await supabase
+    // Check user credits (4 credits per video) - use service role to bypass RLS
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('credits_balance')
       .eq('id', user.id)
       .single();
 
     if (profileError || !profile) {
+      console.error('Profile lookup error:', profileError);
       return NextResponse.json(
-        { error: 'User profile not found' },
+        { error: 'User profile not found', details: profileError?.message },
         { status: 404, headers: createSecurityHeaders() }
       );
     }
