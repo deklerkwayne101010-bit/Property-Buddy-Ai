@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../../../lib/supabase';
-import { createSecurityHeaders } from '../../../../../lib/security';
 import { createClient } from '@supabase/supabase-js';
 import Replicate from 'replicate';
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
+});
+
+// Create Supabase client for auth verification
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+// Security headers helper
+const createSecurityHeaders = () => ({
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
 });
 
 export async function POST(
