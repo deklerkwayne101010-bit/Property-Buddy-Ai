@@ -40,8 +40,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ id: data.id, status: data.status || "started" });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("start-prompt-analysis error", err);
-    return NextResponse.json({ error: err?.message || "Failed to start prompt analysis" }, { status: 500 });
+    const errorMessage = err instanceof Error ? err.message : "Failed to start prompt analysis";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

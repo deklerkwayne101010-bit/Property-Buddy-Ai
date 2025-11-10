@@ -44,8 +44,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ id: data.id, status: data.status || "started" });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("start-video-generation error", err);
-    return NextResponse.json({ error: err?.message || "Failed to start video generation" }, { status: 500 });
+    const errorMessage = err instanceof Error ? err.message : "Failed to start video generation";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
