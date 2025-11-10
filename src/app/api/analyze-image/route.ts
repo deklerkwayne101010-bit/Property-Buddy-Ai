@@ -77,11 +77,11 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         input: {
           top_p: 1,
-          prompt: "analyze this picture",
+          prompt: "Analyze this picture and describe what camera movement would be the best to turn this image into a video, while still staying in the bounds of the original video, not adding or removing anything but still making it captivating",
           messages: [],
           image_input: [imageUrl],
           temperature: 1,
-          system_prompt: "You are a helpful assistant.",
+          system_prompt: "you are a expert ai image to video prompt generator",
           presence_penalty: 0,
           frequency_penalty: 0,
           max_completion_tokens: 4096
