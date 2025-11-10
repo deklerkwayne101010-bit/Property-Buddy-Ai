@@ -67,25 +67,18 @@ export async function POST(request: NextRequest) {
       }, { headers: createSecurityHeaders() });
     }
 
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
+    const response = await fetch('https://api.replicate.com/v1/models/openai/gpt-4o/predictions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${replicateToken}`,
         'Content-Type': 'application/json',
+        'Prefer': 'wait', // Wait for completion instead of streaming
       },
       body: JSON.stringify({
-        version: "openai/gpt-4o",
-        poll: true, // Use poll: true to get final result and avoid streaming
         input: {
-          top_p: 1,
           prompt: "analyze this picture",
-          messages: [],
-          image_input: [imageUrl],
-          temperature: 1,
-          system_prompt: "You are a helpful assistant.",
-          presence_penalty: 0,
-          frequency_penalty: 0,
-          max_completion_tokens: 4096
+          image_input: imageUrl,
+          system_prompt: "You are a helpful assistant."
         }
       }),
     });
