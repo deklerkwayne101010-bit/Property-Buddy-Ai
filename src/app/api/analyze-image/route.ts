@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 import {
   checkRateLimit,
   validateRequestSize,
@@ -7,7 +7,7 @@ import {
   createSecurityHeaders,
   logSecurityEvent,
   filterContent
-} from '../../../../lib/security';
+} from '../../../lib/security';
 
 // Rate limiting: 5 requests per minute per IP for GPT-4o analysis
 const RATE_LIMIT_CONFIG = {

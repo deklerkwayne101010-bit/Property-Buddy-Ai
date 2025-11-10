@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const REPLICATE_API = "https://api.replicate.com/v1/predictions";
-const REPLICATE_TOKEN = process.env.REPLICATE_API_TOKEN;
-const KLING_VERSION = process.env.KLING_MODEL_VERSION || "kwaivgi/kling-v2.5-turbo-pro";
-
 export async function POST(request: NextRequest) {
   if (request.method !== "POST") {
     return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
@@ -14,13 +10,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Missing imageUrl or prompt" }, { status: 400 });
   }
 
-  if (!REPLICATE_TOKEN) {
+  const replicateToken = process.env.REPLICATE_API_TOKEN;
+  const klingVersion = process.env.KLING_MODEL_VERSION || "kwaivgi/kling-v2.5-turbo-pro";
+
+  if (!replicateToken) {
     return NextResponse.json({ error: "Server not configured" }, { status: 500 });
   }
 
   try {
     const body = {
-      version: KLING_VERSION,
+      version: klingVersion,
       input: {
         image: imageUrl,
         prompt,
@@ -28,10 +27,10 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    const r = await fetch(REPLICATE_API, {
+    const r = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
-        Authorization: `Token ${REPLICATE_TOKEN}`,
+        Authorization: `Token ${replicateToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
