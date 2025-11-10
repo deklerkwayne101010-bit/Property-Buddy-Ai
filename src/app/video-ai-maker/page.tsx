@@ -16,14 +16,13 @@ interface UploadedImage {
 export default function VideoAiMaker() {
   const { user } = useAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [loadingStep, setLoadingStep] = useState('');
-  const [originalImage, setOriginalImage] = useState<string | null>(null);
-  const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -72,6 +71,7 @@ export default function VideoAiMaker() {
     }
 
     setIsUploading(true);
+    setError(null);
     try {
       const timestamp = Date.now();
       const fileName = `video-${timestamp}-${file.name}`;
@@ -109,21 +109,17 @@ export default function VideoAiMaker() {
         // Don't fail the upload, just log the error
       }
 
+      // Set the uploaded image URL and show continue button
+      setUploadedImageUrl(publicUrl);
+
       // Refresh the uploaded images list
       await loadUploadedImages();
 
-      // Set the uploaded image as preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setOriginalImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-
       setIsUploading(false);
-      alert('Image uploaded successfully! You can now select it from your personal gallery below.');
+      alert('Image uploaded successfully! You can now analyze it with AI.');
     } catch (error) {
       console.error('Error uploading image:', error);
-      alert('Failed to upload image. Please try again.');
+      setError('Failed to upload image. Please try again.');
       setIsUploading(false);
     }
   };
@@ -155,176 +151,45 @@ export default function VideoAiMaker() {
 
   const selectImage = (image: UploadedImage) => {
     setSelectedImageUrl(image.url);
-    setOriginalImage(image.url);
+    setUploadedImageUrl(image.url);
   };
 
-  const handleGenerateVideo = async () => {
-    if (!selectedImageUrl) return;
+  const handleAnalyzeImage = async () => {
+    if (!uploadedImageUrl) return;
 
-    setIsLoading(true);
-    setLoadingProgress(0);
-    setLoadingStep('Starting AI video generation...');
+    setIsAnalyzing(true);
+    setError(null);
+    setAnalysisResult(null);
 
     try {
-      setLoadingProgress(20);
-      setLoadingStep('Analyzing your image with AI...');
-
-      // Step 1: Generate prompt from image
-      const promptResponse = await fetch('/api/start-prompt-analysis', {
+      const response = await fetch('/api/analyze-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          imageUrl: selectedImageUrl
+          imageUrl: uploadedImageUrl
         }),
       });
 
-      if (!promptResponse.ok) {
-        throw new Error('Failed to analyze image');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to analyze image');
       }
 
-      const promptData = await promptResponse.json();
-      const promptId = promptData.id;
-
-      setLoadingProgress(40);
-      setLoadingStep('Waiting for prompt generation...');
-
-      // Poll for prompt completion
-      let promptResult;
-      let attempts = 0;
-      const maxAttempts = 60; // 2 minutes max
-
-      while (attempts < maxAttempts) {
-        const statusResponse = await fetch(`/api/get-prediction?id=${encodeURIComponent(promptId)}`);
-        if (!statusResponse.ok) {
-          throw new Error('Failed to check prompt status');
-        }
-
-        const statusData = await statusResponse.json();
-
-        if (statusData.status === 'succeeded') {
-          promptResult = statusData;
-          break;
-        } else if (statusData.status === 'failed') {
-          throw new Error(statusData.error || 'Prompt generation failed');
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
-        attempts++;
-      }
-
-      if (!promptResult) {
-        throw new Error('Prompt generation timed out');
-      }
-
-      // Extract prompt text
-      const rawOutput = promptResult.output;
-      const promptText = Array.isArray(rawOutput) ? rawOutput[0] : rawOutput;
-
-      // Create final prompt with constraints
-      const finalPrompt = `Analyze this image and produce a short motion instruction for an image-to-video model.
-${promptText}
-CONSTRAINTS: Do not add, remove, or alter any objects. Keep geometry exact. Motion only.`;
-
-      setLoadingProgress(60);
-      setLoadingStep('Generating your video with AI...');
-
-      // Step 2: Generate video
-      const videoResponse = await fetch('/api/start-video-generation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageUrl: selectedImageUrl,
-          prompt: finalPrompt
-        }),
-      });
-
-      if (!videoResponse.ok) {
-        throw new Error('Failed to start video generation');
-      }
-
-      const videoData = await videoResponse.json();
-      const videoId = videoData.id;
-
-      setLoadingProgress(80);
-      setLoadingStep('Processing your video...');
-
-      // Poll for video completion
-      let videoResult;
-      attempts = 0;
-
-      while (attempts < maxAttempts) {
-        const statusResponse = await fetch(`/api/get-prediction?id=${encodeURIComponent(videoId)}`);
-        if (!statusResponse.ok) {
-          throw new Error('Failed to check video status');
-        }
-
-        const statusData = await statusResponse.json();
-
-        if (statusData.status === 'succeeded') {
-          videoResult = statusData;
-          break;
-        } else if (statusData.status === 'failed') {
-          throw new Error(statusData.error || 'Video generation failed');
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
-        attempts++;
-      }
-
-      if (!videoResult) {
-        throw new Error('Video generation timed out');
-      }
-
-      // Extract video URL
-      const videoUrl = Array.isArray(videoResult.output) ? videoResult.output[0] : videoResult.output;
-
-      setLoadingProgress(100);
-      setLoadingStep('Video generated successfully!');
-
-      // Small delay to show completion
-      setTimeout(() => {
-        setGeneratedVideo(videoUrl);
-        setIsLoading(false);
-        setLoadingProgress(0);
-        setLoadingStep('');
-      }, 500);
-
+      const data = await response.json();
+      setAnalysisResult(data.analysis);
     } catch (error) {
-      console.error('Error generating video:', error);
-      alert('Failed to generate video. Please try again.');
-      setIsLoading(false);
-      setLoadingProgress(0);
-      setLoadingStep('');
+      console.error('Error analyzing image:', error);
+      setError(error instanceof Error ? error.message : 'Failed to analyze image');
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
-  const downloadVideo = async (url: string, filename: string) => {
-    try {
-      // Fetch the video as a blob to handle cross-origin downloads
-      const response = await fetch(url);
-      const blob = await response.blob();
-
-      // Create a blob URL for download
-      const blobUrl = URL.createObjectURL(blob);
-
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      // Clean up the blob URL
-      URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      console.error('Error downloading video:', error);
-      // Fallback to opening in new tab if download fails
-      window.open(url, '_blank');
-    }
+  const resetAnalysis = () => {
+    setAnalysisResult(null);
+    setError(null);
   };
 
   const deleteImage = async (image: UploadedImage) => {
@@ -378,6 +243,14 @@ CONSTRAINTS: Do not add, remove, or alter any objects. Keep geometry exact. Moti
 
       // Refresh the uploaded images list
       await loadUploadedImages();
+
+      // Clear current selection if it was the deleted image
+      if (selectedImageUrl === image.url) {
+        setSelectedImageUrl(null);
+        setUploadedImageUrl(null);
+        setAnalysisResult(null);
+      }
+
       alert('Image deleted successfully!');
     } catch (error) {
       console.error('Error deleting image:', error);
@@ -435,38 +308,24 @@ CONSTRAINTS: Do not add, remove, or alter any objects. Keep geometry exact. Moti
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              AI Video
+              AI Image
               <motion.span
                 className="block bg-gradient-to-r from-slate-600 to-blue-600 bg-clip-text text-transparent"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: 0.5 }}
               >
-                Maker
+                Analyzer
               </motion.span>
             </motion.h1>
 
-            {/* Cost Display */}
-            <motion.div
-              className="inline-flex items-center bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-full px-4 py-2 mb-4"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.8 }}
-            >
-              <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">💰</span>
-                </div>
-                <span className="text-blue-800 font-semibold text-sm">2 Credits per video</span>
-              </div>
-            </motion.div>
             <motion.p
               className="text-xl sm:text-2xl text-slate-600 mb-8 max-w-3xl mx-auto leading-relaxed"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.7 }}
             >
-              Transform your images into stunning videos with AI-powered camera movements and cinematic effects.
+              Upload an image and let AI analyze it for you with advanced GPT-4o vision capabilities.
             </motion.p>
           </motion.div>
         </div>
@@ -501,12 +360,12 @@ CONSTRAINTS: Do not add, remove, or alter any objects. Keep geometry exact. Moti
                 className="hidden"
               />
 
-              {originalImage ? (
+              {uploadedImageUrl ? (
                 <div className="flex flex-col items-center space-y-4">
                   <div className="relative group">
                     <img
-                      src={originalImage}
-                      alt="Selected"
+                      src={uploadedImageUrl}
+                      alt="Uploaded"
                       className="max-w-full max-h-64 sm:max-h-80 rounded-2xl shadow-lg border-4 border-white transition-all duration-300 group-hover:shadow-xl group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-2xl transition-all duration-300 flex items-center justify-center">
@@ -518,7 +377,7 @@ CONSTRAINTS: Do not add, remove, or alter any objects. Keep geometry exact. Moti
                     </div>
                   </div>
                   <div className="bg-slate-50 border border-slate-200 rounded-full px-4 py-2">
-                    <p className="text-slate-700 font-medium">Click to change image</p>
+                    <p className="text-slate-700 font-medium">Image uploaded successfully!</p>
                   </div>
                 </div>
               ) : (
@@ -611,8 +470,8 @@ CONSTRAINTS: Do not add, remove, or alter any objects. Keep geometry exact. Moti
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                           ) : (
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                           )}
                         </button>
@@ -645,150 +504,64 @@ CONSTRAINTS: Do not add, remove, or alter any objects. Keep geometry exact. Moti
             </div>
           )}
 
-          {/* Action Section */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/20 hover:scale-[1.02]">
-            <div className="p-6 sm:p-8 text-center">
-              {isLoading ? (
-                <div className="space-y-6">
-                  {/* Progress Bar */}
-                  <div className="relative">
-                    <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-slate-500 via-blue-500 to-indigo-500 rounded-full transition-all duration-500 ease-out"
-                        style={{ width: `${loadingProgress}%` }}
-                      ></div>
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
+          {/* Continue Button */}
+          {uploadedImageUrl && !analysisResult && (
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/20 hover:scale-[1.02]">
+              <div className="p-6 sm:p-8 text-center">
+                <button
+                  onClick={handleAnalyzeImage}
+                  disabled={isAnalyzing}
+                  className="group relative bg-gradient-to-r from-slate-600 via-blue-600 to-indigo-600 hover:from-slate-700 hover:via-blue-700 hover:to-indigo-700 disabled:from-slate-400 disabled:via-slate-400 disabled:to-slate-400 text-white font-bold py-3 px-8 sm:py-4 sm:px-12 rounded-2xl transition-all duration-500 transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed shadow-lg hover:shadow-xl disabled:shadow-none overflow-hidden text-sm sm:text-lg"
+                >
+                  <div className="relative z-10 flex items-center justify-center">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 transition-transform duration-300 group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    <span>{isAnalyzing ? 'Analyzing Image...' : 'Analyze Image with AI'}</span>
                   </div>
-
-                  {/* Loading Steps */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-center space-x-3">
-                      <div className="w-3 h-3 bg-slate-500 rounded-full animate-bounce"></div>
-                      <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-3 h-3 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                    </div>
-                    <p className="text-lg font-semibold text-slate-800">{loadingStep}</p>
-                    <p className="text-sm text-slate-600">This usually takes 30-60 seconds</p>
-                  </div>
-
-                  {/* Animated AI Working Indicator */}
-                  <div className="flex justify-center">
-                    <div className="relative">
-                      <div className="w-16 h-16 border-4 border-slate-200 rounded-full"></div>
-                      <div className="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-t-slate-500 rounded-full animate-spin"></div>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <svg className="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <button
-                    onClick={handleGenerateVideo}
-                    disabled={!selectedImageUrl || isLoading}
-                    className="group relative bg-gradient-to-r from-slate-600 via-blue-600 to-indigo-600 hover:from-slate-700 hover:via-blue-700 hover:to-indigo-700 disabled:from-slate-400 disabled:via-slate-400 disabled:to-slate-400 text-white font-bold py-3 px-8 sm:py-4 sm:px-12 rounded-2xl transition-all duration-500 transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed shadow-lg hover:shadow-xl disabled:shadow-none overflow-hidden text-sm sm:text-lg"
-                  >
-                    <div className="relative z-10 flex items-center justify-center">
-                      <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 transition-transform duration-300 group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      <span>Generate AI Video</span>
-                    </div>
-                    {!isLoading && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                    )}
-                  </button>
-
-                  {(!selectedImageUrl) && (
-                    <div className="mt-4 text-xs sm:text-sm text-slate-500">
-                      Please select an image first
-                    </div>
+                  {!isAnalyzing && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                   )}
-                </>
-              )}
-            </div>
-          </div>
+                </button>
 
-          {/* Results Section */}
-          {originalImage && generatedVideo && (
+                {error && (
+                  <div className="mt-4 text-center">
+                    <p className="text-red-600 text-sm">{error}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Analysis Result */}
+          {analysisResult && (
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:scale-[1.02]">
               <div className="bg-gradient-to-r from-emerald-50 to-teal-50 px-6 sm:px-8 py-6 border-b border-slate-100">
                 <h2 className="text-xl font-semibold text-slate-800 flex items-center">
                   <svg className="w-6 h-6 mr-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  AI Video Generated Successfully
+                  AI Analysis Result
                 </h2>
-                <p className="text-sm text-slate-600 mt-1">Your image has been transformed into a cinematic video</p>
+                <p className="text-sm text-slate-600 mt-1">GPT-4o analysis of your image</p>
               </div>
 
               <div className="p-6 sm:p-8">
-                {/* Video Display */}
-                <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden mb-6">
-                  <div className="bg-gradient-to-r from-slate-50 to-blue-50 px-6 py-4 border-b border-slate-100">
-                    <h3 className="text-lg font-semibold text-slate-800 flex items-center">
-                      <svg className="w-5 h-5 mr-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      Your AI-Generated Video
-                    </h3>
-                  </div>
-
-                  <div className="p-6">
-                    <video
-                      src={generatedVideo}
-                      controls
-                      className="w-full h-64 sm:h-80 bg-slate-100 rounded-xl"
-                      poster={originalImage}
-                    >
-                      Your browser does not support the video tag.
-                    </video>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-6">
+                  <div className="prose prose-slate max-w-none">
+                    <pre className="whitespace-pre-wrap text-slate-700 font-mono text-sm leading-relaxed">
+                      {analysisResult}
+                    </pre>
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Delete Button */}
+                <div className="mt-6 flex justify-center">
                   <button
-                    onClick={() => {
-                      setGeneratedVideo(null);
-                      setOriginalImage(null);
-                      setSelectedImageUrl(null);
-                    }}
-                    className="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center"
+                    onClick={resetAnalysis}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
                   >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Delete Video
+                    Analyze Another Image
                   </button>
-
-                  {/* Download Video Button */}
-                  <button
-                    onClick={() => downloadVideo(generatedVideo, `ai-video-${Date.now()}.mp4`)}
-                    className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center"
-                  >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Download Video
-                  </button>
-                </div>
-
-                {/* Success Message */}
-                <div className="mt-6 text-center">
-                  <div className="inline-flex items-center bg-emerald-100 border border-emerald-200 rounded-full px-4 py-2 sm:px-6 sm:py-3">
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 mr-2 sm:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-emerald-800 font-medium text-sm sm:text-base">
-                      Your video has been successfully generated with AI-powered camera movements!
-                    </span>
-                  </div>
                 </div>
               </div>
             </div>
