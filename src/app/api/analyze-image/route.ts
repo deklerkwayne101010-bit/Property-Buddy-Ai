@@ -92,16 +92,24 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('GPT-4o API error response:', errorText);
+      console.error('Response status:', response.status);
+      console.error('Response headers:', Object.fromEntries(response.headers.entries()));
       throw new Error(`GPT-4o error: ${response.status} - ${errorText}`);
     }
 
     const prediction = await response.json();
     console.log('GPT-4o prediction response:', JSON.stringify(prediction, null, 2));
+    console.log('Prediction status:', prediction.status);
+    console.log('Prediction output:', prediction.output);
 
     // With poll: true, Replicate waits and returns final result directly
     if (prediction.status === 'succeeded') {
       const analysis = prediction.output;
       console.log('Image analysis succeeded:', analysis);
+      console.log('Analysis type:', typeof analysis);
+      console.log('Analysis length:', analysis ? analysis.length : 'N/A');
+
       return NextResponse.json({
         analysis: analysis,
         message: "Image analysis completed successfully!",
@@ -114,11 +122,12 @@ export async function POST(request: NextRequest) {
       }, { headers: createSecurityHeaders() });
     } else if (prediction.status === 'failed') {
       console.error('GPT-4o analysis failed:', prediction.error);
+      console.error('Full prediction object:', JSON.stringify(prediction, null, 2));
       throw new Error(`GPT-4o analysis failed: ${prediction.error}`);
     } else {
       // This shouldn't happen with poll: true, but handle it just in case
       console.log('Unexpected status with poll: true:', prediction.status);
-      console.log('Full prediction object:', prediction);
+      console.log('Full prediction object:', JSON.stringify(prediction, null, 2));
       throw new Error(`Unexpected status: ${prediction.status}`);
     }
 
