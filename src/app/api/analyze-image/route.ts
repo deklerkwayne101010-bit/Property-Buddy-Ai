@@ -76,9 +76,15 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         input: {
+          top_p: 1,
           prompt: "analyze this picture",
-          image_input: imageUrl,
-          system_prompt: "You are a helpful assistant."
+          messages: [],
+          image_input: [imageUrl],
+          temperature: 1,
+          system_prompt: "You are a helpful assistant.",
+          presence_penalty: 0,
+          frequency_penalty: 0,
+          max_completion_tokens: 4096
         }
       }),
     });
