@@ -37,6 +37,7 @@ export default function VideoAiMaker() {
   const [generatedVideos, setGeneratedVideos] = useState<VideoResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<UploadedImage[]>([]);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<'upload' | 'analyzing' | 'analyzed' | 'generating' | 'complete'>('upload');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -167,12 +168,25 @@ export default function VideoAiMaker() {
   };
 
   const selectImage = (image: UploadedImage) => {
-    setSelectedImageUrl(image.url);
+    setSelectedImages(prev => {
+      const isSelected = prev.some(img => img.id === image.id);
+      if (isSelected) {
+        // Remove from selection
+        return prev.filter(img => img.id !== image.id);
+      } else {
+        // Add to selection (max 10)
+        if (prev.length >= 10) {
+          alert('You can select a maximum of 10 images for video generation.');
+          return prev;
+        }
+        return [...prev, image];
+      }
+    });
   };
 
-  const analyzeAllImages = async () => {
-    if (uploadedImages.length === 0) {
-      setError('Please upload at least one image first');
+  const analyzeSelectedImages = async () => {
+    if (selectedImages.length === 0) {
+      setError('Please select at least one image first');
       return;
     }
 
@@ -184,8 +198,8 @@ export default function VideoAiMaker() {
     try {
       const analyzed: AnalyzedImage[] = [];
 
-      for (let i = 0; i < uploadedImages.length; i++) {
-        const image = uploadedImages[i];
+      for (let i = 0; i < selectedImages.length; i++) {
+        const image = selectedImages[i];
 
         const response = await fetch('/api/analyze-image', {
           method: 'POST',
@@ -334,9 +348,7 @@ export default function VideoAiMaker() {
       await loadUploadedImages();
 
       // Clear current selection if it was the deleted image
-      if (selectedImageUrl === image.url) {
-        setSelectedImageUrl(null);
-      }
+      setSelectedImages(prev => prev.filter(img => img.id !== image.id));
 
       alert('Image deleted successfully!');
     } catch (error) {
@@ -499,7 +511,7 @@ export default function VideoAiMaker() {
                     <div
                       key={image.id}
                       className={`relative group cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-300 hover:scale-105 ${
-                        selectedImageUrl === image.url
+                        selectedImages.some(img => img.id === image.id)
                           ? 'border-blue-500 shadow-lg shadow-blue-500/30'
                           : 'border-slate-200 hover:border-slate-300'
                       }`}
@@ -510,9 +522,9 @@ export default function VideoAiMaker() {
                         className="w-full h-24 sm:h-32 object-cover"
                       />
                       <div className={`absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 ${
-                        selectedImageUrl === image.url ? 'bg-blue-500/10' : ''
+                        selectedImages.some(img => img.id === image.id) ? 'bg-blue-500/10' : ''
                       }`}>
-                        {selectedImageUrl === image.url && (
+                        {selectedImages.some(img => img.id === image.id) && (
                           <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1">
                             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -557,18 +569,18 @@ export default function VideoAiMaker() {
                   ))}
                 </div>
 
-                {selectedImageUrl && (
+                {selectedImages.length > 0 && (
                   <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <span className="text-blue-800 font-medium">Selected Image</span>
+                        <span className="text-blue-800 font-medium">{selectedImages.length} Image(s) Selected</span>
                       </div>
                       <button
-                        onClick={() => setSelectedImageUrl(null)}
+                        onClick={() => setSelectedImages([])}
                         className="text-blue-600 hover:text-blue-800 text-sm underline"
                       >
-                        Clear Selection
+                        Clear All
                       </button>
                     </div>
                   </div>
@@ -577,12 +589,12 @@ export default function VideoAiMaker() {
             </div>
           )}
 
-          {/* Analyze All Images Button */}
-          {uploadedImages.length > 0 && currentStep === 'upload' && (
+          {/* Analyze Selected Images Button */}
+          {selectedImages.length > 0 && currentStep === 'upload' && (
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/20 hover:scale-[1.02]">
               <div className="p-6 sm:p-8 text-center">
                 <button
-                  onClick={analyzeAllImages}
+                  onClick={analyzeSelectedImages}
                   disabled={isAnalyzing}
                   className="group relative bg-gradient-to-r from-slate-600 via-blue-600 to-indigo-600 hover:from-slate-700 hover:via-blue-700 hover:to-indigo-700 disabled:from-slate-400 disabled:via-slate-400 disabled:to-slate-400 text-white font-bold py-3 px-8 sm:py-4 sm:px-12 rounded-2xl transition-all duration-500 transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed shadow-lg hover:shadow-xl disabled:shadow-none overflow-hidden text-sm sm:text-lg"
                 >
@@ -590,7 +602,7 @@ export default function VideoAiMaker() {
                     <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 transition-transform duration-300 group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                     </svg>
-                    <span>{isAnalyzing ? 'Analyzing Images...' : `Analyze ${uploadedImages.length} Image(s) with AI`}</span>
+                    <span>{isAnalyzing ? 'Analyzing Images...' : `Analyze ${selectedImages.length} Selected Image(s) with AI`}</span>
                   </div>
                   {!isAnalyzing && (
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
