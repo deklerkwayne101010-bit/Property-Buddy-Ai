@@ -13,17 +13,32 @@ interface UploadedImage {
   uploadedAt: string;
 }
 
+interface AnalyzedImage {
+  id: string;
+  imageUrl: string;
+  prompt: string;
+}
+
+interface VideoResult {
+  index: number;
+  imageUrl: string;
+  prompt: string;
+  videoUrl: string;
+}
+
 export default function VideoAiMaker() {
   const { user } = useAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [analyzedImages, setAnalyzedImages] = useState<AnalyzedImage[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedVideos, setGeneratedVideos] = useState<VideoResult[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState<'upload' | 'analyzing' | 'analyzed' | 'generating' | 'complete'>('upload');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load uploaded images on component mount
@@ -70,6 +85,11 @@ export default function VideoAiMaker() {
       return;
     }
 
+    if (uploadedImages.length >= 10) {
+      setError('You can only upload up to 10 images. Please delete some images first.');
+      return;
+    }
+
     setIsUploading(true);
     setError(null);
     try {
@@ -109,14 +129,11 @@ export default function VideoAiMaker() {
         // Don't fail the upload, just log the error
       }
 
-      // Set the uploaded image URL and show continue button
-      setUploadedImageUrl(publicUrl);
-
       // Refresh the uploaded images list
       await loadUploadedImages();
 
       setIsUploading(false);
-      alert('Image uploaded successfully! You can now analyze it with AI.');
+      alert('Image uploaded successfully! You can now analyze all your images with AI.');
     } catch (error) {
       console.error('Error uploading image:', error);
       setError('Failed to upload image. Please try again.');
@@ -151,45 +168,117 @@ export default function VideoAiMaker() {
 
   const selectImage = (image: UploadedImage) => {
     setSelectedImageUrl(image.url);
-    setUploadedImageUrl(image.url);
   };
 
-  const handleAnalyzeImage = async () => {
-    if (!uploadedImageUrl) return;
+  const analyzeAllImages = async () => {
+    if (uploadedImages.length === 0) {
+      setError('Please upload at least one image first');
+      return;
+    }
 
     setIsAnalyzing(true);
     setError(null);
-    setAnalysisResult(null);
+    setCurrentStep('analyzing');
+    setAnalyzedImages([]);
 
     try {
-      const response = await fetch('/api/analyze-image', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageUrl: uploadedImageUrl
-        }),
-      });
+      const analyzed: AnalyzedImage[] = [];
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to analyze image');
+      for (let i = 0; i < uploadedImages.length; i++) {
+        const image = uploadedImages[i];
+
+        const response = await fetch('/api/analyze-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            imageUrl: image.url
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to analyze image ${i + 1}`);
+        }
+
+        const data = await response.json();
+        analyzed.push({
+          id: image.id,
+          imageUrl: image.url,
+          prompt: data.analysis
+        });
       }
 
-      const data = await response.json();
-      setAnalysisResult(data.analysis);
+      setAnalyzedImages(analyzed);
+      setCurrentStep('analyzed');
     } catch (error) {
-      console.error('Error analyzing image:', error);
-      setError(error instanceof Error ? error.message : 'Failed to analyze image');
+      console.error('Error analyzing images:', error);
+      setError(error instanceof Error ? error.message : 'Failed to analyze images');
+      setCurrentStep('upload');
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const resetAnalysis = () => {
-    setAnalysisResult(null);
+  const generateVideos = async () => {
+    if (analyzedImages.length === 0) {
+      setError('Please analyze images first');
+      return;
+    }
+
+    setIsGenerating(true);
     setError(null);
+    setCurrentStep('generating');
+    setGeneratedVideos([]);
+
+    try {
+      const videos: VideoResult[] = [];
+
+      for (let i = 0; i < analyzedImages.length; i++) {
+        const analyzedImage = analyzedImages[i];
+
+        const response = await fetch('/api/video-generate/kling', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            imageUrl: analyzedImage.imageUrl,
+            prompt: analyzedImage.prompt
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to generate video for image ${i + 1}`);
+        }
+
+        const data = await response.json();
+        videos.push({
+          index: i,
+          imageUrl: analyzedImage.imageUrl,
+          prompt: analyzedImage.prompt,
+          videoUrl: data.videoUrl
+        });
+      }
+
+      setGeneratedVideos(videos);
+      setCurrentStep('complete');
+    } catch (error) {
+      console.error('Error generating videos:', error);
+      setError(error instanceof Error ? error.message : 'Failed to generate videos');
+      setCurrentStep('analyzed');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const resetAll = () => {
+    setAnalyzedImages([]);
+    setGeneratedVideos([]);
+    setError(null);
+    setCurrentStep('upload');
   };
 
   const deleteImage = async (image: UploadedImage) => {
@@ -247,8 +336,6 @@ export default function VideoAiMaker() {
       // Clear current selection if it was the deleted image
       if (selectedImageUrl === image.url) {
         setSelectedImageUrl(null);
-        setUploadedImageUrl(null);
-        setAnalysisResult(null);
       }
 
       alert('Image deleted successfully!');
@@ -360,24 +447,10 @@ export default function VideoAiMaker() {
                 className="hidden"
               />
 
-              {uploadedImageUrl ? (
+              {uploadedImages.length > 0 ? (
                 <div className="flex flex-col items-center space-y-4">
-                  <div className="relative group">
-                    <img
-                      src={uploadedImageUrl}
-                      alt="Uploaded"
-                      className="max-w-full max-h-64 sm:max-h-80 rounded-2xl shadow-lg border-4 border-white transition-all duration-300 group-hover:shadow-xl group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-2xl transition-all duration-300 flex items-center justify-center">
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 backdrop-blur-sm rounded-full p-3">
-                        <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
                   <div className="bg-slate-50 border border-slate-200 rounded-full px-4 py-2">
-                    <p className="text-slate-700 font-medium">Image uploaded successfully!</p>
+                    <p className="text-slate-700 font-medium">{uploadedImages.length} image(s) uploaded successfully!</p>
                   </div>
                 </div>
               ) : (
@@ -504,12 +577,12 @@ export default function VideoAiMaker() {
             </div>
           )}
 
-          {/* Continue Button */}
-          {uploadedImageUrl && !analysisResult && (
+          {/* Analyze All Images Button */}
+          {uploadedImages.length > 0 && currentStep === 'upload' && (
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/20 hover:scale-[1.02]">
               <div className="p-6 sm:p-8 text-center">
                 <button
-                  onClick={handleAnalyzeImage}
+                  onClick={analyzeAllImages}
                   disabled={isAnalyzing}
                   className="group relative bg-gradient-to-r from-slate-600 via-blue-600 to-indigo-600 hover:from-slate-700 hover:via-blue-700 hover:to-indigo-700 disabled:from-slate-400 disabled:via-slate-400 disabled:to-slate-400 text-white font-bold py-3 px-8 sm:py-4 sm:px-12 rounded-2xl transition-all duration-500 transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed shadow-lg hover:shadow-xl disabled:shadow-none overflow-hidden text-sm sm:text-lg"
                 >
@@ -517,7 +590,7 @@ export default function VideoAiMaker() {
                     <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 transition-transform duration-300 group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                     </svg>
-                    <span>{isAnalyzing ? 'Analyzing Image...' : 'Analyze Image with AI'}</span>
+                    <span>{isAnalyzing ? 'Analyzing Images...' : `Analyze ${uploadedImages.length} Image(s) with AI`}</span>
                   </div>
                   {!isAnalyzing && (
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
@@ -533,34 +606,113 @@ export default function VideoAiMaker() {
             </div>
           )}
 
-          {/* Analysis Result */}
-          {analysisResult && (
+          {/* Analyzed Images Table */}
+          {analyzedImages.length > 0 && currentStep === 'analyzed' && (
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:scale-[1.02]">
               <div className="bg-gradient-to-r from-emerald-50 to-teal-50 px-6 sm:px-8 py-6 border-b border-slate-100">
                 <h2 className="text-xl font-semibold text-slate-800 flex items-center">
                   <svg className="w-6 h-6 mr-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  AI Analysis Result
+                  AI Analysis Results
                 </h2>
-                <p className="text-sm text-slate-600 mt-1">GPT-4o analysis of your image</p>
+                <p className="text-sm text-slate-600 mt-1">GPT-4o analysis of your images</p>
               </div>
 
               <div className="p-6 sm:p-8">
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-6">
-                  <div className="prose prose-slate max-w-none">
-                    <pre className="whitespace-pre-wrap text-slate-700 font-mono text-sm leading-relaxed">
-                      {analysisResult}
-                    </pre>
-                  </div>
+                <div className="space-y-4">
+                  {analyzedImages.map((analyzedImage, index) => (
+                    <div key={analyzedImage.id} className="border border-slate-200 rounded-xl p-4">
+                      <div className="flex items-start space-x-4">
+                        <img
+                          src={analyzedImage.imageUrl}
+                          alt={`Image ${index + 1}`}
+                          className="w-20 h-20 object-cover rounded-lg"
+                        />
+                        <div className="flex-1">
+                          <h3 className="font-medium text-slate-900 mb-2">Image {index + 1}</h3>
+                          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                            <p className="text-slate-700 text-sm leading-relaxed">
+                              {analyzedImage.prompt}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 <div className="mt-6 flex justify-center">
                   <button
-                    onClick={resetAnalysis}
+                    onClick={generateVideos}
+                    disabled={isGenerating}
+                    className="group relative bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 hover:from-purple-700 hover:via-pink-700 hover:to-red-700 disabled:from-purple-400 disabled:via-pink-400 disabled:to-red-400 text-white font-bold py-3 px-8 sm:py-4 sm:px-12 rounded-2xl transition-all duration-500 transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed shadow-lg hover:shadow-xl disabled:shadow-none overflow-hidden text-sm sm:text-lg"
+                  >
+                    <div className="relative z-10 flex items-center justify-center">
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 transition-transform duration-300 group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      <span>{isGenerating ? 'Generating Videos...' : `Generate ${analyzedImages.length} Video(s)`}</span>
+                    </div>
+                    {!isGenerating && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Generated Videos */}
+          {generatedVideos.length > 0 && currentStep === 'complete' && (
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:scale-[1.02]">
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-6 sm:px-8 py-6 border-b border-slate-100">
+                <h2 className="text-xl font-semibold text-slate-800 flex items-center">
+                  <svg className="w-6 h-6 mr-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Generated Videos
+                </h2>
+                <p className="text-sm text-slate-600 mt-1">Your AI-generated videos are ready</p>
+              </div>
+
+              <div className="p-6 sm:p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {generatedVideos.map((video) => (
+                    <div key={video.index} className="border border-slate-200 rounded-xl overflow-hidden">
+                      <div className="p-4 border-b border-slate-200">
+                        <h3 className="font-medium text-slate-900">Video {video.index + 1}</h3>
+                        <p className="text-sm text-slate-600 mt-1">{video.prompt}</p>
+                      </div>
+                      <div className="p-4">
+                        <video
+                          src={video.videoUrl}
+                          controls
+                          className="w-full h-48 bg-slate-100 rounded"
+                          poster={video.imageUrl}
+                        >
+                          Your browser does not support the video tag.
+                        </video>
+                        <div className="mt-3 flex justify-center">
+                          <a
+                            href={video.videoUrl}
+                            download
+                            className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                          >
+                            Download Video
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 flex justify-center">
+                  <button
+                    onClick={resetAll}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
                   >
-                    Analyze Another Image
+                    Create More Videos
                   </button>
                 </div>
               </div>
