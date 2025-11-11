@@ -252,14 +252,16 @@ export default function VideoAiMaker() {
       for (let i = 0; i < analyzedImages.length; i++) {
         const analyzedImage = analyzedImages[i];
 
-        const response = await fetch('/api/video-generate/kling', {
+        const response = await fetch('/api/video', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            imageUrl: analyzedImage.imageUrl,
-            prompt: analyzedImage.prompt
+            prompt: analyzedImage.prompt,
+            start_image: analyzedImage.imageUrl,
+            negative_prompt: "",
+            duration: 5
           }),
         });
 
