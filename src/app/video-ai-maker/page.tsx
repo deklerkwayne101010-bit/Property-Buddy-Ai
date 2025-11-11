@@ -258,10 +258,11 @@ export default function VideoAiMaker() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            mode: "standard",
             prompt: analyzedImage.prompt,
+            duration: 5,
             start_image: analyzedImage.imageUrl,
-            negative_prompt: "",
-            duration: 5
+            negative_prompt: ""
           }),
         });
 
