@@ -21,9 +21,11 @@ interface VideoGenerationRequest {
   duration?: number; // in seconds, max 10
   aspect_ratio?: '16:9' | '9:16' | '1:1';
   loop?: boolean;
+  start_image?: string; // Add start_image for Kling v2.1
+  negative_prompt?: string; // Add negative_prompt for Kling v2.1
 }
 
-async function generateVideo(prompt: string, duration: number = 5, aspectRatio: string = '16:9', loop: boolean = false): Promise<string> {
+async function generateVideo(prompt: string, duration: number = 5, aspectRatio: string = '16:9', loop: boolean = false, startImage?: string, negativePrompt?: string): Promise<string> {
   const replicateToken = process.env.REPLICATE_API_TOKEN;
   if (!replicateToken) {
     throw new Error('Replicate API token not configured');
@@ -35,12 +37,13 @@ async function generateVideo(prompt: string, duration: number = 5, aspectRatio: 
 
   try {
     const prediction = await replicate.predictions.create({
-      version: "b5c3e5d7-6c8f-4c8c-8c8c-8c8c8c8c8c8c", // Hailuo-02 model version
+      version: "kwaivgi/kling-v2.1", // Updated to Kling v2.1
       input: {
+        mode: "standard",
         prompt: prompt,
         duration: Math.min(Math.max(duration, 1), 10), // Clamp between 1-10 seconds
-        aspect_ratio: aspectRatio,
-        loop: loop,
+        start_image: startImage, // Add start_image if provided
+        negative_prompt: negativePrompt || "",
       },
     });
 
@@ -104,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     const body: VideoGenerationRequest = await request.json();
 
-    const { prompt, duration = 5, aspect_ratio = '16:9', loop = false } = body;
+    const { prompt, duration = 5, aspect_ratio = '16:9', loop = false, start_image, negative_prompt } = body;
 
     // Validate required fields
     if (!prompt || typeof prompt !== 'string') {
@@ -149,7 +152,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Generate video
-    const videoUrl = await generateVideo(prompt, duration, aspect_ratio, loop);
+    const videoUrl = await generateVideo(prompt, duration, aspect_ratio, loop, start_image, negative_prompt);
 
     // Log successful generation
     logSecurityEvent('VIDEO_GENERATION_COMPLETED', {
