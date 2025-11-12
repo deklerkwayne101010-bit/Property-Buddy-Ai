@@ -184,11 +184,14 @@ export default function VideoAiMaker() {
           }),
         });
 
+        // Always check response validity before parsing JSON
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Failed to analyze image ${i + 1}`);
+          const text = await response.text();
+          console.error("Image analysis error response:", text);
+          throw new Error(`Request failed: ${response.status} - ${text}`);
         }
 
+        // Safe to parse JSON now that we know response is ok
         const data = await response.json();
         console.log('Analyze image response:', data);
         console.log('Analysis field:', data.analysis);
@@ -258,11 +261,14 @@ export default function VideoAiMaker() {
           signal: AbortSignal.timeout(300000) // 5 minutes
         });
 
+        // Always check response validity before parsing JSON
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Failed to generate video for image ${i + 1}`);
+          const text = await response.text();
+          console.error("Video generation error response:", text);
+          throw new Error(`Request failed: ${response.status} - ${text}`);
         }
 
+        // Safe to parse JSON now that we know response is ok
         const data = await response.json();
         videos.push({
           index: i,
