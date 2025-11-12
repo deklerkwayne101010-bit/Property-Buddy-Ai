@@ -96,8 +96,15 @@ export default function VideoAiMaker() {
         // Don't fail the upload, just log the error
       }
 
-      // Refresh the uploaded images list
-      // Images are added to the current session list automatically
+      // Add the uploaded image to the current session list
+      const uploadedImage: UploadedImage = {
+        id: `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        url: publicUrl,
+        filename: fileName,
+        uploadedAt: new Date().toISOString()
+      };
+
+      setUploadedImages(prev => [...prev, uploadedImage]);
 
       setIsUploading(false);
       alert('Image uploaded successfully! You can now analyze all your images with AI.');
