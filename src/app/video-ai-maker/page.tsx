@@ -217,6 +217,14 @@ export default function VideoAiMaker() {
         }
 
         const data = await response.json();
+        console.log('Analyze image response:', data);
+        console.log('Analysis field:', data.analysis);
+        console.log('Analysis type:', typeof data.analysis);
+
+        if (!data.analysis || typeof data.analysis !== 'string') {
+          throw new Error(`Invalid analysis response for image ${i + 1}: ${JSON.stringify(data)}`);
+        }
+
         analyzed.push({
           id: image.id,
           imageUrl: image.url,
@@ -251,6 +259,12 @@ export default function VideoAiMaker() {
 
       for (let i = 0; i < analyzedImages.length; i++) {
         const analyzedImage = analyzedImages[i];
+
+        console.log('Generating video for image', i + 1);
+        console.log('Analyzed image:', analyzedImage);
+        console.log('Prompt:', analyzedImage.prompt);
+        console.log('Prompt type:', typeof analyzedImage.prompt);
+        console.log('Prompt length:', analyzedImage.prompt ? analyzedImage.prompt.length : 'N/A');
 
         const response = await fetch('/api/video', {
           method: 'POST',
