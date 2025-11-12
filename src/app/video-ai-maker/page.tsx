@@ -267,6 +267,9 @@ export default function VideoAiMaker() {
         console.log('Prompt type:', typeof analyzedImage.prompt);
         console.log('Prompt length:', analyzedImage.prompt ? analyzedImage.prompt.length : 'N/A');
 
+        console.log(`Starting video generation for image ${i + 1}...`);
+        console.log('Using prompt:', analyzedImage.prompt);
+
         const response = await fetch('/api/video', {
           method: 'POST',
           headers: {
@@ -279,6 +282,8 @@ export default function VideoAiMaker() {
             start_image: analyzedImage.imageUrl,
             negative_prompt: ""
           }),
+          // Increase timeout for long-running video generation (5 minutes)
+          signal: AbortSignal.timeout(300000) // 5 minutes
         });
 
         if (!response.ok) {
@@ -757,6 +762,58 @@ export default function VideoAiMaker() {
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                     )}
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Video Generation Progress */}
+          {currentStep === 'generating' && (
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:scale-[1.02]">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 sm:px-8 py-6 border-b border-slate-100">
+                <h2 className="text-xl font-semibold text-slate-800 flex items-center">
+                  <svg className="w-6 h-6 mr-3 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Generating Videos
+                </h2>
+                <p className="text-sm text-slate-600 mt-1">This process can take several minutes per video. Please be patient.</p>
+              </div>
+
+              <div className="p-6 sm:p-8">
+                <div className="space-y-4">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      <div>
+                        <p className="text-yellow-800 font-medium">Video Generation in Progress</p>
+                        <p className="text-yellow-700 text-sm">AI video generation typically takes 2-5 minutes per video. The page will update automatically when complete.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {analyzedImages.map((analyzedImage, index) => (
+                      <div key={analyzedImage.id} className="border border-slate-200 rounded-xl p-4">
+                        <div className="flex items-start space-x-4">
+                          <img
+                            src={analyzedImage.imageUrl}
+                            alt={`Image ${index + 1}`}
+                            className="w-16 h-16 object-cover rounded-lg"
+                          />
+                          <div className="flex-1">
+                            <h3 className="font-medium text-slate-900 mb-2">Video {index + 1}</h3>
+                            <div className="flex items-center space-x-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                              <span className="text-sm text-slate-600">Processing...</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

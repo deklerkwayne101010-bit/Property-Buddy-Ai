@@ -36,6 +36,8 @@ async function generateVideo(prompt: string, duration: number = 5, aspectRatio: 
   });
 
   try {
+    console.log('Starting video generation with prompt:', prompt.substring(0, 100) + '...');
+
     const prediction = await replicate.predictions.create({
       version: "kwaivgi/kling-v2.1", // Updated to Kling v2.1
       input: {
@@ -47,24 +49,44 @@ async function generateVideo(prompt: string, duration: number = 5, aspectRatio: 
       },
     });
 
-    // Wait for completion (this might take several minutes)
-    let result = await replicate.predictions.get(prediction.id);
+    console.log('Video generation prediction created:', prediction.id);
 
-    // Poll for completion
+    // Wait for completion (video generation can take several minutes)
+    let result = await replicate.predictions.get(prediction.id);
+    console.log('Initial prediction status:', result.status);
+
+    // Poll for completion with timeout (3 minutes = 180 seconds)
+    const maxWaitTime = 180 * 1000; // 3 minutes in milliseconds
+    const pollInterval = 10000; // Poll every 10 seconds to reduce API calls
+    const startTime = Date.now();
+
     while (result.status === 'starting' || result.status === 'processing') {
-      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+      console.log(`Video generation in progress... Status: ${result.status}, Elapsed: ${Math.round((Date.now() - startTime) / 1000)}s`);
+
+      // Check if we've exceeded the maximum wait time
+      if (Date.now() - startTime > maxWaitTime) {
+        throw new Error(`Video generation timed out after ${Math.round(maxWaitTime / 1000)} seconds`);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, pollInterval)); // Wait 10 seconds
       result = await replicate.predictions.get(prediction.id);
     }
 
+    console.log('Final prediction status:', result.status);
+
     if (result.status === 'failed') {
+      console.error('Video generation failed:', result.error);
       throw new Error(`Video generation failed: ${result.error}`);
     }
 
     if (result.status === 'succeeded') {
-      return result.output as string;
+      console.log('Video generation succeeded!');
+      const videoUrl = result.output as string;
+      console.log('Generated video URL:', videoUrl);
+      return videoUrl;
     }
 
-    throw new Error('Video generation timed out or failed');
+    throw new Error(`Video generation ended with unexpected status: ${result.status}`);
   } catch (error) {
     console.error('Replicate API error:', error);
     throw error;
