@@ -256,7 +256,8 @@ export default function VideoAiMaker() {
             prompt: analyzedImage.prompt,
             duration: 5,
             start_image: analyzedImage.imageUrl,
-            negative_prompt: ""
+            negative_prompt: "",
+            userId: user?.id
           }),
         });
 
@@ -283,7 +284,7 @@ export default function VideoAiMaker() {
           console.log(`Polling attempt ${attempts}/${maxAttempts} for image ${i + 1}...`);
 
           try {
-            const statusResponse = await fetch(`/api/video/status?id=${predictionId}`);
+            const statusResponse = await fetch(`/api/video/status?id=${predictionId}&userId=${user?.id}`);
 
             if (!statusResponse.ok) {
               const text = await statusResponse.text();

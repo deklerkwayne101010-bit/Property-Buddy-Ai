@@ -7,6 +7,7 @@ import {
   createSecurityHeaders,
   logSecurityEvent
 } from '../../../lib/security';
+import { checkCredits } from '../../../lib/creditUtils';
 
 // Rate limiting: 5 video generations per minute per IP (video generation is expensive)
 const RATE_LIMIT_CONFIG = {
@@ -23,6 +24,7 @@ interface VideoGenerationRequest {
   loop?: boolean;
   start_image?: string; // Add start_image for Kling v2.1
   negative_prompt?: string; // Add negative_prompt for Kling v2.1
+  userId?: string; // Add userId for credit checking
 }
 
 async function startVideoGeneration(prompt: string, duration: number = 5, aspectRatio: string = '16:9', loop: boolean = false, startImage?: string, negativePrompt?: string): Promise<string> {
@@ -125,7 +127,29 @@ export async function POST(request: NextRequest) {
 
     const body: VideoGenerationRequest = await request.json();
 
-    const { prompt, duration = 5, aspect_ratio = '16:9', loop = false, start_image, negative_prompt } = body;
+    const { prompt, duration = 5, aspect_ratio = '16:9', loop = false, start_image, negative_prompt, userId } = body;
+
+    // Validate user authentication for credit checking
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User authentication required for video generation' },
+        { status: 401, headers: createSecurityHeaders() }
+      );
+    }
+
+    // Check if user has sufficient credits (1 credit per video)
+    const creditCheck = await checkCredits(userId, 1);
+    if (!creditCheck.hasCredits) {
+      return NextResponse.json(
+        {
+          error: 'Insufficient credits',
+          details: `Video generation costs 1 credit. You have ${creditCheck.currentCredits} credits available.`,
+          requiredCredits: 1,
+          availableCredits: creditCheck.currentCredits
+        },
+        { status: 402, headers: createSecurityHeaders() }
+      );
+    }
 
     // Validate required fields
     if (!prompt || typeof prompt !== 'string') {

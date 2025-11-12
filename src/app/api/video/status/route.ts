@@ -7,6 +7,7 @@ import {
   createSecurityHeaders,
   logSecurityEvent
 } from '../../../../lib/security';
+import { deductCredits } from '../../../../lib/creditUtils';
 
 // Rate limiting: 20 status checks per minute per IP (status checks are lightweight)
 const RATE_LIMIT_CONFIG = {
@@ -71,14 +72,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get prediction ID from query parameters
+    // Get prediction ID and user ID from query parameters
     const { searchParams } = new URL(request.url);
     const predictionId = searchParams.get('id');
+    const userId = searchParams.get('userId');
 
     if (!predictionId) {
       return NextResponse.json(
         { error: 'Prediction ID is required' },
         { status: 400, headers: createSecurityHeaders() }
+      );
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID is required' },
+        { status: 401, headers: createSecurityHeaders() }
       );
     }
 
@@ -93,11 +102,36 @@ export async function GET(request: NextRequest) {
     // Check video status
     const statusResult = await checkVideoStatus(predictionId);
 
+    // If video generation succeeded, deduct 1 credit
+    if (statusResult.status === 'succeeded' && statusResult.videoUrl) {
+      const creditResult = await deductCredits(userId, 1);
+      if (creditResult.error) {
+        console.error('Failed to deduct credits:', creditResult.error);
+        // Still return success but log the error
+        logSecurityEvent('CREDIT_DEDUCTION_FAILED', {
+          userId,
+          predictionId,
+          videoUrl: statusResult.videoUrl,
+          error: creditResult.error
+        });
+      } else {
+        console.log(`Successfully deducted 1 credit from user ${userId}. New balance: ${creditResult.newCredits}`);
+        logSecurityEvent('VIDEO_GENERATION_CREDIT_DEDUCTED', {
+          userId,
+          predictionId,
+          videoUrl: statusResult.videoUrl,
+          creditsDeducted: 1,
+          newBalance: creditResult.newCredits
+        });
+      }
+    }
+
     // Log status check
     logSecurityEvent('VIDEO_STATUS_CHECKED', {
       ip: clientIP,
       predictionId,
-      status: statusResult.status
+      status: statusResult.status,
+      userId
     });
 
     return NextResponse.json(statusResult, { headers: createSecurityHeaders() });
