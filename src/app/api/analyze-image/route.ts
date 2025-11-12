@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         input: {
           top_p: 1,
-          prompt: "Analyze this picture and describe what camera movement would be the best to turn this image into a video, while still staying in the bounds of the original video, not adding or removing anything but still making it captivating",
+          prompt: "Analyze this real estate image and suggest the perfect camera movement for a 5-second video. Describe a smooth, professional camera motion that stays within the image boundaries, doesn't add or remove objects, and creates cinematic appeal. Focus on movements like slow dolly-in, gentle pan, or subtle zoom. Keep the description concise but effective for video generation.",
           messages: [],
           image_input: [imageUrl],
           temperature: 1,

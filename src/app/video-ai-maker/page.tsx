@@ -17,6 +17,7 @@ interface AnalyzedImage {
   id: string;
   imageUrl: string;
   prompt: string;
+  isEditing?: boolean;
 }
 
 interface VideoResult {
@@ -310,6 +311,24 @@ export default function VideoAiMaker() {
     setGeneratedVideos([]);
     setError(null);
     setCurrentStep('upload');
+  };
+
+  const startEditingPrompt = (id: string) => {
+    setAnalyzedImages(prev => prev.map(img =>
+      img.id === id ? { ...img, isEditing: true } : img
+    ));
+  };
+
+  const savePromptEdit = (id: string, newPrompt: string) => {
+    setAnalyzedImages(prev => prev.map(img =>
+      img.id === id ? { ...img, prompt: newPrompt, isEditing: false } : img
+    ));
+  };
+
+  const cancelPromptEdit = (id: string) => {
+    setAnalyzedImages(prev => prev.map(img =>
+      img.id === id ? { ...img, isEditing: false } : img
+    ));
   };
 
   const deleteImage = async (image: UploadedImage) => {
@@ -649,26 +668,77 @@ export default function VideoAiMaker() {
               </div>
 
               <div className="p-6 sm:p-8">
-                <div className="space-y-4">
-                  {analyzedImages.map((analyzedImage, index) => (
-                    <div key={analyzedImage.id} className="border border-slate-200 rounded-xl p-4">
-                      <div className="flex items-start space-x-4">
-                        <img
-                          src={analyzedImage.imageUrl}
-                          alt={`Image ${index + 1}`}
-                          className="w-20 h-20 object-cover rounded-lg"
-                        />
-                        <div className="flex-1">
-                          <h3 className="font-medium text-slate-900 mb-2">Image {index + 1}</h3>
-                          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                            <p className="text-slate-700 text-sm leading-relaxed">
-                              {analyzedImage.prompt}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left py-3 px-4 font-medium text-slate-700 w-16">#</th>
+                        <th className="text-left py-3 px-4 font-medium text-slate-700 w-24">Image</th>
+                        <th className="text-left py-3 px-4 font-medium text-slate-700">Camera Movement Prompt</th>
+                        <th className="text-left py-3 px-4 font-medium text-slate-700 w-20">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {analyzedImages.map((analyzedImage, index) => (
+                        <tr key={analyzedImage.id} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-3 px-4 text-slate-600 font-medium">
+                            {index + 1}
+                          </td>
+                          <td className="py-3 px-4">
+                            <img
+                              src={analyzedImage.imageUrl}
+                              alt={`Image ${index + 1}`}
+                              className="w-16 h-16 object-cover rounded-lg border border-slate-200"
+                            />
+                          </td>
+                          <td className="py-3 px-4 flex-1">
+                            {analyzedImage.isEditing ? (
+                              <div className="space-y-2">
+                                <textarea
+                                  defaultValue={analyzedImage.prompt}
+                                  className="w-full p-2 border border-slate-300 rounded text-sm resize-none"
+                                  rows={3}
+                                  placeholder="Enter camera movement prompt..."
+                                  id={`prompt-${analyzedImage.id}`}
+                                />
+                                <div className="flex space-x-2">
+                                  <button
+                                    onClick={() => {
+                                      const textarea = document.getElementById(`prompt-${analyzedImage.id}`) as HTMLTextAreaElement;
+                                      savePromptEdit(analyzedImage.id, textarea.value);
+                                    }}
+                                    className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={() => cancelPromptEdit(analyzedImage.id)}
+                                    className="px-3 py-1 bg-slate-500 text-white text-xs rounded hover:bg-slate-600"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-sm text-slate-700 leading-relaxed max-w-md">
+                                {analyzedImage.prompt}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            {!analyzedImage.isEditing && (
+                              <button
+                                onClick={() => startEditingPrompt(analyzedImage.id)}
+                                className="px-3 py-1 bg-slate-600 text-white text-xs rounded hover:bg-slate-700"
+                              >
+                                Edit
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
 
                 <div className="mt-6 flex justify-center">
