@@ -300,8 +300,8 @@ export default function VideoAiMaker() {
             } else if (statusData.status === 'failed') {
               throw new Error(`Video generation failed for image ${i + 1}: ${statusData.error}`);
             } else {
-              // Still processing, wait 2 seconds before next check
-              await new Promise(resolve => setTimeout(resolve, 2000));
+              // Still processing, wait 30 seconds before next check
+              await new Promise(resolve => setTimeout(resolve, 30000));
             }
           } catch (pollError) {
             console.error(`Polling error for image ${i + 1}:`, pollError);

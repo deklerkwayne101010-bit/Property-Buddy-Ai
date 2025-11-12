@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         input: {
           top_p: 1,
-          prompt: "Analyze this real estate image and suggest the perfect camera movement for a 5-second video. Describe a smooth, professional camera motion that stays within the image boundaries, doesn't add or remove objects, and creates cinematic appeal. Focus on movements like slow dolly-in, gentle pan, or subtle zoom. Keep the description concise but effective for video generation.",
+          prompt: "Analyze this real estate image and create a camera movement prompt that STAYS COMPLETELY WITHIN the original image boundaries. The camera must never go outside the room or show anything not visible in the original photo. Choose from these safe movements only: 1) Slow zoom in/out on existing elements, 2) Gentle pan left/right within the visible space, 3) Subtle dolly movement that stays inside the room boundaries, 4) Orbital rotation around a central point without leaving the frame. The movement should be smooth, professional, and cinematic while keeping everything identical to the original image. Never invent new objects, walls, or spaces - stay within what's already visible. Keep the description concise but effective for video generation.",
           messages: [],
           image_input: [imageUrl],
           temperature: 1,
