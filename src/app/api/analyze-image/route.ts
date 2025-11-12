@@ -104,8 +104,17 @@ export async function POST(request: NextRequest) {
 
     // With poll: true, Replicate waits and returns final result directly
     if (prediction.status === 'succeeded') {
-      const analysis = prediction.output;
-      console.log('Image analysis succeeded:', analysis);
+      let analysis = prediction.output;
+      console.log('Raw analysis output:', analysis);
+      console.log('Analysis type:', typeof analysis);
+
+      // Handle case where output is an array of strings
+      if (Array.isArray(analysis)) {
+        analysis = analysis.join('');
+        console.log('Joined array into string:', analysis);
+      }
+
+      console.log('Final analysis:', analysis);
       console.log('Analysis type:', typeof analysis);
       console.log('Analysis length:', analysis ? analysis.length : 'N/A');
 
