@@ -43,43 +43,8 @@ export default function VideoAiMaker() {
   const [currentStep, setCurrentStep] = useState<'upload' | 'analyzing' | 'analyzed' | 'generating' | 'complete'>('upload');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load uploaded images on component mount
-  useEffect(() => {
-    loadUploadedImages();
-  }, []);
-
-  const loadUploadedImages = async () => {
-    try {
-      // Only load images uploaded by the current user
-      // We'll use a different approach since Supabase storage doesn't have built-in user filtering
-      // We'll store user-specific images in a user_media table and filter by user_id
-
-      const { data: userMedia, error } = await supabase
-        .from('user_media')
-        .select('*')
-        .eq('user_id', user?.id)
-        .eq('media_type', 'image')
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      if (error) {
-        console.error('Error loading user images:', error);
-        return;
-      }
-
-      // Convert user_media records to UploadedImage format
-      const images: UploadedImage[] = (userMedia || []).map(media => ({
-        id: media.id,
-        url: media.file_url,
-        filename: media.file_name,
-        uploadedAt: media.created_at
-      }));
-
-      setUploadedImages(images);
-    } catch (error) {
-      console.error('Error loading uploaded images:', error);
-    }
-  };
+  // Start with empty uploaded images list for current session only
+  // No longer loading all user images on mount - only session uploads are shown
 
   const handleImageUpload = async (file: File) => {
     if (!user) {
@@ -132,7 +97,7 @@ export default function VideoAiMaker() {
       }
 
       // Refresh the uploaded images list
-      await loadUploadedImages();
+      // Images are added to the current session list automatically
 
       setIsUploading(false);
       alert('Image uploaded successfully! You can now analyze all your images with AI.');
@@ -385,8 +350,7 @@ export default function VideoAiMaker() {
         throw mediaError;
       }
 
-      // Refresh the uploaded images list
-      await loadUploadedImages();
+      // Images are added to the current session list automatically
 
       // Clear current selection if it was the deleted image
       setSelectedImages(prev => prev.filter(img => img.id !== image.id));
