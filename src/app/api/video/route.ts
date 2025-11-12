@@ -25,7 +25,7 @@ interface VideoGenerationRequest {
   negative_prompt?: string; // Add negative_prompt for Kling v2.1
 }
 
-async function generateVideo(prompt: string, duration: number = 5, aspectRatio: string = '16:9', loop: boolean = false, startImage?: string, negativePrompt?: string): Promise<string> {
+async function startVideoGeneration(prompt: string, duration: number = 5, aspectRatio: string = '16:9', loop: boolean = false, startImage?: string, negativePrompt?: string): Promise<string> {
   const replicateToken = process.env.REPLICATE_API_TOKEN;
   if (!replicateToken) {
     throw new Error('Replicate API token not configured');
@@ -50,45 +50,41 @@ async function generateVideo(prompt: string, duration: number = 5, aspectRatio: 
     });
 
     console.log('Video generation prediction created:', prediction.id);
-
-    // Wait for completion (video generation can take several minutes)
-    let result = await replicate.predictions.get(prediction.id);
-    console.log('Initial prediction status:', result.status);
-
-    // Poll for completion with timeout (3 minutes = 180 seconds)
-    const maxWaitTime = 180 * 1000; // 3 minutes in milliseconds
-    const pollInterval = 10000; // Poll every 10 seconds to reduce API calls
-    const startTime = Date.now();
-
-    while (result.status === 'starting' || result.status === 'processing') {
-      console.log(`Video generation in progress... Status: ${result.status}, Elapsed: ${Math.round((Date.now() - startTime) / 1000)}s`);
-
-      // Check if we've exceeded the maximum wait time
-      if (Date.now() - startTime > maxWaitTime) {
-        throw new Error(`Video generation timed out after ${Math.round(maxWaitTime / 1000)} seconds`);
-      }
-
-      await new Promise(resolve => setTimeout(resolve, pollInterval)); // Wait 10 seconds
-      result = await replicate.predictions.get(prediction.id);
-    }
-
-    console.log('Final prediction status:', result.status);
-
-    if (result.status === 'failed') {
-      console.error('Video generation failed:', result.error);
-      throw new Error(`Video generation failed: ${result.error}`);
-    }
-
-    if (result.status === 'succeeded') {
-      console.log('Video generation succeeded!');
-      const videoUrl = result.output as string;
-      console.log('Generated video URL:', videoUrl);
-      return videoUrl;
-    }
-
-    throw new Error(`Video generation ended with unexpected status: ${result.status}`);
+    return prediction.id;
   } catch (error) {
     console.error('Replicate API error:', error);
+    throw error;
+  }
+}
+
+async function checkVideoStatus(predictionId: string): Promise<{ status: string; videoUrl?: string; error?: string }> {
+  const replicateToken = process.env.REPLICATE_API_TOKEN;
+  if (!replicateToken) {
+    throw new Error('Replicate API token not configured');
+  }
+
+  const replicate = new Replicate({
+    auth: replicateToken,
+  });
+
+  try {
+    const prediction = await replicate.predictions.get(predictionId);
+
+    if (prediction.status === 'succeeded') {
+      console.log('Video generation succeeded!');
+      const videoUrl = prediction.output as string;
+      console.log('Generated video URL:', videoUrl);
+      return { status: 'succeeded', videoUrl };
+    }
+
+    if (prediction.status === 'failed') {
+      console.error('Video generation failed:', prediction.error);
+      return { status: 'failed', error: prediction.error as string };
+    }
+
+    return { status: prediction.status };
+  } catch (error) {
+    console.error('Error checking video status:', error);
     throw error;
   }
 }
@@ -173,26 +169,27 @@ export async function POST(request: NextRequest) {
       loop
     });
 
-    // Generate video
-    const videoUrl = await generateVideo(prompt, duration, aspect_ratio, loop, start_image, negative_prompt);
+    // Start video generation (async)
+    const predictionId = await startVideoGeneration(prompt, duration, aspect_ratio, loop, start_image, negative_prompt);
 
-    // Log successful generation
-    logSecurityEvent('VIDEO_GENERATION_COMPLETED', {
+    // Log generation started
+    logSecurityEvent('VIDEO_GENERATION_STARTED', {
       ip: clientIP,
-      videoUrl,
+      predictionId,
       duration,
       aspectRatio: aspect_ratio
     });
 
     return NextResponse.json({
       success: true,
-      videoUrl,
+      predictionId,
+      status: 'started',
       metadata: {
         prompt: prompt.substring(0, 100) + (prompt.length > 100 ? '...' : ''), // Truncate for logging
         duration,
         aspectRatio: aspect_ratio,
         loop,
-        generatedAt: new Date().toISOString()
+        startedAt: new Date().toISOString()
       }
     }, { headers: createSecurityHeaders() });
 

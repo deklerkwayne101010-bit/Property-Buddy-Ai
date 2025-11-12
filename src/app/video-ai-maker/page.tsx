@@ -245,7 +245,8 @@ export default function VideoAiMaker() {
         console.log(`Starting video generation for image ${i + 1}...`);
         console.log('Using prompt:', analyzedImage.prompt);
 
-        const response = await fetch('/api/video', {
+        // Start video generation (async)
+        const startResponse = await fetch('/api/video', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -257,24 +258,70 @@ export default function VideoAiMaker() {
             start_image: analyzedImage.imageUrl,
             negative_prompt: ""
           }),
-          // Increase timeout for long-running video generation (5 minutes)
-          signal: AbortSignal.timeout(300000) // 5 minutes
         });
 
         // Always check response validity before parsing JSON
-        if (!response.ok) {
-          const text = await response.text();
-          console.error("Video generation error response:", text);
-          throw new Error(`Request failed: ${response.status} - ${text}`);
+        if (!startResponse.ok) {
+          const text = await startResponse.text();
+          console.error("Video generation start error response:", text);
+          throw new Error(`Request failed: ${startResponse.status} - ${text}`);
         }
 
         // Safe to parse JSON now that we know response is ok
-        const data = await response.json();
+        const startData = await startResponse.json();
+        const predictionId = startData.predictionId;
+
+        console.log(`Video generation started for image ${i + 1}, prediction ID: ${predictionId}`);
+
+        // Poll for completion
+        let videoUrl = null;
+        let attempts = 0;
+        const maxAttempts = 180; // 3 minutes with 1-second intervals
+
+        while (!videoUrl && attempts < maxAttempts) {
+          attempts++;
+          console.log(`Polling attempt ${attempts}/${maxAttempts} for image ${i + 1}...`);
+
+          try {
+            const statusResponse = await fetch(`/api/video/status?id=${predictionId}`);
+
+            if (!statusResponse.ok) {
+              const text = await statusResponse.text();
+              console.error("Status check error response:", text);
+              throw new Error(`Status check failed: ${statusResponse.status} - ${text}`);
+            }
+
+            const statusData = await statusResponse.json();
+
+            if (statusData.status === 'succeeded') {
+              videoUrl = statusData.videoUrl;
+              console.log(`Video generation completed for image ${i + 1}!`);
+              break;
+            } else if (statusData.status === 'failed') {
+              throw new Error(`Video generation failed for image ${i + 1}: ${statusData.error}`);
+            } else {
+              // Still processing, wait 2 seconds before next check
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+          } catch (pollError) {
+            console.error(`Polling error for image ${i + 1}:`, pollError);
+            // Continue polling unless it's a critical error
+            if (attempts >= maxAttempts) {
+              throw pollError;
+            }
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        }
+
+        if (!videoUrl) {
+          throw new Error(`Video generation timed out for image ${i + 1} after ${maxAttempts * 2} seconds`);
+        }
+
         videos.push({
           index: i,
           imageUrl: analyzedImage.imageUrl,
           prompt: analyzedImage.prompt,
-          videoUrl: data.videoUrl
+          videoUrl: videoUrl
         });
       }
 
