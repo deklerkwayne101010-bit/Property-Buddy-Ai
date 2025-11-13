@@ -91,17 +91,18 @@ CREATE TABLE IF NOT EXISTS usage_tracking (
 
 -- Create payment_sessions table for tracking payment sessions
 CREATE TABLE IF NOT EXISTS payment_sessions (
-   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-   yoco_checkout_id TEXT NOT NULL,
-   amount INTEGER NOT NULL,
-   currency TEXT DEFAULT 'ZAR',
-   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed', 'cancelled')),
-   metadata JSONB,
-   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-   completed_at TIMESTAMP WITH TIME ZONE,
-   failed_at TIMESTAMP WITH TIME ZONE,
-   cancelled_at TIMESTAMP WITH TIME ZONE
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    yoco_checkout_id TEXT, -- Keep for backward compatibility
+    payfast_payment_id TEXT, -- Add PayFast payment ID
+    amount INTEGER NOT NULL,
+    currency TEXT DEFAULT 'ZAR',
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed', 'cancelled')),
+    metadata JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    completed_at TIMESTAMP WITH TIME ZONE,
+    failed_at TIMESTAMP WITH TIME ZONE,
+    cancelled_at TIMESTAMP WITH TIME ZONE
 );
 
 -- Create payments table for completed payments
