@@ -11,7 +11,7 @@ export const config = {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { imageUrl, prompt, editType, userId } = body;
+    const { imageUrl, prompt, editType, userId, referenceImages } = body;
 
     // Check credits and deduct for photo editing (1 credit per edit)
     if (!userId) {
@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
     console.log('Image URL:', imageUrl);
     console.log('Prompt:', prompt);
     console.log('Edit Type:', editType);
+    console.log('Reference Images:', referenceImages || []);
 
     if (!imageUrl || !prompt) {
       return NextResponse.json({ error: 'imageUrl and prompt are required' }, { status: 400 });
@@ -54,13 +55,21 @@ export async function POST(request: NextRequest) {
 
     console.log('Edit type:', editType, 'isObjectRemover:', isObjectRemover);
 
+    // Prepare enhanced prompt with reference images if provided
+    let enhancedPrompt = prompt;
+    if (referenceImages && referenceImages.length > 0) {
+      const referenceText = `Reference images are available for context. Use these reference images to understand the desired style, composition, or elements to incorporate into the editing process.`;
+      enhancedPrompt = `${prompt}\n\n${referenceText}`;
+      console.log('Enhanced prompt with reference images:', enhancedPrompt);
+    }
+
     // Prepare Replicate API request body based on model
     let requestBody;
     if (isObjectRemover) {
       // FLUX Pro for object removal
       requestBody = {
         input: {
-          prompt: prompt,
+          prompt: enhancedPrompt,
           input_image: imagePublicUrl,
           aspect_ratio: "match_input_image",
           output_format: "jpg",
@@ -74,7 +83,7 @@ export async function POST(request: NextRequest) {
       requestBody = {
         input: {
           image: [imagePublicUrl],
-          prompt: prompt
+          prompt: enhancedPrompt
         }
       };
       console.log('Using Qwen Image Edit Plus for enhancement');

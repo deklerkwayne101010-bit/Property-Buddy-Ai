@@ -62,6 +62,7 @@ export default function PhotoEditor() {
   const [editedImage, setEditedImage] = useState<string | null>(null);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [selectedReferenceImages, setSelectedReferenceImages] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedEditType, setSelectedEditType] = useState<'object-remover' | 'image-enhancer' | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -292,6 +293,21 @@ export default function PhotoEditor() {
     setOriginalImage(image.url);
   };
 
+  const toggleReferenceImage = (imageUrl: string) => {
+    setSelectedReferenceImages(prev => {
+      if (prev.includes(imageUrl)) {
+        // Remove if already selected
+        return prev.filter(url => url !== imageUrl);
+      } else if (prev.length < 2) {
+        // Add if under limit
+        return [...prev, imageUrl];
+      } else {
+        // Replace the first one if at limit
+        return [prev[1], imageUrl];
+      }
+    });
+  };
+
   const handleEnhancePhoto = async () => {
     if (!selectedImageUrl || !agentInstruction || !selectedEditType) return;
 
@@ -314,6 +330,7 @@ export default function PhotoEditor() {
           prompt: agentInstruction,
           editType: selectedEditType,
           userId: user?.id,
+          referenceImages: selectedReferenceImages,
         }),
       });
 
@@ -609,6 +626,24 @@ export default function PhotoEditor() {
               </div>
 
               <div className="p-6 sm:p-8">
+                {/* Reference Images Selection Info */}
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-sm font-medium text-blue-800">Reference Images</span>
+                    </div>
+                    <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                      {selectedReferenceImages.length}/2 selected
+                    </span>
+                  </div>
+                  <p className="text-xs text-blue-700 mt-1">
+                    Select up to 2 images from your gallery to use as reference for the AI editing process.
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                   {uploadedImages.map((image) => (
                     <div
@@ -616,6 +651,8 @@ export default function PhotoEditor() {
                       className={`relative group cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-300 hover:scale-105 ${
                         selectedImageUrl === image.url
                           ? 'border-blue-500 shadow-lg shadow-blue-500/30'
+                          : selectedReferenceImages.includes(image.url)
+                          ? 'border-green-500 shadow-lg shadow-green-500/30'
                           : 'border-slate-200 hover:border-slate-300'
                       }`}
                     >
@@ -624,9 +661,14 @@ export default function PhotoEditor() {
                         alt={image.filename}
                         className="w-full h-24 sm:h-32 object-cover"
                       />
+
+                      {/* Selection indicators */}
                       <div className={`absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 ${
-                        selectedImageUrl === image.url ? 'bg-blue-500/10' : ''
+                        selectedImageUrl === image.url ? 'bg-blue-500/10' :
+                        selectedReferenceImages.includes(image.url) ? 'bg-green-500/10' : ''
                       }`}>
+
+                        {/* Main image selection indicator */}
                         {selectedImageUrl === image.url && (
                           <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1">
                             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -635,11 +677,44 @@ export default function PhotoEditor() {
                           </div>
                         )}
 
-                      {/* Click overlay for selection */}
+                        {/* Reference image selection indicator */}
+                        {selectedReferenceImages.includes(image.url) && (
+                          <div className="absolute top-2 right-2 bg-green-500 text-white rounded-full p-1">
+                            <span className="text-xs font-bold">
+                              {selectedReferenceImages.indexOf(image.url) + 1}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Click overlay for main image selection */}
                       <div
                         className="absolute inset-0 cursor-pointer"
                         onClick={() => selectImage(image)}
                       />
+
+                      {/* Reference image checkbox - appears on hover */}
+                      <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleReferenceImage(image.url);
+                          }}
+                          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${
+                            selectedReferenceImages.includes(image.url)
+                              ? 'bg-green-500 border-green-500 text-white'
+                              : 'bg-white/90 border-slate-300 hover:border-green-400'
+                          }`}
+                          title={selectedReferenceImages.includes(image.url) ? 'Remove as reference' : 'Add as reference'}
+                        >
+                          {selectedReferenceImages.includes(image.url) && (
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
 
                       {/* Delete button - appears on hover (positioned after overlay to be on top) */}
                       <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
@@ -665,27 +740,74 @@ export default function PhotoEditor() {
                         </button>
                       </div>
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                      <p className="text-white text-xs truncate">{image.filename}</p>
-                    </div>
-                    </div>
                   ))}
                 </div>
 
-                {selectedImageUrl && (
-                  <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <span className="text-blue-800 font-medium">Selected Image</span>
+                {/* Selected Images Display */}
+                {(selectedImageUrl || selectedReferenceImages.length > 0) && (
+                  <div className="mt-6 space-y-4">
+                    {/* Main Selected Image */}
+                    {selectedImageUrl && (
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                            <span className="text-blue-800 font-medium">Selected Image for Editing</span>
+                          </div>
+                          <button
+                            onClick={() => setSelectedImageUrl(null)}
+                            className="text-blue-600 hover:text-blue-800 text-sm underline"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                        <div className="mt-3 flex items-center space-x-3">
+                          <img
+                            src={selectedImageUrl}
+                            alt="Selected for editing"
+                            className="w-12 h-12 object-cover rounded-lg border-2 border-blue-300"
+                          />
+                          <span className="text-sm text-blue-700">This image will be processed by AI</span>
+                        </div>
                       </div>
-                      <button
-                        onClick={() => setSelectedImageUrl(null)}
-                        className="text-blue-600 hover:text-blue-800 text-sm underline"
-                      >
-                        Clear Selection
-                      </button>
-                    </div>
+                    )}
+
+                    {/* Selected Reference Images */}
+                    {selectedReferenceImages.length > 0 && (
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                            <span className="text-green-800 font-medium">
+                              Reference Images ({selectedReferenceImages.length}/2)
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => setSelectedReferenceImages([])}
+                            className="text-green-600 hover:text-green-800 text-sm underline"
+                          >
+                            Clear All
+                          </button>
+                        </div>
+                        <div className="mt-3 flex items-center space-x-3">
+                          {selectedReferenceImages.map((url, index) => (
+                            <div key={url} className="relative">
+                              <img
+                                src={url}
+                                alt={`Reference ${index + 1}`}
+                                className="w-12 h-12 object-cover rounded-lg border-2 border-green-300"
+                              />
+                              <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                {index + 1}
+                              </div>
+                            </div>
+                          ))}
+                          <span className="text-sm text-green-700">
+                            These images will be used as reference for AI processing
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
