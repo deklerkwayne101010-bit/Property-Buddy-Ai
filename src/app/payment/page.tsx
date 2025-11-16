@@ -217,7 +217,7 @@ function PaymentPageContent() {
     setIsProcessing(true);
 
     try {
-      const response = await fetch('/api/yoco/checkout', {
+      const response = await fetch('/api/payfast/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -241,9 +241,25 @@ function PaymentPageContent() {
 
       const data = await response.json();
 
-      if (data.success && data.redirectUrl) {
-        // Redirect to YOCO checkout page
-        window.location.href = data.redirectUrl;
+      if (data.success && data.formData && data.payfastUrl) {
+        // Create and submit Payfast form
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = data.payfastUrl;
+        form.style.display = 'none';
+
+        // Add all form fields
+        Object.entries(data.formData).forEach(([key, value]) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = value as string;
+          form.appendChild(input);
+        });
+
+        // Add form to body and submit
+        document.body.appendChild(form);
+        form.submit();
       } else {
         throw new Error(data.error || 'Unknown error');
       }
@@ -690,7 +706,7 @@ function PaymentPageContent() {
               <span className="font-semibold">Secure Payments</span>
             </div>
             <p className="text-sm">
-              All payments are processed securely through YOCO with PCI DSS compliance.
+              All payments are processed securely through Payfast with PCI DSS compliance.
               Your payment information is never stored on our servers.
             </p>
           </div>
