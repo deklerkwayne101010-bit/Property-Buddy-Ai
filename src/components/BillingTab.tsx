@@ -191,7 +191,7 @@ Status: ${invoiceData.status}
           currency: 'ZAR',
           description: `${selectedPackage.credits} AI Credits`,
           metadata: {
-            type: 'credit_purchase',
+            type: 'credits',
             credits: selectedPackage.credits,
             userId: user.id,
             email: user.email,
