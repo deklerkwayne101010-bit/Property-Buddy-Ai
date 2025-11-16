@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../../../../lib/supabase';
 import { createSecurityHeaders, logSecurityEvent } from '../../../../lib/security';
 import crypto from 'crypto';
+import { promises as dns } from 'dns';
 
 interface ITNData {
   m_payment_id: string;
@@ -23,7 +24,7 @@ interface ITNData {
   [key: string]: string;
 }
 
-function verifyPayFastSignature(data: ITNData, passphrase: string): boolean {
+function verifyPayFastSignature(data: ITNData): boolean {
   const passphraseEnv = process.env.PAYFAST_PASSPHRASE;
   if (!passphraseEnv) {
     console.error('PAYFAST_PASSPHRASE not configured');
@@ -78,23 +79,10 @@ function verifyPayFastIP(request: NextRequest): boolean {
     'w2w.payfast.co.za',
   ];
 
-  // Get IP addresses for valid hosts
-  const validIPs: string[] = [];
-  for (const host of validHosts) {
-    try {
-      const addresses = require('dns').promises.resolve4(host);
-      // For simplicity, we'll use a basic check - in production you'd want to cache these
-      // For now, we'll be more permissive and just check if it's not obviously invalid
-      console.log(`Resolved ${host} to IPs:`, addresses);
-    } catch (error) {
-      console.warn(`Could not resolve ${host}:`, error);
-    }
-  }
-
   // For development/testing, we'll be more permissive
   // In production, you'd want to maintain a list of valid Payfast IPs
   const isLocalhost = clientIP === '127.0.0.1' || clientIP === '::1' || clientIP.startsWith('192.168.') || clientIP.startsWith('10.');
-  const isValidDomain = validHosts.some(host => {
+  const isValidDomain = validHosts.some(() => {
     // Basic domain check - in production use proper IP validation
     return true; // For now, accept all - implement proper IP validation in production
   });
@@ -190,13 +178,8 @@ export async function POST(request: NextRequest) {
     // Step 4.3: Conduct four security checks
 
     // Check 1: Verify the signature
-    const passphrase = process.env.PAYFAST_PASSPHRASE;
-    if (!passphrase) {
-      console.error('PAYFAST_PASSPHRASE not configured');
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-    }
 
-    const signatureValid = verifyPayFastSignature(itnData, passphrase);
+    const signatureValid = verifyPayFastSignature(itnData);
     if (!signatureValid) {
       console.error('❌ Check 1 FAILED: Invalid PayFast signature');
       logSecurityEvent('PAYFAST_INVALID_SIGNATURE', {
