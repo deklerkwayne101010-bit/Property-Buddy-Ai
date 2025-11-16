@@ -180,23 +180,49 @@ Status: ${invoiceData.status}
 
     setProcessingPayment(true);
     try {
-      const response = await fetch('/api/yoco/checkout', {
+      const selectedPackage = creditPackages[creditPackage];
+      const response = await fetch('/api/payfast/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          packageId: creditPackage,
-          userId: user.id,
-          type: 'credit_purchase'
+          amount: selectedPackage.price,
+          currency: 'ZAR',
+          description: `${selectedPackage.credits} AI Credits`,
+          metadata: {
+            type: 'credit_purchase',
+            credits: selectedPackage.credits,
+            userId: user.id,
+            email: user.email,
+            firstName: user.user_metadata?.full_name?.split(' ')[0] || 'Customer',
+            lastName: user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || 'User',
+            phone: user.user_metadata?.phone || ''
+          }
         }),
       });
 
       const data = await response.json();
 
-      if (data.success && data.checkoutUrl) {
-        // Redirect to YOCO checkout
-        window.location.href = data.checkoutUrl;
+      if (data.success && data.formData && data.payfastUrl) {
+        // Create and submit Payfast form
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = data.payfastUrl;
+        form.style.display = 'none';
+
+        // Add all form fields
+        Object.entries(data.formData).forEach(([key, value]) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = value as string;
+          form.appendChild(input);
+        });
+
+        // Add form to body and submit
+        document.body.appendChild(form);
+        form.submit();
       } else {
         alert('Failed to create checkout session. Please try again.');
       }
