@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../../../../lib/supabase';
 import {
   checkRateLimit,
-  validateRequestSize,
   getClientIP,
   createSecurityHeaders,
   logSecurityEvent
@@ -130,12 +129,12 @@ export async function POST(request: NextRequest) {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       user = authUser;
       console.log('User authenticated:', user?.id, 'email:', user?.email);
-    } catch (authError) {
+    } catch {
       console.log('Auth not available, proceeding without authentication for demo');
     }
 
     // For demo purposes, allow unauthenticated users but create a guest user ID
-    let userId = user?.id || 'guest-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    const userId = user?.id || 'guest-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     console.log('Using user ID for payment:', userId);
 
     const body: CheckoutRequest = await request.json();
