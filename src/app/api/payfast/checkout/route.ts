@@ -30,19 +30,30 @@ interface PayFastCheckoutResponse {
 }
 
 function generatePayFastSignature(data: Record<string, string>, passphrase: string): string {
-  // Sort parameters alphabetically
-  const sortedKeys = Object.keys(data).sort();
+  // Payfast requires parameters in the order they appear in the documentation, NOT alphabetically
+  // Order: merchant_id, merchant_key, return_url, cancel_url, notify_url, name_first, name_last,
+  // email_address, cell_number, m_payment_id, amount, item_name, item_description,
+  // custom_str1-5, custom_int1-5, payment_method, signature (excluded)
 
-  // Create signature string
+  const parameterOrder = [
+    'merchant_id', 'merchant_key', 'return_url', 'cancel_url', 'notify_url',
+    'name_first', 'name_last', 'email_address', 'cell_number',
+    'm_payment_id', 'amount', 'item_name', 'item_description',
+    'custom_str1', 'custom_str2', 'custom_str3', 'custom_str4', 'custom_str5',
+    'custom_int1', 'custom_int2', 'custom_int3', 'custom_int4', 'custom_int5',
+    'payment_method'
+  ];
+
+  // Create signature string in correct order
   let signatureString = '';
-  for (const key of sortedKeys) {
-    if (key !== 'signature' && data[key] !== '') {
+  for (const key of parameterOrder) {
+    if (key !== 'signature' && data[key] !== undefined && data[key] !== '') {
       signatureString += `${key}=${encodeURIComponent(data[key]).replace(/%20/g, '+')}&`;
     }
   }
 
-  // Add passphrase
-  signatureString += `passphrase=${encodeURIComponent(passphrase)}`;
+  // Remove trailing & and add passphrase
+  signatureString = signatureString.slice(0, -1) + `&passphrase=${encodeURIComponent(passphrase)}`;
 
   // Generate MD5 hash
   return crypto.createHash('md5').update(signatureString).digest('hex');

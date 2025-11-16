@@ -30,25 +30,29 @@ function verifyPayFastSignature(data: ITNData, passphrase: string): boolean {
     return false;
   }
 
-  // Create signature from all parameters except signature
-  const signatureData: Record<string, string> = {};
-  for (const [key, value] of Object.entries(data)) {
-    if (key !== 'signature' && value !== '') {
-      signatureData[key] = value;
+  // Payfast requires parameters in the order they appear in the ITN documentation, NOT alphabetically
+  // ITN parameter order: m_payment_id, pf_payment_id, payment_status, item_name, item_description,
+  // amount_gross, amount_fee, amount_net, custom_str1-5, custom_int1-5, name_first, name_last,
+  // email_address, merchant_id, signature (excluded)
+
+  const parameterOrder = [
+    'm_payment_id', 'pf_payment_id', 'payment_status', 'item_name', 'item_description',
+    'amount_gross', 'amount_fee', 'amount_net',
+    'custom_str1', 'custom_str2', 'custom_str3', 'custom_str4', 'custom_str5',
+    'custom_int1', 'custom_int2', 'custom_int3', 'custom_int4', 'custom_int5',
+    'name_first', 'name_last', 'email_address', 'merchant_id'
+  ];
+
+  // Create signature string in correct order
+  let signatureString = '';
+  for (const key of parameterOrder) {
+    if (key !== 'signature' && data[key as keyof ITNData] !== undefined && data[key as keyof ITNData] !== '') {
+      signatureString += `${key}=${encodeURIComponent(data[key as keyof ITNData]).replace(/%20/g, '+')}&`;
     }
   }
 
-  // Sort parameters alphabetically
-  const sortedKeys = Object.keys(signatureData).sort();
-
-  // Create signature string
-  let signatureString = '';
-  for (const key of sortedKeys) {
-    signatureString += `${key}=${encodeURIComponent(signatureData[key]).replace(/%20/g, '+')}&`;
-  }
-
-  // Add passphrase
-  signatureString += `passphrase=${encodeURIComponent(passphraseEnv)}`;
+  // Remove trailing & and add passphrase
+  signatureString = signatureString.slice(0, -1) + `&passphrase=${encodeURIComponent(passphraseEnv)}`;
 
   // Generate MD5 hash
   const calculatedSignature = crypto.createHash('md5').update(signatureString).digest('hex');
