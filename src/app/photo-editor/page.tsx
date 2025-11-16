@@ -538,7 +538,10 @@ export default function PhotoEditor() {
 
       <div className="container mx-auto px-4 py-8 max-w-7xl">
 
-        <div className="grid gap-8 lg:gap-12 max-w-5xl mx-auto">
+        <div className="grid gap-8 lg:gap-12 max-w-7xl mx-auto lg:grid-cols-4">
+          {/* Main Content */}
+          <div className="lg:col-span-3">
+            <div className="grid gap-8 lg:gap-12 max-w-5xl">
           {/* Upload Section Card */}
           <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-slate-500/20 hover:scale-[1.02]">
             <div className="bg-gradient-to-r from-slate-50 to-blue-50 px-6 sm:px-8 py-6 border-b border-slate-100">
@@ -609,6 +612,166 @@ export default function PhotoEditor() {
                   </div>
                 </div>
               )}
+                </div>
+              </div>
+    
+              {/* Pre-built Prompts Sidebar */}
+              <div className="lg:col-span-1">
+                <div className="sticky top-8 space-y-6">
+                  <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-amber-500/20 hover:scale-[1.02]">
+                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 px-6 py-6 border-b border-slate-100">
+                      <h2 className="text-xl font-semibold text-slate-800 flex items-center">
+                        <svg className="w-6 h-6 mr-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                        AI Prompt Templates
+                      </h2>
+                      <p className="text-sm text-slate-600 mt-1">Pre-built prompts for common edits</p>
+                    </div>
+    
+                    <div className="p-6 space-y-6">
+                      {/* Object Removal Prompts */}
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Object Removal
+                        </h3>
+                        <div className="space-y-2">
+                          {[
+                            "Remove all people from the image",
+                            "Remove the car from the driveway",
+                            "Remove background clutter and distractions",
+                            "Remove unwanted objects and debris",
+                            "Remove furniture from the room",
+                            "Remove electrical wires and cables",
+                            "Remove trash and litter from the scene",
+                            "Remove vehicles from the parking area"
+                          ].map((prompt, index) => (
+                            <button
+                              key={index}
+                              onClick={() => {
+                                setAgentInstruction(prompt);
+                                setSelectedEditType('object-remover');
+                              }}
+                              className="w-full text-left p-3 bg-red-50 hover:bg-red-100 border border-red-200 hover:border-red-300 rounded-lg transition-all duration-200 hover:scale-105 text-sm text-slate-700 hover:text-red-800"
+                            >
+                              {prompt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+    
+                      {/* Image Enhancement Prompts */}
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          Image Enhancement
+                        </h3>
+                        <div className="space-y-2">
+                          {[
+                            "Convert to professional black and white",
+                            "Add golden hour sunset lighting",
+                            "Enhance colors and make them more vibrant",
+                            "Add cinematic film look and grain",
+                            "Fix perspective and straighten lines",
+                            "Add dramatic shadows and contrast",
+                            "Apply vintage photography filter",
+                            "Boost brightness and clarity",
+                            "Add professional color grading",
+                            "Create HDR effect with enhanced details"
+                          ].map((prompt, index) => (
+                            <button
+                              key={index}
+                              onClick={() => {
+                                setAgentInstruction(prompt);
+                                setSelectedEditType('image-enhancer');
+                              }}
+                              className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 hover:border-blue-300 rounded-lg transition-all duration-200 hover:scale-105 text-sm text-slate-700 hover:text-blue-800"
+                            >
+                              {prompt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+    
+                      {/* Real Estate Specific Prompts */}
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                          Real Estate
+                        </h3>
+                        <div className="space-y-2">
+                          {[
+                            "Remove For Sale signs and real estate flags",
+                            "Remove real estate agent from the photo",
+                            "Clean up landscaping and garden areas",
+                            "Remove construction equipment and tools",
+                            "Enhance curb appeal with better lighting",
+                            "Remove utility boxes and meters",
+                            "Clean up driveway and parking areas",
+                            "Remove neighborhood distractions",
+                            "Enhance property colors and appeal",
+                            "Add professional staging atmosphere"
+                          ].map((prompt, index) => (
+                            <button
+                              key={index}
+                              onClick={() => {
+                                setAgentInstruction(prompt);
+                                setSelectedEditType(selectedEditType || 'image-enhancer');
+                              }}
+                              className="w-full text-left p-3 bg-green-50 hover:bg-green-100 border border-green-200 hover:border-green-300 rounded-lg transition-all duration-200 hover:scale-105 text-sm text-slate-700 hover:text-green-800"
+                            >
+                              {prompt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+    
+                      {/* Seasonal & Weather Prompts */}
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.9" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 9l-3 3m0 0l3 3m-3-3h12.5" />
+                          </svg>
+                          Seasonal & Weather
+                        </h3>
+                        <div className="space-y-2">
+                          {[
+                            "Change cloudy sky to clear blue sky",
+                            "Add autumn fall colors to trees",
+                            "Convert winter scene to spring flowers",
+                            "Add summer sunshine and brightness",
+                            "Remove snow and add green grass",
+                            "Change night scene to daytime",
+                            "Add sunset golden hour lighting",
+                            "Remove rain and add sunshine",
+                            "Convert overcast to bright and sunny",
+                            "Add seasonal holiday decorations"
+                          ].map((prompt, index) => (
+                            <button
+                              key={index}
+                              onClick={() => {
+                                setAgentInstruction(prompt);
+                                setSelectedEditType('image-enhancer');
+                              }}
+                              className="w-full text-left p-3 bg-purple-50 hover:bg-purple-100 border border-purple-200 hover:border-purple-300 rounded-lg transition-all duration-200 hover:scale-105 text-sm text-slate-700 hover:text-purple-800"
+                            >
+                              {prompt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
