@@ -325,15 +325,11 @@ export default function PhotoEditor() {
         ? `${agentInstruction} - Do not change, replace, invent, or modify the outside scenery in ANY way. Keep every pixel of the exterior exactly the same as the original — same buildings, trees, shapes, colors, shadows, and brightness.
 
 Only remove the glare/reflection on the window glass so the original outside view becomes clearer. This is a restoration task, not a generation task.
-
-Strict rules:
-– Do NOT add or remove objects outside.
-– Do NOT change the weather, lighting, or sky.
-– Do NOT alter colors or exposure of the outside scene.
-– Do NOT hallucinate or fill in missing details.
-– Keep interior reflections intact except the glare being removed.
-
-Output the exact same scene with the glare removed — nothing else changes.`
+Do NOT add or remove objects outside.
+Do NOT change the weather, lighting, or sky.
+Do NOT alter colors or exposure of the outside scene.
+Do NOT hallucinate or fill in missing details.
+Keep interior reflections intact except the glare being removed.`
         : agentInstruction;
 
       // Send the Supabase URL directly to the API with edit type
