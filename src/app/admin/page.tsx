@@ -33,7 +33,7 @@ export default function AdminDashboard() {
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState<string | null>(null);
    const [isAdmin, setIsAdmin] = useState(false);
-   const [activeTab, setActiveTab] = useState<'users' | 'cleanup'>('users');
+   const [activeTab, setActiveTab] = useState<'users' | 'marketing' | 'cleanup'>('users');
 
   useEffect(() => {
     checkAdminAccess();
@@ -191,6 +191,16 @@ export default function AdminDashboard() {
                   }`}
                 >
                   Users Management
+                </button>
+                <button
+                  onClick={() => setActiveTab('marketing')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'marketing'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  Marketing Materials
                 </button>
                 <button
                   onClick={() => setActiveTab('cleanup')}
@@ -385,6 +395,39 @@ export default function AdminDashboard() {
             )}
           </div>
         </>
+      )}
+
+      {activeTab === 'marketing' && (
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200">
+            <h2 className="text-xl font-semibold text-slate-900">Marketing Materials Management</h2>
+            <p className="text-slate-600 text-sm">Manage products, orders, and sales for the marketing materials shop</p>
+          </div>
+          <div className="p-6">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Marketing Materials Shop</h3>
+              <p className="text-slate-600 mb-6">
+                Manage your marketing materials products, track orders, and monitor sales performance.
+                Add new products, update pricing, and view detailed analytics.
+              </p>
+              <a
+                href="/admin/marketing-materials"
+                className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors inline-flex items-center space-x-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>Manage Marketing Materials</span>
+              </a>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

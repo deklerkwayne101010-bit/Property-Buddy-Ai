@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { ShopProduct, CartItem } from '@/types/shop';
 import { fadeInUp, staggerContainer, staggerItem } from '@/components/animations';
+import DashboardLayout from '@/components/DashboardLayout';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function MarketingMaterialsPage() {
   const [products, setProducts] = useState<ShopProduct[]>([]);
@@ -71,12 +73,14 @@ export default function MarketingMaterialsPage() {
   }
 
   return (
-    <motion.div
-      className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.8 }}
-    >
+    <ProtectedRoute>
+      <DashboardLayout>
+        <motion.div
+          className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8 }}
+        >
       {/* Header */}
       <section className="relative overflow-hidden bg-gradient-to-r from-slate-600 to-blue-600 text-white">
         <div className="absolute inset-0 bg-black/10"></div>
@@ -181,6 +185,8 @@ export default function MarketingMaterialsPage() {
           )}
         </div>
       </section>
-    </motion.div>
+        </motion.div>
+      </DashboardLayout>
+    </ProtectedRoute>
   );
 }
