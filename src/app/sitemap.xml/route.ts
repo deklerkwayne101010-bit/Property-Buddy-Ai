@@ -1,30 +1,46 @@
 import { NextRequest } from 'next/server';
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://propertybuddy.ai';
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.stagefy.co.za';
 
 const staticPages = [
   '',
   '/login',
   '/register',
   '/forgot-password',
+  '/verify-email',
   '/dashboard',
   '/photo-editor',
   '/property-descriptions',
   '/ai-chat',
-  '/video-generator',
+  '/ai-video',
+  '/ai-video-editor',
+  '/video-ai-maker',
   '/marketing-materials',
+  '/marketing-materials/checkout',
+  '/marketing-materials/payment-success',
   '/templates',
   '/template-editor',
   '/crm',
   '/canva-upload',
   '/payment',
   '/account',
-  '/credits',
-  '/about',
-  '/contact',
-  '/privacy',
-  '/terms',
-  '/support'
+  '/admin',
+  '/admin/dashboard',
+  '/admin/properties',
+  '/admin/bookings',
+  '/admin/maintenance',
+  '/admin/messages',
+  '/admin/reports',
+  '/admin/owners',
+  '/admin/marketing-materials',
+  '/client/dashboard',
+  '/client/properties',
+  '/client/bookings',
+  '/client/maintenance',
+  '/client/gallery',
+  '/client/messages',
+  '/agent/dashboard',
+  '/agent/listings/new'
 ];
 
 function generateSitemap() {
