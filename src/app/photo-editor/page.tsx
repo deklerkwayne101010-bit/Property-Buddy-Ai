@@ -487,65 +487,53 @@ Keep interior reflections intact except the glare being removed.`
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
       >
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-600/5 to-blue-600/5"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center lg:pt-32">
-          <motion.div
-            className="transition-all duration-1000"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <motion.div
-              className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-slate-500 to-blue-600 rounded-xl mb-8 shadow-lg"
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              transition={{ duration: 0.3 }}
-            >
-              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      {/* Compact Hero Section with Workflow Steps */}
+      <section className="relative bg-gradient-to-br from-slate-50 via-white to-blue-50 border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            {/* Icon and Title */}
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-slate-500 to-blue-600 rounded-xl mb-6 shadow-lg">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-            </motion.div>
-            <motion.h1
-              className="text-4xl sm:text-6xl lg:text-7xl font-bold text-slate-900 mb-6"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-            >
-              AI-Powered
-              <motion.span
-                className="block bg-gradient-to-r from-slate-600 to-blue-600 bg-clip-text text-transparent"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, delay: 0.5 }}
-              >
-                Photo Editor
-              </motion.span>
-            </motion.h1>
+            </div>
 
-            {/* Cost Display */}
-            <motion.div
-              className="inline-flex items-center bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-full px-4 py-2 mb-4"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.8 }}
-            >
+            <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3">
+              AI Photo Editor
+            </h1>
+
+            <p className="text-lg text-slate-600 mb-6 max-w-2xl mx-auto">
+              Transform your property images with advanced AI-powered editing
+            </p>
+
+            {/* Cost Badge */}
+            <div className="inline-flex items-center bg-blue-50 border border-blue-200 rounded-full px-3 py-1.5 mb-6">
+              <span className="text-blue-700 text-sm font-medium">1 Credit per edit</span>
+            </div>
+
+            {/* Workflow Steps */}
+            <div className="flex items-center justify-center space-x-4 sm:space-x-8 mb-8">
               <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">💰</span>
-                </div>
-                <span className="text-blue-800 font-semibold text-sm">1 Credit per edit</span>
+                <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">1</div>
+                <span className="text-sm font-medium text-slate-700 hidden sm:inline">Upload</span>
               </div>
-            </motion.div>
-            <motion.p
-              className="text-xl sm:text-2xl text-slate-600 mb-8 max-w-3xl mx-auto leading-relaxed"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.7 }}
-            >
-              Transform your images with advanced AI-powered editing. Upload a photo and describe the changes you want to see.
-            </motion.p>
-          </motion.div>
+              <div className="w-8 h-0.5 bg-slate-300"></div>
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-slate-300 text-slate-600 rounded-full flex items-center justify-center text-sm font-semibold">2</div>
+                <span className="text-sm font-medium text-slate-500 hidden sm:inline">Configure</span>
+              </div>
+              <div className="w-8 h-0.5 bg-slate-300"></div>
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-slate-300 text-slate-600 rounded-full flex items-center justify-center text-sm font-semibold">3</div>
+                <span className="text-sm font-medium text-slate-500 hidden sm:inline">Process</span>
+              </div>
+              <div className="w-8 h-0.5 bg-slate-300"></div>
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-slate-300 text-slate-600 rounded-full flex items-center justify-center text-sm font-semibold">4</div>
+                <span className="text-sm font-medium text-slate-500 hidden sm:inline">Results</span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -553,89 +541,98 @@ Keep interior reflections intact except the glare being removed.`
 
         <div className="grid gap-8 lg:gap-12 max-w-5xl mx-auto">
           {/* Upload Section Card */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-slate-500/20 hover:scale-[1.02]">
-            <div className="bg-gradient-to-r from-slate-50 to-blue-50 px-6 sm:px-8 py-6 border-b border-slate-100">
-              <h2 className="text-xl font-semibold text-slate-800 flex items-center">
-                <svg className="w-6 h-6 mr-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                Upload Your Image
-              </h2>
-              <p className="text-sm text-slate-600 mt-1">Drag and drop or click to select an image file</p>
+          <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+            <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-800 flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    Upload Image
+                  </h2>
+                  <p className="text-sm text-slate-600 mt-0.5">Select an image to edit with AI</p>
+                </div>
+                <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+                  Step 1
+                </div>
+              </div>
             </div>
 
-            <div
-              className="relative p-6 sm:p-8 text-center cursor-pointer transition-all duration-300 hover:bg-gradient-to-br hover:from-blue-50/50 hover:to-purple-50/50 group"
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileSelect}
-                accept="image/jpeg,image/png"
-                className="hidden"
-              />
+            <div className="p-6">
+              <div
+                className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center cursor-pointer transition-all duration-200 hover:border-blue-400 hover:bg-blue-50/30"
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  accept="image/jpeg,image/png"
+                  className="hidden"
+                />
 
-              {originalImage ? (
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="relative group">
-                    <img
-                      src={originalImage}
-                      alt="Selected"
-                      className="max-w-full max-h-64 sm:max-h-80 rounded-2xl shadow-lg border-4 border-white transition-all duration-300 group-hover:shadow-xl group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-2xl transition-all duration-300 flex items-center justify-center">
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 backdrop-blur-sm rounded-full p-3">
-                        <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
+                {originalImage ? (
+                  <div className="space-y-4">
+                    <div className="relative inline-block">
+                      <img
+                        src={originalImage}
+                        alt="Selected"
+                        className="max-w-full max-h-48 rounded-lg shadow-md border border-slate-200"
+                      />
+                      <div className="absolute inset-0 bg-black/0 hover:bg-black/5 rounded-lg transition-colors flex items-center justify-center">
+                        <div className="opacity-0 hover:opacity-100 transition-opacity bg-white/90 rounded-full p-2">
+                          <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
                       </div>
                     </div>
+                    <div className="text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-md border">
+                      Click to select a different image
+                    </div>
                   </div>
-                  <div className="bg-slate-50 border border-slate-200 rounded-full px-4 py-2">
-                    <p className="text-slate-700 font-medium">Click to change image</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="relative">
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto bg-gradient-to-br from-slate-100 to-blue-100 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                      <svg className="w-10 h-10 sm:w-12 sm:h-12 text-slate-600 transition-transform duration-300 group-hover:scale-110" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                ) : (
+                  <div className="space-y-4">
+                    <div className="w-12 h-12 mx-auto bg-slate-100 rounded-lg flex items-center justify-center">
+                      <svg className="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                       </svg>
                     </div>
-                    <div className="absolute -top-2 -right-2 w-6 h-6 sm:w-8 sm:h-8 bg-emerald-500 rounded-full flex items-center justify-center animate-pulse">
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
+                    <div>
+                      <p className="text-lg font-medium text-slate-800 mb-1">Drop your image here</p>
+                      <p className="text-sm text-slate-600">or click to browse files</p>
+                    </div>
+                    <div className="flex items-center justify-center space-x-2">
+                      <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-md">JPEG</span>
+                      <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-md">PNG</span>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-xl sm:text-2xl font-semibold text-slate-800">Drop your image here</p>
-                    <p className="text-slate-600 text-sm sm:text-base">or click to browse your files</p>
-                    <div className="flex items-center justify-center space-x-3 sm:space-x-4 mt-4">
-                      <span className="inline-flex items-center px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm bg-slate-100 text-slate-800">JPEG</span>
-                      <span className="inline-flex items-center px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm bg-blue-100 text-blue-800">PNG</span>
-                    </div>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
 
           {/* Image Gallery Section Card */}
           {uploadedImages.length > 0 && (
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/20 hover:scale-[1.02]">
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 sm:px-8 py-6 border-b border-slate-100">
-                <h2 className="text-xl font-semibold text-slate-800 flex items-center">
-                  <svg className="w-6 h-6 mr-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                  Your Personal Gallery
-                </h2>
-                <p className="text-sm text-slate-600 mt-1">Only you can see your uploaded images</p>
+            <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+              <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-800 flex items-center">
+                      <svg className="w-5 h-5 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                      Your Images
+                    </h2>
+                    <p className="text-sm text-slate-600 mt-0.5">Select images from your personal gallery</p>
+                  </div>
+                  <div className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                    Step 1
+                  </div>
+                </div>
               </div>
 
               <div className="p-6 sm:p-8">
@@ -828,15 +825,22 @@ Keep interior reflections intact except the glare being removed.`
           )}
 
           {/* Edit Type Selection Section Card */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/20 hover:scale-[1.02]">
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-6 sm:px-8 py-6 border-b border-slate-100">
-              <h2 className="text-xl font-semibold text-slate-800 flex items-center">
-                <svg className="w-6 h-6 mr-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                Choose Edit Type
-              </h2>
-              <p className="text-sm text-slate-600 mt-1">Select the type of AI editing you want to perform</p>
+          <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+            <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-800 flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    Choose Edit Type
+                  </h2>
+                  <p className="text-sm text-slate-600 mt-0.5">Select the type of AI editing you want to perform</p>
+                </div>
+                <div className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">
+                  Step 2
+                </div>
+              </div>
             </div>
 
             <div className="p-6 sm:p-8">
@@ -917,15 +921,22 @@ Keep interior reflections intact except the glare being removed.`
           </div>
 
           {/* Instructions Section Card */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/20 hover:scale-[1.02]">
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 sm:px-8 py-6 border-b border-slate-100">
-              <h2 className="text-xl font-semibold text-slate-800 flex items-center">
-                <svg className="w-6 h-6 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                AI Instructions
-              </h2>
-              <p className="text-sm text-slate-600 mt-1">Describe how you want to transform your image</p>
+          <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+            <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-800 flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    AI Instructions
+                  </h2>
+                  <p className="text-sm text-slate-600 mt-0.5">Describe how you want to transform your image</p>
+                </div>
+                <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+                  Step 3
+                </div>
+              </div>
             </div>
 
             <div className="p-6 sm:p-8">
@@ -1066,8 +1077,8 @@ Keep interior reflections intact except the glare being removed.`
           </div>
 
           {/* Action Section */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/20 hover:scale-[1.02]">
-            <div className="p-6 sm:p-8 text-center">
+          <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+            <div className="p-6 text-center">
               {isLoading ? (
                 <div className="space-y-6">
                   {/* Progress Bar */}
@@ -1142,15 +1153,22 @@ Keep interior reflections intact except the glare being removed.`
 
           {/* Results Section */}
           {originalImage && editedImage && (
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:scale-[1.02]">
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 px-6 sm:px-8 py-6 border-b border-slate-100">
-                <h2 className="text-xl font-semibold text-slate-800 flex items-center">
-                  <svg className="w-6 h-6 mr-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  AI {selectedEditType === 'object-remover' ? 'Object Removal' : 'Enhancement'} Complete
-                </h2>
-                <p className="text-sm text-slate-600 mt-1">Compare your original image with the AI-processed version</p>
+            <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+              <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-800 flex items-center">
+                      <svg className="w-5 h-5 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      AI {selectedEditType === 'object-remover' ? 'Object Removal' : 'Enhancement'} Complete
+                    </h2>
+                    <p className="text-sm text-slate-600 mt-0.5">Compare your original image with the AI-processed version</p>
+                  </div>
+                  <div className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">
+                    Step 4
+                  </div>
+                </div>
               </div>
 
               <div className="p-6 sm:p-8">
