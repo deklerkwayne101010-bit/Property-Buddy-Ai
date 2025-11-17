@@ -479,28 +479,49 @@ function PaymentPageContent() {
                     ))}
                   </ul>
 
-                  <button
-                    onClick={() => plan.price === 0 ? null : handlePayment(plan)}
-                    disabled={isProcessing || plan.price === 0}
-                    className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-200 text-lg ${
-                      plan.price === 0
-                        ? 'bg-slate-100 text-slate-500 cursor-not-allowed'
-                        : plan.popular
-                        ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-900'
-                    } disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center`}
-                  >
-                    {plan.price === 0 ? (
-                      'Current Plan'
-                    ) : isProcessing && selectedPlan === plan.id ? (
-                      <>
-                        <LoadingSpinner size="sm" />
-                        <span className="ml-2">Processing...</span>
-                      </>
-                    ) : (
-                      `Subscribe to ${plan.name}`
-                    )}
-                  </button>
+                  {(() => {
+                    // Determine if this plan is the user's current plan
+                    const isCurrentPlan = (() => {
+                      if (plan.price === 0) return true; // Free plan
+
+                      // Map subscription tiers to plan IDs
+                      const planTierMap = {
+                        'starter': ['starter-monthly', 'starter-yearly'],
+                        'pro': ['pro-monthly', 'pro-yearly'],
+                        'elite': ['elite-monthly', 'elite-yearly'],
+                        'agency': ['agency-monthly', 'agency-yearly']
+                      };
+
+                      // Check if current subscription matches this plan
+                      const matchingPlans = planTierMap[currentSubscription as keyof typeof planTierMap];
+                      return matchingPlans && matchingPlans.includes(plan.id);
+                    })();
+
+                    return (
+                      <button
+                        onClick={() => isCurrentPlan ? null : handlePayment(plan)}
+                        disabled={isProcessing || isCurrentPlan}
+                        className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-200 text-lg ${
+                          isCurrentPlan
+                            ? 'bg-slate-100 text-slate-500 cursor-not-allowed'
+                            : plan.popular
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-900'
+                        } disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center`}
+                      >
+                        {isCurrentPlan ? (
+                          'Current Plan'
+                        ) : isProcessing && selectedPlan === plan.id ? (
+                          <>
+                            <LoadingSpinner size="sm" />
+                            <span className="ml-2">Processing...</span>
+                          </>
+                        ) : (
+                          `Subscribe to ${plan.name}`
+                        )}
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
             ))}
