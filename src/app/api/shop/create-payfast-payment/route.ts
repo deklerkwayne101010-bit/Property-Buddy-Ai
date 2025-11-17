@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import crypto from 'crypto';
+import { CartItem, ShippingAddress } from '@/types/shop';
+
+interface PaymentRequest {
+  cart: CartItem[];
+  shippingAddress: ShippingAddress;
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const { cart, shippingAddress } = await request.json();
+    const { cart, shippingAddress }: PaymentRequest = await request.json();
 
     if (!cart || !shippingAddress) {
       return NextResponse.json(
@@ -14,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate total
-    const total = cart.reduce((sum: number, item: any) =>
+    const total = cart.reduce((sum: number, item: CartItem) =>
       sum + (item.product.price * item.quantity), 0
     );
 
@@ -70,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Payfast data
-    const payfastData = {
+    const payfastData: Record<string, string | number> = {
       merchant_id: payfastMerchantId,
       merchant_key: payfastMerchantKey,
       return_url: `${process.env.NEXT_PUBLIC_APP_URL}/marketing-materials/payment-success?order_id=${order.id}`,
