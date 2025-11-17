@@ -45,7 +45,7 @@ export default function PropertyDescriptions() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('new-listing');
   const [userId] = useState(user?.id || 'demo-user'); // In a real app, this would come from auth
-  const [hasAccess, setHasAccess] = useState(false);
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [formData, setFormData] = useState<PropertyFormData>({
     title: '',
@@ -288,8 +288,27 @@ export default function PropertyDescriptions() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
       >
-        {/* Access Check */}
-        {!hasAccess ? (
+        {/* Loading State */}
+        {hasAccess === null ? (
+          <motion.div
+            className="text-center py-16"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-spin">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
+              Loading...
+            </h1>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+              Checking your subscription status...
+            </p>
+          </motion.div>
+        ) : hasAccess === false ? (
           <motion.div
             className="text-center py-16"
             initial={{ opacity: 0, y: 20 }}
