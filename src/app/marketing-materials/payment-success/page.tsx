@@ -58,7 +58,7 @@ function PaymentSuccessContent() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-slate-900 mb-4">Order Not Found</h1>
-          <p className="text-slate-600 mb-8">We couldn't find your order details.</p>
+          <p className="text-slate-600 mb-8">We couldn&apos;t find your order details.</p>
           <Link
             href="/marketing-materials"
             className="bg-slate-600 text-white px-6 py-2 rounded-lg hover:bg-slate-700"
@@ -93,7 +93,7 @@ function PaymentSuccessContent() {
                 </svg>
               </div>
               <h1 className="text-3xl font-bold text-slate-900 mb-2">Payment Processing</h1>
-              <p className="text-slate-600">Your payment is being processed. We'll send you an email confirmation once it's complete.</p>
+              <p className="text-slate-600">Your payment is being processed. We&apos;ll send you an email confirmation once it&apos;s complete.</p>
             </>
           )}
         </div>
@@ -158,7 +158,7 @@ function PaymentSuccessContent() {
 
         {/* Next Steps */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold text-slate-900 mb-4">What's Next?</h2>
+          <h2 className="text-xl font-bold text-slate-900 mb-4">What&apos;s Next?</h2>
 
           {order.status === 'paid' && (
             <div className="space-y-4">
@@ -168,7 +168,7 @@ function PaymentSuccessContent() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-slate-900">Order Processing</h3>
-                  <p className="text-slate-600">We'll start preparing your order for shipment within 1-2 business days.</p>
+                  <p className="text-slate-600">We&apos;ll start preparing your order for shipment within 1-2 business days.</p>
                 </div>
               </div>
 
@@ -178,7 +178,7 @@ function PaymentSuccessContent() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-slate-900">Shipping</h3>
-                  <p className="text-slate-600">You'll receive a shipping confirmation email with tracking information.</p>
+                  <p className="text-slate-600">You&apos;ll receive a shipping confirmation email with tracking information.</p>
                 </div>
               </div>
 
