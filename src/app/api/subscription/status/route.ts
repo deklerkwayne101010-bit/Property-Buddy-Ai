@@ -13,9 +13,10 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.substring(7);
+    // Use service role key to bypass RLS since we're authenticating with JWT
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
