@@ -155,18 +155,23 @@ function PaymentPageContent() {
     const loadCurrentSubscription = async () => {
       setIsLoadingSubscription(true);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          // First try to get from credits API which includes subscription tier
-          const creditsResponse = await fetch(`/api/credits?userId=${user.id}`);
-          if (creditsResponse.ok) {
-            const creditsData = await creditsResponse.json();
-            console.log('Credits API response:', creditsData); // Debug log
-            console.log('Setting subscription to:', creditsData.subscriptionTier); // Debug log
-            setCurrentSubscription(creditsData.subscriptionTier || 'free');
-          } else {
-            console.log('Credits API failed, trying direct query'); // Debug log
-            // Fallback to direct database query
+        // Use the same subscription status API as the billing tab for consistency
+        const response = await fetch('/api/subscription/status');
+        if (response.ok) {
+          const subscriptionData = await response.json();
+          // Map the plan name to the tier identifier used in the payment page
+          const planToTier = {
+            'Free Plan': 'free',
+            'Starter Plan': 'starter',
+            'Pro Plan': 'pro',
+            'Elite Plan': 'elite',
+            'Agency+ Plan': 'agency'
+          };
+          setCurrentSubscription(planToTier[subscriptionData.plan as keyof typeof planToTier] || 'free');
+        } else {
+          // Fallback to direct database query if API fails
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
             const { data: profile } = await supabase
               .from('profiles')
               .select('subscription_tier')
@@ -174,8 +179,6 @@ function PaymentPageContent() {
               .single();
 
             if (profile) {
-              console.log('Direct query result:', profile); // Debug log
-              console.log('Setting subscription to:', profile.subscription_tier); // Debug log
               setCurrentSubscription(profile.subscription_tier || 'free');
             }
           }
