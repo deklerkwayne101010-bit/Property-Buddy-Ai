@@ -34,6 +34,9 @@ export async function GET(request: NextRequest) {
       .single();
 
     const subscriptionTier = profile?.subscription_tier || 'free';
+    console.log('API: User ID:', user.id);
+    console.log('API: Raw subscription_tier from database:', profile?.subscription_tier);
+    console.log('API: Final subscriptionTier:', subscriptionTier);
 
     // Map subscription tiers to plan details
     const planDetails = {
