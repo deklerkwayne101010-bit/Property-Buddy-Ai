@@ -429,7 +429,8 @@ function PaymentPageContent() {
             </div>
           )}
 
-          {/* Subscription Management Section */}
+
+          {/* Subscription Management Section - Moved up for better visibility */}
           {subscription && currentSubscription !== 'free' && (
             <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100 mb-6">
               <div className="flex items-center justify-between mb-6">
