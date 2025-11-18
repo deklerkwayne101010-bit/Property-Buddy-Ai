@@ -178,55 +178,56 @@ function PaymentPageContent() {
   const loadCurrentSubscription = async () => {
     setIsLoadingSubscription(true);
     try {
-      // Get the current session to include JWT token in API request
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      // First try direct database query to get the most reliable data
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('subscription_tier')
+          .eq('id', user.id)
+          .single();
 
-      if (!token) {
-        console.error('No authentication token available');
-        setCurrentSubscription('free');
-        setIsLoadingSubscription(false);
-        return;
-      }
+        if (profile) {
+          console.log('Direct database query result:', profile.subscription_tier);
+          setCurrentSubscription(profile.subscription_tier || 'free');
 
-      // Use the same subscription status API as the billing tab for consistency
-      const response = await fetch('/api/subscription/status', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+          // Now try to get full subscription details from API
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
 
-      if (response.ok) {
-        const subscriptionData = await response.json();
-        setSubscription(subscriptionData);
-        // Map the plan name to the tier identifier used in the payment page
-        const planToTier = {
-          'Free Plan': 'free',
-          'Starter Plan': 'starter',
-          'Pro Plan': 'pro',
-          'Elite Plan': 'elite',
-          'Agency+ Plan': 'agency'
-        };
-        setCurrentSubscription(planToTier[subscriptionData.plan as keyof typeof planToTier] || 'free');
-      } else {
-        console.error('Subscription API failed:', response.status, response.statusText);
-        // Fallback to direct database query if API fails
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('subscription_tier')
-            .eq('id', user.id)
-            .single();
+            if (token) {
+              const response = await fetch('/api/subscription/status', {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              });
 
-          if (profile) {
-            setCurrentSubscription(profile.subscription_tier || 'free');
+              if (response.ok) {
+                const subscriptionData = await response.json();
+                console.log('Subscription API response:', subscriptionData);
+                setSubscription(subscriptionData);
+              } else {
+                console.error('Subscription API failed:', response.status, response.statusText);
+              }
+            } else {
+              console.error('No authentication token available for API call');
+            }
+          } catch (apiError) {
+            console.error('Error calling subscription API:', apiError);
           }
+        } else {
+          console.log('No profile found, setting to free');
+          setCurrentSubscription('free');
         }
+      } else {
+        console.log('No user found, setting to free');
+        setCurrentSubscription('free');
       }
     } catch (error) {
       console.error('Error loading subscription:', error);
+      setCurrentSubscription('free');
     } finally {
       setIsLoadingSubscription(false);
     }
