@@ -926,13 +926,13 @@ function PaymentPageContent() {
                     <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
                       Your subscription will remain active until the end of your current billing period
                       ({new Date(subscription?.currentPeriodEnd || '').toLocaleDateString()}).
-                      you'll still have access to all features during this time.
+                      you&apos;ll still have access to all features during this time.
                     </p>
                   )}
 
                   {immediateCancellation && (
                     <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
-                      ⚠️ Your subscription will be cancelled immediately and you'll lose access to all premium features right away.
+                      ⚠️ Your subscription will be cancelled immediately and you&apos;ll lose access to all premium features right away.
                     </p>
                   )}
                 </div>
