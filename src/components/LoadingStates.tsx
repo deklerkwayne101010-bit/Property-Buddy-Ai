@@ -8,6 +8,7 @@ interface LoadingStatesProps {
   message?: string;
   size?: 'sm' | 'md' | 'lg';
   variant?: 'default' | 'pulse' | 'dots' | 'bars' | 'wave' | 'ring' | 'bounce';
+  skeletonVariant?: 'card' | 'text' | 'avatar' | 'button' | 'property-card' | 'lead-row' | 'result-card';
   className?: string;
   progress?: number;
   showProgress?: boolean;
@@ -212,6 +213,7 @@ export default function LoadingStates({
   message,
   size = 'md',
   variant = 'default',
+  skeletonVariant = 'card',
   className = '',
   progress,
   showProgress = false
@@ -230,7 +232,7 @@ export default function LoadingStates({
       return <InlineLoading message={message} size={size} className={className} />;
 
     case 'skeleton':
-      return <SkeletonLoading variant={variant as any} className={className} />;
+      return <SkeletonLoading variant={skeletonVariant} className={className} />;
 
     default:
       return (
