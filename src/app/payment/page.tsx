@@ -149,47 +149,53 @@ function PaymentPageContent() {
   const [paymentCanceled, setPaymentCanceled] = useState(false);
   const [currentSubscription, setCurrentSubscription] = useState('free');
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancellingSubscription, setCancellingSubscription] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [cancellationFeedback, setCancellationFeedback] = useState('');
+  const [immediateCancellation, setImmediateCancellation] = useState(false);
 
-  useEffect(() => {
-    // Load current subscription
-    const loadCurrentSubscription = async () => {
-      setIsLoadingSubscription(true);
-      try {
-        // Use the same subscription status API as the billing tab for consistency
-        const response = await fetch('/api/subscription/status');
-        if (response.ok) {
-          const subscriptionData = await response.json();
-          // Map the plan name to the tier identifier used in the payment page
-          const planToTier = {
-            'Free Plan': 'free',
-            'Starter Plan': 'starter',
-            'Pro Plan': 'pro',
-            'Elite Plan': 'elite',
-            'Agency+ Plan': 'agency'
-          };
-          setCurrentSubscription(planToTier[subscriptionData.plan as keyof typeof planToTier] || 'free');
-        } else {
-          // Fallback to direct database query if API fails
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('subscription_tier')
-              .eq('id', user.id)
-              .single();
+  const loadCurrentSubscription = async () => {
+    setIsLoadingSubscription(true);
+    try {
+      // Use the same subscription status API as the billing tab for consistency
+      const response = await fetch('/api/subscription/status');
+      if (response.ok) {
+        const subscriptionData = await response.json();
+        setSubscription(subscriptionData);
+        // Map the plan name to the tier identifier used in the payment page
+        const planToTier = {
+          'Free Plan': 'free',
+          'Starter Plan': 'starter',
+          'Pro Plan': 'pro',
+          'Elite Plan': 'elite',
+          'Agency+ Plan': 'agency'
+        };
+        setCurrentSubscription(planToTier[subscriptionData.plan as keyof typeof planToTier] || 'free');
+      } else {
+        // Fallback to direct database query if API fails
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('subscription_tier')
+            .eq('id', user.id)
+            .single();
 
-            if (profile) {
-              setCurrentSubscription(profile.subscription_tier || 'free');
-            }
+          if (profile) {
+            setCurrentSubscription(profile.subscription_tier || 'free');
           }
         }
-      } catch (error) {
-        console.error('Error loading subscription:', error);
-      } finally {
-        setIsLoadingSubscription(false);
       }
-    };
+    } catch (error) {
+      console.error('Error loading subscription:', error);
+    } finally {
+      setIsLoadingSubscription(false);
+    }
+  };
 
+  useEffect(() => {
     loadCurrentSubscription();
 
     // Set up a refresh interval to check for credit updates after payment
@@ -272,6 +278,45 @@ function PaymentPageContent() {
       alert('Failed to process payment. Please try again.');
       setIsProcessing(false);
       setSelectedPlan(null);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!subscription) return;
+
+    setCancellingSubscription(true);
+    try {
+      const response = await fetch('/api/subscription/cancel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reason: cancellationReason,
+          feedback: cancellationFeedback,
+          immediate: immediateCancellation,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Reload subscription data
+        await loadCurrentSubscription();
+        setShowCancelDialog(false);
+        setCancellationReason('');
+        setCancellationFeedback('');
+        setImmediateCancellation(false);
+
+        alert(data.message);
+      } else {
+        alert('Failed to cancel subscription. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error cancelling subscription:', error);
+      alert('An error occurred. Please try again.');
+    } finally {
+      setCancellingSubscription(false);
     }
   };
 
@@ -362,6 +407,89 @@ function PaymentPageContent() {
                   </svg>
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Subscription Management Section */}
+          {subscription && currentSubscription !== 'free' && (
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100 mb-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-semibold text-slate-900">Subscription Management</h3>
+                  <p className="text-slate-600 mt-1">Manage your current subscription</p>
+                </div>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                  subscription.status === 'active' ? 'text-green-600 bg-green-100' :
+                  subscription.status === 'pending_cancellation' ? 'text-yellow-600 bg-yellow-100' :
+                  subscription.status === 'cancelled' ? 'text-red-600 bg-red-100' :
+                  subscription.status === 'past_due' ? 'text-orange-600 bg-orange-100' :
+                  'text-slate-600 bg-slate-100'
+                }`}>
+                  {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1).replace('_', ' ')}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium text-slate-900">{subscription.plan}</h4>
+                    <p className="text-2xl font-bold text-blue-600">
+                      ${subscription.price}/{subscription.interval}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Next billing date:</span>
+                      <span className="font-medium">{new Date(subscription.nextBillingDate).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Payment method:</span>
+                      <span className="font-medium">
+                        {subscription.paymentMethod.brand.charAt(0).toUpperCase() + subscription.paymentMethod.brand.slice(1)} •••• {subscription.paymentMethod.last4}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-medium text-slate-900">Plan Features</h4>
+                  <ul className="space-y-1">
+                    {subscription.features.map((feature: string, index: number) => (
+                      <li key={index} className="flex items-center text-sm text-slate-600">
+                        <span className="text-green-500 mr-2">✓</span>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {subscription.status === 'active' && (
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setShowCancelDialog(true)}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                  >
+                    Cancel Subscription
+                  </button>
+                </div>
+              )}
+
+              {subscription.status === 'pending_cancellation' && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <span className="text-yellow-600 mr-2">⚠️</span>
+                    <div>
+                      <p className="font-medium text-yellow-800">Cancellation Pending</p>
+                      <p className="text-sm text-yellow-700">
+                        Your subscription will end on {new Date(subscription.currentPeriodEnd).toLocaleDateString()}.
+                        You can still use all features until then.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -721,6 +849,94 @@ function PaymentPageContent() {
               </div>
             </div>
           </div>
+
+          {/* Cancellation Confirmation Dialog */}
+          {showCancelDialog && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+                <h3 className="text-xl font-semibold text-slate-900 mb-4">Cancel Subscription</h3>
+
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Reason for cancellation (optional)
+                    </label>
+                    <select
+                      value={cancellationReason}
+                      onChange={(e) => setCancellationReason(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select a reason</option>
+                      <option value="too_expensive">Too expensive</option>
+                      <option value="not_using">Not using it enough</option>
+                      <option value="missing_features">Missing features</option>
+                      <option value="technical_issues">Technical issues</option>
+                      <option value="switching_service">Switching to another service</option>
+                      <option value="temporary_pause">Temporary pause</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Additional feedback (optional)
+                    </label>
+                    <textarea
+                      value={cancellationFeedback}
+                      onChange={(e) => setCancellationFeedback(e.target.value)}
+                      placeholder="Tell us how we can improve..."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="immediate"
+                      checked={immediateCancellation}
+                      onChange={(e) => setImmediateCancellation(e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded"
+                    />
+                    <label htmlFor="immediate" className="ml-2 text-sm text-slate-700">
+                      Cancel immediately (lose access right away)
+                    </label>
+                  </div>
+
+                  {!immediateCancellation && (
+                    <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
+                      Your subscription will remain active until the end of your current billing period
+                      ({new Date(subscription?.currentPeriodEnd || '').toLocaleDateString()}).
+                      you'll still have access to all features during this time.
+                    </p>
+                  )}
+
+                  {immediateCancellation && (
+                    <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                      ⚠️ Your subscription will be cancelled immediately and you'll lose access to all premium features right away.
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setShowCancelDialog(false)}
+                    className="px-4 py-2 text-slate-600 hover:text-slate-700 transition-colors"
+                    disabled={cancellingSubscription}
+                  >
+                    Keep Subscription
+                  </button>
+                  <button
+                    onClick={handleCancelSubscription}
+                    disabled={cancellingSubscription}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {cancellingSubscription ? 'Cancelling...' : 'Confirm Cancellation'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Security Notice */}
           <div className="text-center text-slate-600">
