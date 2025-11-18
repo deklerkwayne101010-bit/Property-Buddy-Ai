@@ -484,7 +484,7 @@ function PaymentPageContent() {
                   <div>
                     <h4 className="font-medium text-slate-900">{subscription.plan}</h4>
                     <p className="text-2xl font-bold text-blue-600">
-                      {formatPrice(subscription.price, subscription.currency)}/{subscription.interval}
+                      {subscription.currency === 'ZAR' ? 'R' : '$'}{subscription.price}/{subscription.interval}
                     </p>
                   </div>
 
