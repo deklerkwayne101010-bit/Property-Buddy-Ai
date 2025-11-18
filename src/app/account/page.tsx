@@ -7,25 +7,6 @@ import { supabase } from '../../lib/supabase';
 import BillingTab from '../../components/BillingTab';
 import SecurityTab from '../../components/SecurityTab';
 
-interface SubscriptionData {
-  id: string;
-  status: 'active' | 'cancelled' | 'pending_cancellation' | 'past_due';
-  plan: string;
-  price: number;
-  currency: string;
-  interval: string;
-  currentPeriodStart: string;
-  currentPeriodEnd: string;
-  cancelAtPeriodEnd: boolean;
-  cancelledAt: string | null;
-  nextBillingDate: string;
-  paymentMethod: {
-    type: string;
-    last4: string;
-    brand: string;
-  };
-  features: string[];
-}
 
 export default function AccountPage() {
     const [activeTab, setActiveTab] = useState('profile');
@@ -64,14 +45,7 @@ export default function AccountPage() {
      autoSave: true,
      dataRetention: '1year'
    });
-   const [currentSubscription, setCurrentSubscription] = useState('free');
    const [userCredits, setUserCredits] = useState(0);
-   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
-   const [showCancelDialog, setShowCancelDialog] = useState(false);
-   const [cancellingSubscription, setCancellingSubscription] = useState(false);
-   const [cancellationReason, setCancellationReason] = useState('');
-   const [cancellationFeedback, setCancellationFeedback] = useState('');
-   const [immediateCancellation, setImmediateCancellation] = useState(false);
   useEffect(() => {
      // Load user profile data on component mount
      const loadUserProfile = async () => {
@@ -121,49 +95,34 @@ export default function AccountPage() {
        }
      };
 
-     // Load user subscription
-     const loadUserSubscription = async () => {
+     // Load user credits
+     const loadUserCredits = async () => {
        try {
          const { data: { user } } = await supabase.auth.getUser();
          if (user) {
            const { data: profile } = await supabase
              .from('profiles')
-             .select('subscription_tier, credits_balance')
+             .select('credits_balance')
              .eq('id', user.id)
              .single();
 
            if (profile) {
-             setCurrentSubscription(profile.subscription_tier || 'free');
              setUserCredits(profile.credits_balance || 0);
            }
          }
        } catch (error) {
-         console.error('Error loading subscription:', error);
-       }
-     };
-
-     // Load detailed subscription data
-     const loadSubscriptionData = async () => {
-       try {
-         const response = await fetch('/api/subscription/status');
-         const data = await response.json();
-         setSubscriptionData(data);
-       } catch (error) {
-         console.error('Error loading subscription data:', error);
-         setSubscriptionData(null);
+         console.error('Error loading credits:', error);
        }
      };
 
      loadUserProfile();
      loadCreditsAndUsage();
-     loadUserSubscription();
-     loadSubscriptionData();
+     loadUserCredits();
 
      // Set up a refresh interval to check for credit updates after payment
      const refreshInterval = setInterval(() => {
        loadCreditsAndUsage();
-       loadUserSubscription();
-       loadSubscriptionData();
+       loadUserCredits();
      }, 5000); // Check every 5 seconds
 
      return () => clearInterval(refreshInterval);
@@ -171,7 +130,6 @@ export default function AccountPage() {
 
   const tabs = [
     { id: 'profile', label: 'Profile', icon: '👤' },
-    { id: 'subscription', label: 'Subscription', icon: '💎' },
     { id: 'preferences', label: 'Preferences', icon: '⚙️' },
     { id: 'billing', label: 'Billing', icon: '📄' },
     { id: 'security', label: 'Security', icon: '🔒' },
@@ -412,50 +370,6 @@ export default function AccountPage() {
     }
   };
 
-  const handleCancelSubscription = async () => {
-    if (!subscriptionData) return;
-
-    setCancellingSubscription(true);
-    try {
-      const response = await fetch('/api/subscription/cancel', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          reason: cancellationReason,
-          feedback: cancellationFeedback,
-          immediate: immediateCancellation,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Reload subscription data
-        try {
-          const response = await fetch('/api/subscription/status');
-          const newData = await response.json();
-          setSubscriptionData(newData);
-        } catch (error) {
-          console.error('Error reloading subscription data:', error);
-        }
-        setShowCancelDialog(false);
-        setCancellationReason('');
-        setCancellationFeedback('');
-        setImmediateCancellation(false);
-
-        alert(data.message);
-      } else {
-        alert('Failed to cancel subscription. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error cancelling subscription:', error);
-      alert('An error occurred. Please try again.');
-    } finally {
-      setCancellingSubscription(false);
-    }
-  };
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -545,353 +459,6 @@ export default function AccountPage() {
                   {isSaving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
-            </div>
-          </div>
-        );
-      case 'subscription':
-        return (
-          <div className="space-y-6">
-            {/* Current Subscription Status */}
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
-              <h3 className="text-xl font-semibold text-slate-900 mb-6">Current Subscription</h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <span className="text-2xl">💎</span>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-slate-900 capitalize">
-                        {subscriptionData?.plan || currentSubscription === 'free' ? 'Free Plan' :
-                         currentSubscription === 'starter' ? 'Starter Plan' :
-                         currentSubscription === 'pro' ? 'Pro Plan' :
-                         currentSubscription === 'elite' ? 'Elite Plan' :
-                         currentSubscription === 'agency' ? 'Agency+ Plan' : 'Unknown Plan'}
-                      </h4>
-                      <p className="text-slate-600 text-sm">
-                        {subscriptionData?.price ? `$${subscriptionData.price}/${subscriptionData.interval}` :
-                         currentSubscription === 'free' ? 'Free forever' :
-                         currentSubscription === 'starter' ? 'R150/month' :
-                         currentSubscription === 'pro' ? 'R299/month' :
-                         currentSubscription === 'elite' ? 'R599/month' :
-                         currentSubscription === 'agency' ? 'R999/month' : 'Unknown pricing'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-slate-900">{userCredits}</div>
-                    <div className="text-sm text-slate-600">Credits Available</div>
-                  </div>
-                </div>
-
-                {/* Subscription Details */}
-                {subscriptionData && (
-                  <div className="space-y-4">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Next billing date:</span>
-                      <span className="font-medium">{new Date(subscriptionData.nextBillingDate).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Payment method:</span>
-                      <span className="font-medium">
-                        {subscriptionData.paymentMethod.brand.charAt(0).toUpperCase() + subscriptionData.paymentMethod.brand.slice(1)} •••• {subscriptionData.paymentMethod.last4}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Credits refresh:</span>
-                      <span className="font-medium">
-                        {subscriptionData.interval === 'month' ? 'Monthly (1st of each month)' :
-                         subscriptionData.interval === 'year' ? 'Yearly (anniversary date)' : 'Unknown schedule'}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Plan Features */}
-              {subscriptionData?.features && (
-                <div className="mb-6">
-                  <h4 className="font-medium text-slate-900 mb-3">Plan Features</h4>
-                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {subscriptionData.features.map((feature, index) => (
-                      <li key={index} className="flex items-center text-sm text-slate-600">
-                        <span className="text-green-500 mr-2">✓</span>
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Subscription Actions */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                {subscriptionData?.status === 'active' && (
-                  <button
-                    onClick={() => setShowCancelDialog(true)}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                  >
-                    Cancel Subscription
-                  </button>
-                )}
-                <a
-                  href="/payment"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium text-center"
-                >
-                  {currentSubscription === 'free' ? 'Upgrade Plan' : 'Change Plan'}
-                </a>
-              </div>
-
-              {/* Cancellation Status */}
-              {subscriptionData?.status === 'pending_cancellation' && (
-                <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <div className="flex items-center">
-                    <span className="text-yellow-600 mr-2">⚠️</span>
-                    <div>
-                      <p className="font-medium text-yellow-800">Cancellation Pending</p>
-                      <p className="text-sm text-yellow-700">
-                        Your subscription will end on {new Date(subscriptionData.currentPeriodEnd).toLocaleDateString()}.
-                        You can still use all features until then.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Change Subscription */}
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
-              <h3 className="text-xl font-semibold text-slate-900 mb-6">Change Subscription</h3>
-
-              <div className="space-y-4">
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <h4 className="font-medium text-slate-900">Subscription Management</h4>
-                  </div>
-                  <p className="text-slate-600 text-sm">
-                    To change your subscription tier, please visit the{' '}
-                    <a href="/payment" className="text-blue-600 hover:text-blue-700 underline font-medium">
-                      Payment Page
-                    </a>{' '}
-                    where you can upgrade or downgrade with proper billing and credit allocation.
-                  </p>
-                </div>
-
-                <div className="border-t border-slate-200 pt-4">
-                  <h4 className="font-medium text-slate-900 mb-3">Available Plans</h4>
-                  <div className="grid grid-cols-1 gap-3">
-                    <div className={`flex items-center justify-between p-3 rounded-lg ${
-                      currentSubscription === 'free'
-                        ? 'bg-green-50 border border-green-200'
-                        : 'bg-slate-50 border border-slate-200'
-                    }`}>
-                      <div>
-                        <div className={`font-medium ${
-                          currentSubscription === 'free' ? 'text-green-900' : 'text-slate-900'
-                        }`}>Free Plan</div>
-                        <div className={`text-sm ${
-                          currentSubscription === 'free' ? 'text-green-700' : 'text-slate-600'
-                        }`}>5 credits - AI Photo Editor only</div>
-                      </div>
-                      {currentSubscription === 'free' ? (
-                        <span className="text-green-600 text-sm underline">Current Plan</span>
-                      ) : (
-                        <a href="/payment" className="text-slate-600 hover:text-slate-700 text-sm underline">
-                          Downgrade
-                        </a>
-                      )}
-                    </div>
-
-                    <div className={`flex items-center justify-between p-3 rounded-lg ${
-                      currentSubscription === 'starter'
-                        ? 'bg-blue-50 border border-blue-200'
-                        : 'bg-slate-50 border border-slate-200'
-                    }`}>
-                      <div>
-                        <div className={`font-medium ${
-                          currentSubscription === 'starter' ? 'text-blue-900' : 'text-slate-900'
-                        }`}>Starter Plan</div>
-                        <div className={`text-sm ${
-                          currentSubscription === 'starter' ? 'text-blue-700' : 'text-slate-600'
-                        }`}>50 credits - Basic features</div>
-                      </div>
-                      {currentSubscription === 'starter' ? (
-                        <span className="text-blue-600 text-sm underline">Current Plan</span>
-                      ) : (
-                        <a href="/payment" className={`px-3 py-1 text-sm rounded transition-colors ${
-                          currentSubscription === 'free' || currentSubscription === 'starter'
-                            ? 'bg-blue-600 text-white hover:bg-blue-700'
-                            : 'bg-slate-600 text-white hover:bg-slate-700'
-                        }`}>
-                          {currentSubscription === 'free' ? 'Upgrade' : 'Change Plan'}
-                        </a>
-                      )}
-                    </div>
-
-                    <div className={`flex items-center justify-between p-3 rounded-lg ${
-                      currentSubscription === 'pro'
-                        ? 'bg-purple-50 border border-purple-200'
-                        : 'bg-slate-50 border border-slate-200'
-                    }`}>
-                      <div>
-                        <div className={`font-medium ${
-                          currentSubscription === 'pro' ? 'text-purple-900' : 'text-slate-900'
-                        }`}>Pro Plan</div>
-                        <div className={`text-sm ${
-                          currentSubscription === 'pro' ? 'text-purple-700' : 'text-slate-600'
-                        }`}>100 credits - Full features</div>
-                      </div>
-                      {currentSubscription === 'pro' ? (
-                        <span className="text-purple-600 text-sm underline">Current Plan</span>
-                      ) : (
-                        <a href="/payment" className={`px-3 py-1 text-sm rounded transition-colors ${
-                          currentSubscription === 'free' || currentSubscription === 'starter' || currentSubscription === 'pro'
-                            ? 'bg-purple-600 text-white hover:bg-purple-700'
-                            : 'bg-slate-600 text-white hover:bg-slate-700'
-                        }`}>
-                          {currentSubscription === 'free' || currentSubscription === 'starter' ? 'Upgrade' : 'Change Plan'}
-                        </a>
-                      )}
-                    </div>
-
-                    <div className={`flex items-center justify-between p-3 rounded-lg ${
-                      currentSubscription === 'elite'
-                        ? 'bg-pink-50 border border-pink-200'
-                        : 'bg-slate-50 border border-slate-200'
-                    }`}>
-                      <div>
-                        <div className={`font-medium ${
-                          currentSubscription === 'elite' ? 'text-pink-900' : 'text-slate-900'
-                        }`}>Elite Plan</div>
-                        <div className={`text-sm ${
-                          currentSubscription === 'elite' ? 'text-pink-700' : 'text-slate-600'
-                        }`}>180 credits - Premium features</div>
-                      </div>
-                      {currentSubscription === 'elite' ? (
-                        <span className="text-pink-600 text-sm underline">Current Plan</span>
-                      ) : (
-                        <a href="/payment" className={`px-3 py-1 text-sm rounded transition-colors ${
-                          currentSubscription === 'free' || currentSubscription === 'starter' || currentSubscription === 'pro' || currentSubscription === 'elite'
-                            ? 'bg-pink-600 text-white hover:bg-pink-700'
-                            : 'bg-slate-600 text-white hover:bg-slate-700'
-                        }`}>
-                          Upgrade
-                        </a>
-                      )}
-                    </div>
-
-                    <div className={`flex items-center justify-between p-3 rounded-lg ${
-                      currentSubscription === 'agency'
-                        ? 'bg-orange-50 border border-orange-200'
-                        : 'bg-slate-50 border border-slate-200'
-                    }`}>
-                      <div>
-                        <div className={`font-medium ${
-                          currentSubscription === 'agency' ? 'text-orange-900' : 'text-slate-900'
-                        }`}>Agency+ Plan</div>
-                        <div className={`text-sm ${
-                          currentSubscription === 'agency' ? 'text-orange-700' : 'text-slate-600'
-                        }`}>350 credits - Enterprise features</div>
-                      </div>
-                      {currentSubscription === 'agency' ? (
-                        <span className="text-orange-600 text-sm underline">Current Plan</span>
-                      ) : (
-                        <a href="/payment" className={`px-3 py-1 text-sm rounded transition-colors ${
-                          currentSubscription === 'free' || currentSubscription === 'starter' || currentSubscription === 'pro' || currentSubscription === 'elite' || currentSubscription === 'agency'
-                            ? 'bg-orange-600 text-white hover:bg-orange-700'
-                            : 'bg-slate-600 text-white hover:bg-slate-700'
-                        }`}>
-                          Upgrade
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                  <div className="flex items-start space-x-3">
-                    <svg className="w-5 h-5 text-amber-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                    </svg>
-                    <div>
-                      <h4 className="font-medium text-amber-900">Admin Access Only</h4>
-                      <p className="text-amber-700 text-sm mt-1">
-                        This subscription management is for administrative purposes only.
-                        Users should upgrade through the payment page for proper billing and credit allocation.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-slate-600">
-                    For user upgrades with payment processing, use the{' '}
-                    <a href="/payment" className="text-blue-600 hover:text-blue-700 underline">
-                      Payment Page
-                    </a>
-                  </p>
-                  <button
-                    onClick={async () => {
-                      if (!confirm('Are you sure you want to manually change this subscription tier? This should only be used for administrative purposes.')) {
-                        return;
-                      }
-
-                      try {
-                        const { data: { user } } = await supabase.auth.getUser();
-                        if (!user) return;
-
-                        // Update subscription tier
-                        const { error } = await supabase
-                          .from('profiles')
-                          .update({ subscription_tier: currentSubscription })
-                          .eq('id', user.id);
-
-                        if (error) throw error;
-
-                        alert('Subscription updated successfully!');
-
-                        // Reload subscription data
-                        const { data: profile } = await supabase
-                          .from('profiles')
-                          .select('subscription_tier, credits_balance')
-                          .eq('id', user.id)
-                          .single();
-
-                        if (profile) {
-                          setCurrentSubscription(profile.subscription_tier || 'free');
-                          setUserCredits(profile.credits_balance || 0);
-                        }
-                      } catch (error) {
-                        console.error('Error updating subscription:', error);
-                        alert('Failed to update subscription. Please try again.');
-                      }
-                    }}
-                    className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
-                  >
-                    Admin Update Only
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Upgrade Options */}
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
-              <h3 className="text-xl font-semibold text-slate-900 mb-6">Need More Features?</h3>
-              <p className="text-slate-600 mb-6">
-                Upgrade to a paid subscription to unlock all AI features and get more credits.
-              </p>
-              <a
-                href="/payment"
-                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors font-semibold"
-              >
-                View All Plans
-                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </a>
             </div>
           </div>
         );
@@ -1169,93 +736,6 @@ export default function AccountPage() {
         </motion.div>
       </div>
 
-      {/* Cancellation Confirmation Dialog */}
-      {showCancelDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
-            <h3 className="text-xl font-semibold text-slate-900 mb-4">Cancel Subscription</h3>
-
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Reason for cancellation (optional)
-                </label>
-                <select
-                  value={cancellationReason}
-                  onChange={(e) => setCancellationReason(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Select a reason</option>
-                  <option value="too_expensive">Too expensive</option>
-                  <option value="not_using">Not using it enough</option>
-                  <option value="missing_features">Missing features</option>
-                  <option value="technical_issues">Technical issues</option>
-                  <option value="switching_service">Switching to another service</option>
-                  <option value="temporary_pause">Temporary pause</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Additional feedback (optional)
-                </label>
-                <textarea
-                  value={cancellationFeedback}
-                  onChange={(e) => setCancellationFeedback(e.target.value)}
-                  placeholder="Tell us how we can improve..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="immediate"
-                  checked={immediateCancellation}
-                  onChange={(e) => setImmediateCancellation(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded"
-                />
-                <label htmlFor="immediate" className="ml-2 text-sm text-slate-700">
-                  Cancel immediately (lose access right away)
-                </label>
-              </div>
-
-              {!immediateCancellation && (
-                <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
-                  Your subscription will remain active until the end of your current billing period
-                  ({subscriptionData?.currentPeriodEnd ? new Date(subscriptionData.currentPeriodEnd).toLocaleDateString() : 'Unknown date'}).
-                  You'll still have access to all features during this time.
-                </p>
-              )}
-
-              {immediateCancellation && (
-                <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
-                  ⚠️ Your subscription will be cancelled immediately and you'll lose access to all premium features right away.
-                </p>
-              )}
-            </div>
-
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowCancelDialog(false)}
-                className="px-4 py-2 text-slate-600 hover:text-slate-700 transition-colors"
-                disabled={cancellingSubscription}
-              >
-                Keep Subscription
-              </button>
-              <button
-                onClick={handleCancelSubscription}
-                disabled={cancellingSubscription}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed transition-colors"
-              >
-                {cancellingSubscription ? 'Cancelling...' : 'Confirm Cancellation'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </DashboardLayout>
   );
 }
