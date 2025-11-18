@@ -178,8 +178,25 @@ function PaymentPageContent() {
   const loadCurrentSubscription = async () => {
     setIsLoadingSubscription(true);
     try {
+      // Get the current session to include JWT token in API request
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      if (!token) {
+        console.error('No authentication token available');
+        setCurrentSubscription('free');
+        setIsLoadingSubscription(false);
+        return;
+      }
+
       // Use the same subscription status API as the billing tab for consistency
-      const response = await fetch('/api/subscription/status');
+      const response = await fetch('/api/subscription/status', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
       if (response.ok) {
         const subscriptionData = await response.json();
         setSubscription(subscriptionData);
@@ -193,6 +210,7 @@ function PaymentPageContent() {
         };
         setCurrentSubscription(planToTier[subscriptionData.plan as keyof typeof planToTier] || 'free');
       } else {
+        console.error('Subscription API failed:', response.status, response.statusText);
         // Fallback to direct database query if API fails
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -305,10 +323,21 @@ function PaymentPageContent() {
 
     setCancellingSubscription(true);
     try {
+      // Get the current session to include JWT token in API request
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      if (!token) {
+        alert('Authentication required. Please log in again.');
+        setCancellingSubscription(false);
+        return;
+      }
+
       const response = await fetch('/api/subscription/cancel', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           reason: cancellationReason,
