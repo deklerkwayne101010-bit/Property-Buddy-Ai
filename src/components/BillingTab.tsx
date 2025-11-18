@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
+import LoadingStates from './LoadingStates';
 
 interface Transaction {
   id: string;
@@ -203,14 +204,127 @@ Status: ${invoiceData.status}
   if (loading || subscriptionLoading) {
     return (
       <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-slate-200 rounded w-1/4 mb-4"></div>
-          <div className="h-32 bg-slate-200 rounded mb-6"></div>
-          <div className="h-8 bg-slate-200 rounded w-1/3 mb-4"></div>
-          <div className="space-y-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 bg-slate-200 rounded"></div>
-            ))}
+        {/* Subscription Management Skeleton */}
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
+          <div className="animate-pulse">
+            <div className="h-6 bg-slate-200 rounded w-1/3 mb-4"></div>
+            <div className="h-4 bg-slate-200 rounded w-1/4 mb-6"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="h-5 bg-slate-200 rounded w-1/2"></div>
+                <div className="h-8 bg-slate-200 rounded w-3/4"></div>
+                <div className="space-y-2">
+                  <div className="h-3 bg-slate-200 rounded w-2/3"></div>
+                  <div className="h-3 bg-slate-200 rounded w-1/2"></div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="h-5 bg-slate-200 rounded w-1/3"></div>
+                <div className="space-y-2">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-green-200 rounded-full"></div>
+                      <div className="h-3 bg-slate-200 rounded w-3/4"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end mt-6">
+              <div className="h-10 bg-slate-200 rounded w-40"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Credit Purchase Skeleton */}
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
+          <div className="animate-pulse">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <div className="h-6 bg-slate-200 rounded w-48 mb-2"></div>
+                <div className="h-4 bg-slate-200 rounded w-64"></div>
+              </div>
+              <div className="h-10 bg-slate-200 rounded w-32"></div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="border-2 border-slate-200 rounded-lg p-4">
+                  <div className="text-center">
+                    <div className="h-6 bg-slate-200 rounded w-12 mx-auto mb-2"></div>
+                    <div className="h-4 bg-slate-200 rounded w-16 mx-auto mb-4"></div>
+                    <div className="h-8 bg-slate-200 rounded w-20 mx-auto"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-center">
+              <div className="h-12 bg-slate-200 rounded w-48"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Payment Methods Skeleton */}
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
+          <div className="animate-pulse">
+            <div className="flex items-center justify-between mb-4">
+              <div className="h-6 bg-slate-200 rounded w-40"></div>
+              <div className="h-10 bg-slate-200 rounded w-48"></div>
+            </div>
+            <div className="space-y-3">
+              {[1, 2].map(i => (
+                <div key={i} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-slate-200 rounded-lg"></div>
+                    <div className="space-y-2">
+                      <div className="h-4 bg-slate-200 rounded w-48"></div>
+                      <div className="h-3 bg-slate-200 rounded w-32"></div>
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <div className="h-8 bg-slate-200 rounded w-20"></div>
+                    <div className="h-8 bg-slate-200 rounded w-16"></div>
+                    <div className="h-8 bg-slate-200 rounded w-16"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Transaction History Skeleton */}
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100">
+          <div className="animate-pulse">
+            <div className="flex items-center justify-between mb-6">
+              <div className="h-6 bg-slate-200 rounded w-48"></div>
+              <div className="flex space-x-3">
+                <div className="h-10 bg-slate-200 rounded w-32"></div>
+                <div className="h-10 bg-slate-200 rounded w-32"></div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-10 h-10 bg-slate-200 rounded-lg"></div>
+                    <div className="space-y-2">
+                      <div className="h-4 bg-slate-200 rounded w-48"></div>
+                      <div className="flex items-center space-x-3">
+                        <div className="h-3 bg-slate-200 rounded w-20"></div>
+                        <div className="h-3 bg-slate-200 rounded w-16"></div>
+                        <div className="h-3 bg-slate-200 rounded w-24"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="text-right space-y-1">
+                      <div className="h-5 bg-slate-200 rounded w-16"></div>
+                      <div className="h-4 bg-slate-200 rounded w-12"></div>
+                    </div>
+                    <div className="h-10 bg-slate-200 rounded w-32"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

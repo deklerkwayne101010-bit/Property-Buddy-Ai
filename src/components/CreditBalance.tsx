@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import LoadingStates from './LoadingStates';
 
 export default function CreditBalance() {
   const { user } = useAuth();
@@ -44,7 +45,7 @@ export default function CreditBalance() {
       </div>
       <div className="flex items-center space-x-1">
         {loading ? (
-          <div className="animate-pulse bg-gray-300 h-4 w-12 rounded"></div>
+          <LoadingStates type="inline" message="Loading..." size="sm" />
         ) : error ? (
           <span className="text-red-600 font-semibold text-sm">Error</span>
         ) : (

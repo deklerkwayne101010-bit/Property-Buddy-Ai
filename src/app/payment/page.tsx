@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import DashboardLayout from '../../components/DashboardLayout';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import LoadingStates from '../../components/LoadingStates';
 import BillingTab from '../../components/BillingTab';
 import { supabase } from '../../lib/supabase';
 
@@ -289,8 +290,8 @@ function PaymentPageContent() {
           {isLoadingSubscription ? (
             <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-center">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500 mr-3"></div>
-                <div>
+                <LoadingStates type="inline" message="Loading subscription..." size="sm" />
+                <div className="ml-3">
                   <h3 className="text-blue-800 font-semibold">Loading subscription...</h3>
                   <p className="text-blue-700 text-sm">Please wait while we load your plan details</p>
                 </div>
