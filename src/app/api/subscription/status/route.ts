@@ -102,6 +102,8 @@ export async function GET(request: NextRequest) {
     };
 
     const currentPlan = planDetails[subscriptionTier as keyof typeof planDetails] || planDetails.free;
+    console.log('API: currentPlan selected:', currentPlan);
+    console.log('API: currentPlan.plan:', currentPlan.plan);
 
     const subscriptionData = {
       id: `sub_${user.id}_${Date.now()}`,
