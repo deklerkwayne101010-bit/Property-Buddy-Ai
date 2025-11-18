@@ -101,9 +101,12 @@ export async function GET(request: NextRequest) {
       }
     };
 
+    console.log('API: About to lookup planDetails with key:', subscriptionTier);
+    console.log('API: Available planDetails keys:', Object.keys(planDetails));
     const currentPlan = planDetails[subscriptionTier as keyof typeof planDetails] || planDetails.free;
     console.log('API: currentPlan selected:', currentPlan);
     console.log('API: currentPlan.plan:', currentPlan.plan);
+    console.log('API: Did lookup succeed?', planDetails[subscriptionTier as keyof typeof planDetails] !== undefined);
 
     const subscriptionData = {
       id: `sub_${user.id}_${Date.now()}`,
