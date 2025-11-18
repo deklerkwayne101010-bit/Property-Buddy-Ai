@@ -347,7 +347,7 @@ function PaymentPageContent() {
     }).format(price / 100); // Convert from cents
   };
 
-  console.log('Rendering with currentSubscription:', currentSubscription); // Debug log
+  console.log('Rendering with currentSubscription:', currentSubscription, 'subscription:', subscription); // Debug log
 
   return (
     <ProtectedRoute>
@@ -431,7 +431,7 @@ function PaymentPageContent() {
 
 
           {/* Subscription Management Section - Moved up for better visibility */}
-          {subscription && currentSubscription !== 'free' && (
+          {subscription && (currentSubscription !== 'free' || true) && ( // TEMP: Always show for debugging
             <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100 mb-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
