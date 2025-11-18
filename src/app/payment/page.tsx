@@ -6,20 +6,39 @@ import DashboardLayout from '../../components/DashboardLayout';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import LoadingStates from '../../components/LoadingStates';
-import BillingTab from '../../components/BillingTab';
 import { supabase } from '../../lib/supabase';
 
 interface PaymentPlan {
-   id: string;
-   name: string;
-   price: number;
-   currency: string;
-   interval: 'month' | 'year';
-   features: string[];
-   popular?: boolean;
-   savings?: string;
-   monthlyEquivalent?: string;
-   metadata?: Record<string, unknown>;
+    id: string;
+    name: string;
+    price: number;
+    currency: string;
+    interval: 'month' | 'year';
+    features: string[];
+    popular?: boolean;
+    savings?: string;
+    monthlyEquivalent?: string;
+    metadata?: Record<string, unknown>;
+}
+
+interface Subscription {
+    id: string;
+    status: 'active' | 'cancelled' | 'pending_cancellation' | 'past_due';
+    plan: string;
+    price: number;
+    currency: string;
+    interval: string;
+    currentPeriodStart: string;
+    currentPeriodEnd: string;
+    cancelAtPeriodEnd: boolean;
+    cancelledAt: string | null;
+    nextBillingDate: string;
+    paymentMethod: {
+        type: string;
+        last4: string;
+        brand: string;
+    };
+    features: string[];
 }
 
 const paymentPlans: PaymentPlan[] = [
@@ -149,7 +168,7 @@ function PaymentPageContent() {
   const [paymentCanceled, setPaymentCanceled] = useState(false);
   const [currentSubscription, setCurrentSubscription] = useState('free');
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
-  const [subscription, setSubscription] = useState<any>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancellingSubscription, setCancellingSubscription] = useState(false);
   const [cancellationReason, setCancellationReason] = useState('');
