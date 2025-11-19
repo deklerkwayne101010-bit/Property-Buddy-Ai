@@ -473,14 +473,14 @@ export default function VideoAiMaker() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              AI Image
+              AI Video
               <motion.span
                 className="block bg-gradient-to-r from-slate-600 to-blue-600 bg-clip-text text-transparent"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: 0.5 }}
               >
-                Analyzer
+                Maker
               </motion.span>
             </motion.h1>
 
@@ -490,7 +490,7 @@ export default function VideoAiMaker() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.7 }}
             >
-              Upload an image and let AI analyze it for you with advanced GPT-4o vision capabilities.
+              Upload an image and let AI create stunning videos for you. Upload up to 10 images at a time for batch video generation.
             </motion.p>
           </motion.div>
         </div>
@@ -506,9 +506,9 @@ export default function VideoAiMaker() {
                 <svg className="w-6 h-6 mr-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
-                Upload Your Image
+                Upload Your Images
               </h2>
-              <p className="text-sm text-slate-600 mt-1">Drag and drop or click to select an image file</p>
+              <p className="text-sm text-slate-600 mt-1">Upload up to 10 images at a time for batch video generation</p>
             </div>
 
             <div
@@ -546,8 +546,8 @@ export default function VideoAiMaker() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-xl sm:text-2xl font-semibold text-slate-800">Drop your image here</p>
-                    <p className="text-slate-600 text-sm sm:text-base">or click to browse your files</p>
+                    <p className="text-xl sm:text-2xl font-semibold text-slate-800">Drop your images here</p>
+                    <p className="text-slate-600 text-sm sm:text-base">Upload up to 10 images for batch video generation</p>
                     <div className="flex items-center justify-center space-x-3 sm:space-x-4 mt-4">
                       <span className="inline-flex items-center px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm bg-slate-100 text-slate-800">JPEG</span>
                       <span className="inline-flex items-center px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm bg-blue-100 text-blue-800">PNG</span>
