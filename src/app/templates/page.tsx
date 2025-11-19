@@ -8,7 +8,12 @@ export default function TemplatesPage() {
     <ProtectedRoute>
       <DashboardLayout>
         <div className="max-w-7xl mx-auto">
-          {/* Blank page - ready for new content */}
+          <iframe
+            src="https://renderform.io/share/live-preview/?i=slow-ponies-trot-fiercely-1105"
+            width="100%"
+            height="500px"
+            frameBorder="0"
+          />
         </div>
       </DashboardLayout>
     </ProtectedRoute>
