@@ -526,10 +526,34 @@ export default function VideoAiMaker() {
               />
 
               {uploadedImages.length > 0 ? (
-                <div className="flex flex-col items-center space-y-4">
+                <div className="flex flex-col items-center space-y-6">
                   <div className="bg-slate-50 border border-slate-200 rounded-full px-4 py-2">
                     <p className="text-slate-700 font-medium">{uploadedImages.length} image(s) uploaded successfully!</p>
                   </div>
+
+                  {/* Continue uploading more images indicator */}
+                  {uploadedImages.length < 10 && (
+                    <div className="relative">
+                      <div className="text-center">
+                        <p className="text-sm text-slate-600 mb-3">Add more images ({uploadedImages.length}/10)</p>
+                        <div
+                          className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-300 hover:scale-110 hover:shadow-lg border-2 border-dashed border-blue-300 hover:border-blue-500"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Max limit reached message */}
+                  {uploadedImages.length >= 10 && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
+                      <p className="text-amber-800 text-sm font-medium">Maximum of 10 images reached</p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-6">
