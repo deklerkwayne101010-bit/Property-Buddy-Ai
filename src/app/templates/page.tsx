@@ -136,18 +136,35 @@ export default function TemplatesPage() {
             <div className="grid md:grid-cols-2 gap-6">
               {/* Basic Form Builder Card */}
               <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200 hover:shadow-xl transition-shadow duration-300 cursor-pointer" onClick={() => setActiveModal('basic-form')}>
-                <div className="p-6 bg-gradient-to-br from-green-50 to-emerald-50">
-                  <div className="flex items-center mb-4">
-                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
-                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-slate-900">Basic Form Builder</h3>
-                      <p className="text-sm text-slate-600">Simple & easy-to-use form creation</p>
+                <div className="relative">
+                  {/* Preview Image */}
+                  <div className="h-48 bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center">
+                    <img
+                      src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&h=200&fit=crop&crop=center"
+                      alt="Form Builder Preview"
+                      className="w-full h-full object-cover opacity-80"
+                    />
+                    <div className="absolute inset-0 bg-green-500 bg-opacity-20 flex items-center justify-center">
+                      <div className="text-center">
+                        <svg className="w-16 h-16 text-white mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p className="text-white font-medium">Form Builder</p>
+                      </div>
                     </div>
                   </div>
+                  <div className="p-6">
+                    <div className="flex items-center mb-4">
+                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold text-slate-900">Basic Form Builder</h3>
+                        <p className="text-sm text-slate-600">Simple & easy-to-use form creation</p>
+                      </div>
+                    </div>
                   <p className="text-slate-700 mb-4">Perfect for contact forms, lead capture, and basic surveys. Drag-and-drop interface with responsive design.</p>
                   <div className="flex flex-wrap gap-2 mb-4">
                     <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Drag & Drop</span>
@@ -157,32 +174,51 @@ export default function TemplatesPage() {
                   <button className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200">
                     Open Form Builder
                   </button>
+                  </div>
                 </div>
               </div>
 
               {/* Advanced Form Builder Card */}
               <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200 hover:shadow-xl transition-shadow duration-300 cursor-pointer" onClick={() => setActiveModal('advanced-form')}>
-                <div className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50">
-                  <div className="flex items-center mb-4">
-                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
-                      <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-slate-900">Advanced Form Builder</h3>
-                      <p className="text-sm text-slate-600">Complex forms with advanced features</p>
+                <div className="relative">
+                  {/* Preview Image */}
+                  <div className="h-48 bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center">
+                    <img
+                      src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=200&fit=crop&crop=center"
+                      alt="Advanced Form Builder Preview"
+                      className="w-full h-full object-cover opacity-80"
+                    />
+                    <div className="absolute inset-0 bg-purple-500 bg-opacity-20 flex items-center justify-center">
+                      <div className="text-center">
+                        <svg className="w-16 h-16 text-white mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="text-white font-medium">Advanced Form Builder</p>
+                      </div>
                     </div>
                   </div>
-                  <p className="text-slate-700 mb-4">Build sophisticated forms with conditional logic, multi-step flows, and powerful integrations.</p>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">Conditional Logic</span>
-                    <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">Multi-Step</span>
-                    <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">Integrations</span>
+                  <div className="p-6">
+                    <div className="flex items-center mb-4">
+                      <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                        <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold text-slate-900">Advanced Form Builder</h3>
+                        <p className="text-sm text-slate-600">Complex forms with advanced features</p>
+                      </div>
+                    </div>
+                    <p className="text-slate-700 mb-4">Build sophisticated forms with conditional logic, multi-step flows, and powerful integrations.</p>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">Conditional Logic</span>
+                      <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">Multi-Step</span>
+                      <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">Integrations</span>
+                    </div>
+                    <button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200">
+                      Open Advanced Builder
+                    </button>
                   </div>
-                  <button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200">
-                    Open Advanced Builder
-                  </button>
                 </div>
               </div>
             </div>
