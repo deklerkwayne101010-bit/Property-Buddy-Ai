@@ -119,6 +119,56 @@ export default function TemplatesPage() {
               </div>
             </div>
           </div>
+
+          {/* Renderform Section */}
+          <div className="mt-12">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
+                Form Builder
+              </h2>
+              <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
+                Create professional contact forms, lead capture forms, and surveys with our drag-and-drop form builder.
+                Perfect for collecting client information and generating leads.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
+              <div className="p-4 bg-slate-50 border-b border-slate-200">
+                <h3 className="text-lg font-semibold text-slate-900">Form Builder</h3>
+                <p className="text-sm text-slate-600">Design and customize professional forms for your real estate business</p>
+              </div>
+              <div className="relative">
+                <iframe
+                  src="https://renderform.io/share/live-preview/?i=purple-frogs-howl-smoothly-1437"
+                  width="100%"
+                  height="500px"
+                  frameBorder="0"
+                  title="Form Builder"
+                />
+              </div>
+            </div>
+
+            {/* Form Builder Instructions */}
+            <div className="mt-8 bg-green-50 rounded-xl p-6 border border-green-200">
+              <div className="flex items-start">
+                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">Form Builder Features</h3>
+                  <ul className="text-slate-700 space-y-1 text-sm">
+                    <li>• <strong>Drag & Drop Interface:</strong> Easily add form fields, buttons, and layout elements</li>
+                    <li>• <strong>Lead Capture:</strong> Collect client information, contact details, and property requirements</li>
+                    <li>• <strong>Custom Styling:</strong> Match your brand colors and design preferences</li>
+                    <li>• <strong>Responsive Design:</strong> Forms work perfectly on all devices</li>
+                    <li>• <strong>Integration Ready:</strong> Connect with your CRM and email marketing tools</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </DashboardLayout>
     </ProtectedRoute>
