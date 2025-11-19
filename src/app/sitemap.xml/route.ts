@@ -24,6 +24,7 @@ const staticPages = [
   '/canva-upload',
   '/payment',
   '/account',
+  '/contact',
   '/admin',
   '/admin/dashboard',
   '/admin/properties',
