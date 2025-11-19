@@ -66,7 +66,7 @@ export default function PrivacyPage() {
 
             <h2 className="text-2xl font-bold text-slate-900 mb-6">1. Introduction</h2>
             <p className="mb-6">
-              Welcome to Stagefy ("we," "our," or "us"). We are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our AI-powered real estate marketing platform.
+              Welcome to Stagefy (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). We are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our AI-powered real estate marketing platform.
             </p>
 
             <h2 className="text-2xl font-bold text-slate-900 mb-6">2. Information We Collect</h2>
@@ -160,14 +160,14 @@ export default function PrivacyPage() {
               Your information may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place to protect your data during international transfers.
             </p>
 
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">11. Children's Privacy</h2>
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">11. Children&apos;s Privacy</h2>
             <p className="mb-6">
               Our services are not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. If we become aware that we have collected such information, we will take steps to delete it.
             </p>
 
             <h2 className="text-2xl font-bold text-slate-900 mb-6">12. Changes to This Privacy Policy</h2>
             <p className="mb-6">
-              We may update this Privacy Policy from time to time. We will notify you of any material changes by posting the new policy on this page and updating the "Last updated" date. Your continued use of our services after such changes constitutes acceptance of the updated policy.
+              We may update this Privacy Policy from time to time. We will notify you of any material changes by posting the new policy on this page and updating the &quot;Last updated&quot; date. Your continued use of our services after such changes constitutes acceptance of the updated policy.
             </p>
 
             <h2 className="text-2xl font-bold text-slate-900 mb-6">13. Contact Us</h2>
