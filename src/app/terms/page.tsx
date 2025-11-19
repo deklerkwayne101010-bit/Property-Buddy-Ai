@@ -66,7 +66,7 @@ export default function TermsPage() {
 
             <h2 className="text-2xl font-bold text-slate-900 mb-6">1. Acceptance of Terms</h2>
             <p className="mb-6">
-              Welcome to Stagefy (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). These Terms of Service (&quot;Terms&quot;) govern your access to and use of our AI-powered real estate marketing platform, including our website, mobile applications, and related services (collectively, the "Service").
+              Welcome to Stagefy (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). These Terms of Service (&quot;Terms&quot;) govern your access to and use of our AI-powered real estate marketing platform, including our website, mobile applications, and related services (collectively, the &quot;Service&quot;).
             </p>
             <p className="mb-6">
               By accessing or using our Service, you agree to be bound by these Terms. If you do not agree to these Terms, please do not use our Service.
