@@ -150,7 +150,7 @@ export default function SupportPage() {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-slate-900 mb-4">Contact Our Support Team</h2>
             <p className="text-xl text-slate-600">
-              Choose the best way to reach us. We're here to help!
+              Choose the best way to reach us. We&apos;re here to help!
             </p>
           </div>
 
@@ -224,7 +224,7 @@ export default function SupportPage() {
                   <div>
                     <h4 className="font-semibold text-blue-900 mb-1">Emergency Support</h4>
                     <p className="text-sm text-blue-700">
-                      For critical account or billing emergencies outside business hours, please email admin@stagefy.co.za with "URGENT" in the subject line.
+                      For critical account or billing emergencies outside business hours, please email admin@stagefy.co.za with &quot;URGENT&quot; in the subject line.
                     </p>
                   </div>
                 </div>
@@ -251,7 +251,7 @@ export default function SupportPage() {
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 mb-2">How do I reset my password?</h3>
-                <p className="text-slate-600">Click "Forgot Password" on the login page and follow the instructions sent to your email.</p>
+                <p className="text-slate-600">Click &quot;Forgot Password&quot; on the login page and follow the instructions sent to your email.</p>
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 mb-2">Can I change my subscription plan?</h3>
@@ -259,7 +259,7 @@ export default function SupportPage() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 mb-2">How do I cancel my subscription?</h3>
-                <p className="text-slate-600">Go to your account settings and click "Cancel Subscription" in the billing section.</p>
+                <p className="text-slate-600">Go to your account settings and click &quot;Cancel Subscription&quot; in the billing section.</p>
               </div>
             </div>
             <div className="space-y-6">
