@@ -51,7 +51,7 @@ export default function TemplatesPage() {
   const filteredTemplates = templates.filter(template => {
     const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory;
     const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         template.description.toLowerCase().includes(searchQuery.toLowerCase());
+                          template.description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -69,57 +69,53 @@ export default function TemplatesPage() {
     <ProtectedRoute>
       <DashboardLayout>
         <div className="max-w-7xl mx-auto">
-          {/* Under Construction Header */}
-          <div className="text-center py-16">
-            <div className="w-24 h-24 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-8">
-              <svg className="w-12 h-12 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-            </div>
+          {/* Header */}
+          <div className="text-center py-8">
             <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-4">
-              Templates Page
+              Marketing Templates
             </h1>
-            <h2 className="text-2xl sm:text-3xl font-semibold text-orange-600 mb-6">
-              Under Construction
-            </h2>
             <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
-              We&apos;re working hard to bring you an amazing template system for creating stunning marketing materials.
-              This feature will be available soon!
+              Create stunning marketing materials with our professional template editor.
+              Design flyers, brochures, social media posts, and more for your real estate business.
             </p>
           </div>
 
-          {/* Coming Soon Features */}
-          <div className="mt-12 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl p-8 border border-orange-100">
-            <div className="text-center">
-              <h3 className="text-2xl font-bold text-slate-900 mb-4">What&apos;s Coming to Templates</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                    </svg>
-                  </div>
-                  <h4 className="font-semibold text-slate-900 mb-2">Drag & Drop Editor</h4>
-                  <p className="text-slate-600 text-sm">Easily customize templates with our intuitive drag-and-drop interface</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <h4 className="font-semibold text-slate-900 mb-2">Photo Upload</h4>
-                  <p className="text-slate-600 text-sm">Replace placeholder images with your property photos instantly</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </div>
-                  <h4 className="font-semibold text-slate-900 mb-2">Editable Text Fields</h4>
-                  <p className="text-slate-600 text-sm">Click on any text element to customize it with your property details</p>
-                </div>
+          {/* _templated Embed */}
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
+            <div className="p-4 bg-slate-50 border-b border-slate-200">
+              <h2 className="text-lg font-semibold text-slate-900">Template Editor</h2>
+              <p className="text-sm text-slate-600">Use our drag-and-drop editor to create professional marketing materials</p>
+            </div>
+            <div className="relative" style={{ height: '800px' }}>
+              <iframe
+                src="https://app.templated.io/editor?embed=e96c0309-0cc5-42d0-81c6-2ab8bba01508"
+                width="100%"
+                height="100%"
+                frameBorder="0"
+                allowFullScreen
+                className="w-full h-full"
+                title="Template Editor"
+              />
+            </div>
+          </div>
+
+          {/* Instructions */}
+          <div className="mt-8 bg-blue-50 rounded-xl p-6 border border-blue-200">
+            <div className="flex items-start">
+              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">How to Use the Template Editor</h3>
+                <ul className="text-slate-700 space-y-1 text-sm">
+                  <li>• <strong>Browse Templates:</strong> Choose from hundreds of professionally designed templates</li>
+                  <li>• <strong>Customize:</strong> Edit text, colors, images, and layouts to match your brand</li>
+                  <li>• <strong>Add Your Content:</strong> Replace placeholder text with your property details</li>
+                  <li>• <strong>Download:</strong> Export your designs in high-quality formats (PDF, PNG, JPG)</li>
+                  <li>• <strong>Save & Reuse:</strong> Save your customized templates for future use</li>
+                </ul>
               </div>
             </div>
           </div>
