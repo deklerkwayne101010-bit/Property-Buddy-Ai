@@ -168,6 +168,55 @@ export default function TemplatesPage() {
                 </div>
               </div>
             </div>
+
+            {/* Second Renderform Section */}
+            <div className="mt-12">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
+                  Advanced Form Builder
+                </h2>
+                <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
+                  Create sophisticated forms with advanced features, conditional logic, and powerful integrations for your real estate business.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
+                <div className="p-4 bg-slate-50 border-b border-slate-200">
+                  <h3 className="text-lg font-semibold text-slate-900">Advanced Form Builder</h3>
+                  <p className="text-sm text-slate-600">Build complex forms with conditional logic and advanced features</p>
+                </div>
+                <div className="relative">
+                  <iframe
+                    src="https://renderform.io/share/live-preview/?i=young-yetis-chew-sharply-1929"
+                    width="100%"
+                    height="500px"
+                    frameBorder="0"
+                    title="Advanced Form Builder"
+                  />
+                </div>
+              </div>
+
+              {/* Advanced Form Builder Instructions */}
+              <div className="mt-8 bg-purple-50 rounded-xl p-6 border border-purple-200">
+                <div className="flex items-start">
+                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">Advanced Form Features</h3>
+                    <ul className="text-slate-700 space-y-1 text-sm">
+                      <li>• <strong>Conditional Logic:</strong> Show/hide fields based on user responses</li>
+                      <li>• <strong>Advanced Validation:</strong> Custom validation rules and error messages</li>
+                      <li>• <strong>Multi-Step Forms:</strong> Break complex forms into manageable steps</li>
+                      <li>• <strong>Advanced Integrations:</strong> Connect with CRM, email marketing, and databases</li>
+                      <li>• <strong>Custom Calculations:</strong> Perform calculations and show dynamic results</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </DashboardLayout>
