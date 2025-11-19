@@ -122,7 +122,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-slate-900 mb-1">Email Support</h3>
-                  <p className="text-slate-600">support@stagefy.co.za</p>
+                  <p className="text-slate-600">admin@stagefy.co.za</p>
                   <p className="text-sm text-slate-500 mt-1">We typically respond within 24 hours</p>
                 </div>
               </div>
@@ -135,7 +135,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-slate-900 mb-1">Phone Support</h3>
-                  <p className="text-slate-600">+27 (0) 21 123 4567</p>
+                  <p className="text-slate-600">026 695 7151</p>
                   <p className="text-sm text-slate-500 mt-1">Mon-Fri 9AM-6PM SAST</p>
                 </div>
               </div>
@@ -149,7 +149,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-slate-900 mb-1">Office Location</h3>
-                  <p className="text-slate-600">Cape Town, South Africa</p>
+                  <p className="text-slate-600">Durban, South Africa</p>
                   <p className="text-sm text-slate-500 mt-1">Serving real estate professionals nationwide</p>
                 </div>
               </div>
