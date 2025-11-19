@@ -90,7 +90,7 @@ export default function ContactPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.7 }}
             >
-              Have questions about Property Buddy AI? We're here to help you create stunning property listings with AI.
+              Have questions about Property Buddy AI? We&apos;re here to help you create stunning property listings with AI.
             </motion.p>
           </motion.div>
         </div>
@@ -109,7 +109,7 @@ export default function ContactPage() {
             <div>
               <h2 className="text-3xl font-bold text-slate-900 mb-4">Contact Information</h2>
               <p className="text-slate-600 mb-8">
-                Reach out to us through any of the channels below. We're committed to providing excellent support for real estate professionals.
+                Reach out to us through any of the channels below. We&apos;re committed to providing excellent support for real estate professionals.
               </p>
             </div>
 
@@ -158,7 +158,7 @@ export default function ContactPage() {
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
               <h3 className="text-lg font-semibold text-slate-900 mb-3">Quick Response Guarantee</h3>
               <p className="text-slate-600 text-sm">
-                We understand that time is critical in real estate. That's why we guarantee a response to all inquiries within 24 hours during business days.
+                We understand that time is critical in real estate. That&apos;s why we guarantee a response to all inquiries within 24 hours during business days.
               </p>
             </div>
           </motion.div>
@@ -180,7 +180,7 @@ export default function ContactPage() {
                   </svg>
                   <p className="text-green-800 font-medium">Message sent successfully!</p>
                 </div>
-                <p className="text-green-700 text-sm mt-1">We'll get back to you within 24 hours.</p>
+                <p className="text-green-700 text-sm mt-1">We&apos;ll get back to you within 24 hours.</p>
               </div>
             )}
 
