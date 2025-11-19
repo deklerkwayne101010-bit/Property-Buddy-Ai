@@ -66,7 +66,7 @@ export default function TermsPage() {
 
             <h2 className="text-2xl font-bold text-slate-900 mb-6">1. Acceptance of Terms</h2>
             <p className="mb-6">
-              Welcome to Stagefy ("we," "our," or "us"). These Terms of Service ("Terms") govern your access to and use of our AI-powered real estate marketing platform, including our website, mobile applications, and related services (collectively, the "Service").
+              Welcome to Stagefy (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). These Terms of Service (&quot;Terms&quot;) govern your access to and use of our AI-powered real estate marketing platform, including our website, mobile applications, and related services (collectively, the "Service").
             </p>
             <p className="mb-6">
               By accessing or using our Service, you agree to be bound by these Terms. If you do not agree to these Terms, please do not use our Service.
@@ -143,7 +143,7 @@ export default function TermsPage() {
 
             <h2 className="text-2xl font-bold text-slate-900 mb-6">8. AI Content Disclaimer</h2>
             <p className="mb-6">
-              Our AI-generated content is provided "as is" for informational and marketing purposes. While we strive for accuracy, AI-generated content may contain errors or inaccuracies. You are responsible for reviewing and verifying all generated content before use. We are not liable for any damages resulting from the use of AI-generated content.
+              Our AI-generated content is provided &quot;as is&quot; for informational and marketing purposes. While we strive for accuracy, AI-generated content may contain errors or inaccuracies. You are responsible for reviewing and verifying all generated content before use. We are not liable for any damages resulting from the use of AI-generated content.
             </p>
 
             <h2 className="text-2xl font-bold text-slate-900 mb-6">9. Privacy and Data Protection</h2>
