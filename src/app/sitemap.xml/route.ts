@@ -4,6 +4,10 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.stagefy.co.za';
 
 const staticPages = [
   '',
+  '/about',
+  '/privacy',
+  '/terms',
+  '/support',
   '/login',
   '/register',
   '/forgot-password',
