@@ -145,7 +145,7 @@ export default function AboutPage() {
                   knowledge with cutting-edge technology to deliver tools that actually work for real estate professionals.
                 </p>
                 <p>
-                  Today, we're proud to serve hundreds of real estate agents, agencies, and property managers
+                  Today, we&apos;re proud to serve hundreds of real estate agents, agencies, and property managers
                   across South Africa, helping them create better listings and close more deals.
                 </p>
               </div>
