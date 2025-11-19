@@ -140,7 +140,7 @@ export default function TemplatesPage() {
                   {/* Preview Image */}
                   <div className="h-48 bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center">
                     <img
-                      src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&h=200&fit=crop&crop=center"
+                      src="https://images.unsplash.com/photo-1526779259212-939e64788e3c?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8ZnJlZSUyMGltYWdlc3xlbnwwfHwwfHx8MA%3D%3D"
                       alt="Form Builder Preview"
                       className="w-full h-full object-cover opacity-80"
                     />
