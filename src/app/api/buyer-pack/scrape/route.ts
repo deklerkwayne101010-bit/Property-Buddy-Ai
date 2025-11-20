@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { chromium } from 'playwright';
+import Replicate from 'replicate';
 
 interface ScrapedPropertyData {
   title: string;
@@ -14,8 +14,6 @@ interface ScrapedPropertyData {
 }
 
 export async function POST(request: NextRequest) {
-  let browser;
-
   try {
     const { url } = await request.json();
 
@@ -34,166 +32,104 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Starting Property24 scraping with Playwright for:', url);
+    console.log('Starting AI-based Property24 scraping for:', url);
 
-    // Launch Playwright browser
-    browser = await chromium.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu',
-        '--disable-web-security',
-        '--disable-features=VizDisplayCompositor'
-      ]
+    // Initialize Replicate client
+    const replicate = new Replicate({
+      auth: process.env.REPLICATE_API_TOKEN,
     });
 
-    const context = await browser.newContext({
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    // Fetch the HTML content from the URL
+    console.log('Fetching HTML content...');
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
     });
 
-    const page = await context.newPage();
+    if (!response.ok) {
+      throw new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`);
+    }
 
-    // Set longer timeout for navigation
-    page.setDefaultTimeout(30000);
+    const htmlContent = await response.text();
+    console.log('HTML content fetched, length:', htmlContent.length);
 
-    // Navigate to the property page
-    console.log('Navigating to property page...');
-    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    // Use GPT-4o mini to extract property data from HTML
+    console.log('Processing with AI...');
+    const output = await replicate.run(
+      "meta/meta-llama-3.1-405b-instruct",
+      {
+        input: {
+          prompt: `You are a web scraping expert. Extract property information from the following Property24 HTML content and return it as a JSON object with these exact fields:
 
-    // Wait for content to load
-    await page.waitForTimeout(3000);
+{
+  "title": "Property title",
+  "price": "Price (e.g., R 2,500,000)",
+  "address": "Property address (if available, otherwise leave empty)",
+  "bedrooms": number (0 if not found),
+  "bathrooms": number (0 if not found),
+  "parking": number (0 if not found),
+  "size": "Size in m² or sqm (empty string if not found)",
+  "description": "Property description text",
+  "images": ["array", "of", "image", "URLs", "max", "10"]
+}
 
-    // Extract property data
-    const propertyData = await page.evaluate(() => {
-      const data: ScrapedPropertyData = {
-        title: '',
-        price: '',
-        address: '',
-        bedrooms: 0,
-        bathrooms: 0,
-        parking: 0,
-        size: '',
-        description: '',
-        images: []
+IMPORTANT RULES:
+- Extract data from the actual HTML content provided
+- Look for property title, price, features (bedrooms, bathrooms, parking), size, description
+- Find image URLs from img src attributes
+- Return valid JSON only, no additional text
+- If a field is not found, use appropriate default values
+- Limit images array to maximum 10 URLs
+- Make sure numbers are actual numbers, not strings
+
+HTML Content:
+${htmlContent.substring(0, 50000)}`, // Limit HTML size to avoid token limits
+          max_tokens: 1000,
+          temperature: 0.1,
+          system_prompt: "You are a precise web scraper that extracts property data from HTML and returns clean JSON. Always return valid JSON only."
+        }
+      }
+    );
+
+    console.log('AI processing complete');
+
+    // Parse the AI response
+    let propertyData: ScrapedPropertyData;
+    try {
+      // Handle different response formats from Replicate
+      const responseText = Array.isArray(output) ? output.join('') : String(output);
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('No JSON found in AI response');
+      }
+
+      propertyData = JSON.parse(jsonMatch[0]);
+
+      // Validate and sanitize the data
+      propertyData = {
+        title: propertyData.title || 'Property Title Not Found',
+        price: propertyData.price || 'POA',
+        address: propertyData.address || 'Address not available',
+        bedrooms: Number(propertyData.bedrooms) || 0,
+        bathrooms: Number(propertyData.bathrooms) || 0,
+        parking: Number(propertyData.parking) || 0,
+        size: propertyData.size || 'Size not specified',
+        description: propertyData.description || 'Description not available',
+        images: Array.isArray(propertyData.images) ? propertyData.images.slice(0, 10) : []
       };
 
-      // Extract title - try multiple selectors
-      const titleSelectors = [
-        'h1.sc_listingPageTitle',
-        'h1[data-cy="listing-title"]',
-        'h1.p24_listingTitle',
-        'h1'
-      ];
+    } catch (parseError) {
+      console.error('Error parsing AI response:', parseError);
+      throw new Error('Failed to parse property data from AI response');
+    }
 
-      for (const selector of titleSelectors) {
-        const element = document.querySelector(selector);
-        if (element && element.textContent?.trim()) {
-          data.title = element.textContent.trim();
-          break;
-        }
-      }
-
-      // Extract price - try multiple selectors
-      const priceSelectors = [
-        '[data-cy="listing-price"]',
-        '.sc_listingPagePrice',
-        '.p24_price',
-        '.listing-price',
-        '[class*="price"]'
-      ];
-
-      for (const selector of priceSelectors) {
-        const element = document.querySelector(selector);
-        if (element && element.textContent?.trim()) {
-          data.price = element.textContent.trim();
-          break;
-        }
-      }
-
-      // Extract property features - look for bedroom, bathroom, parking info
-      const featureSelectors = [
-        '[data-cy="listing-feature"]',
-        '.sc_listingPageFeature',
-        '.p24_feature',
-        '.property-feature',
-        '.feature-item'
-      ];
-
-      featureSelectors.forEach(selector => {
-        const elements = document.querySelectorAll(selector);
-        elements.forEach(feature => {
-          const text = feature.textContent?.trim() || '';
-          if (text.includes('Bedroom') || text.includes('bedroom')) {
-            const match = text.match(/(\d+)/);
-            if (match) data.bedrooms = parseInt(match[1]) || 0;
-          } else if (text.includes('Bathroom') || text.includes('bathroom')) {
-            const match = text.match(/(\d+)/);
-            if (match) data.bathrooms = parseInt(match[1]) || 0;
-          } else if (text.includes('Parking') || text.includes('parking')) {
-            const match = text.match(/(\d+)/);
-            if (match) data.parking = parseInt(match[1]) || 0;
-          } else if (text.includes('m²') || text.includes('sqm') || text.includes('size')) {
-            data.size = text;
-          }
-        });
-      });
-
-      // Extract description - try multiple selectors
-      const descriptionSelectors = [
-        '[data-cy="listing-description"]',
-        '.sc_listingPageDescription',
-        '.p24_description',
-        '.listing-description',
-        '[class*="description"]'
-      ];
-
-      for (const selector of descriptionSelectors) {
-        const element = document.querySelector(selector);
-        if (element && element.textContent?.trim()) {
-          data.description = element.textContent.trim();
-          break;
-        }
-      }
-
-      // Extract images - try multiple selectors
-      const imageSelectors = [
-        '[data-cy="listing-image"] img',
-        '.sc_listingPageImage img',
-        '.p24_image img',
-        '.listing-image img',
-        '.gallery img',
-        'img[data-src]'
-      ];
-
-      imageSelectors.forEach(selector => {
-        const elements = document.querySelectorAll(selector);
-        elements.forEach(img => {
-          const src = img.getAttribute('src') || img.getAttribute('data-src');
-          if (src && src.startsWith('http') && !data.images.includes(src)) {
-            data.images.push(src);
-          }
-        });
-      });
-
-      // Limit images to first 10 to avoid too much data
-      data.images = data.images.slice(0, 10);
-
-      return data;
-    });
-
-    await browser.close();
-
-    console.log('Scraped data:', propertyData);
+    console.log('Extracted property data:', propertyData);
 
     // Validate extracted data
-    if (!propertyData.title || !propertyData.price) {
+    if (!propertyData.title || propertyData.title === 'Property Title Not Found') {
       return NextResponse.json(
-        { error: 'Failed to extract property data. The page structure may have changed or the URL may be invalid.' },
+        { error: 'Failed to extract property title. The page structure may have changed or the URL may be invalid.' },
         { status: 422 }
       );
     }
@@ -201,10 +137,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(propertyData);
 
   } catch (error) {
-    console.error('Error scraping property:', error);
-    if (browser) {
-      await browser.close();
-    }
+    console.error('Error in AI-based scraping:', error);
 
     // Return fallback data if scraping fails
     const fallbackData: ScrapedPropertyData = {
