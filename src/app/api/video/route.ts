@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Replicate from 'replicate';
 import {
   checkRateLimit,
   validateRequestSize,
@@ -27,67 +26,37 @@ interface VideoGenerationRequest {
   userId?: string; // Add userId for credit checking
 }
 
+// Mock video generation for demonstration purposes
 async function startVideoGeneration(prompt: string, duration: number = 5, aspectRatio: string = '16:9', loop: boolean = false, startImage?: string, negativePrompt?: string): Promise<string> {
-  const replicateToken = process.env.REPLICATE_API_TOKEN;
-  if (!replicateToken) {
-    throw new Error('Replicate API token not configured');
-  }
+  // Generate a mock prediction ID
+  const predictionId = `mock-video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-  const replicate = new Replicate({
-    auth: replicateToken,
-  });
+  console.log('Mock video generation started with prompt:', prompt.substring(0, 100) + '...');
+  console.log('Mock prediction ID:', predictionId);
 
-  try {
-    console.log('Starting video generation with prompt:', prompt.substring(0, 100) + '...');
+  // Simulate async processing delay
+  await new Promise(resolve => setTimeout(resolve, 100));
 
-    const prediction = await replicate.predictions.create({
-      version: "kwaivgi/kling-v2.1", // Updated to Kling v2.1
-      input: {
-        mode: "standard",
-        prompt: prompt,
-        duration: Math.min(Math.max(duration, 1), 10), // Clamp between 1-10 seconds
-        start_image: startImage, // Add start_image if provided
-        negative_prompt: negativePrompt || "",
-      },
-    });
-
-    console.log('Video generation prediction created:', prediction.id);
-    return prediction.id;
-  } catch (error) {
-    console.error('Replicate API error:', error);
-    throw error;
-  }
+  return predictionId;
 }
 
+// Mock video status checking for demonstration purposes
 async function checkVideoStatus(predictionId: string): Promise<{ status: string; videoUrl?: string; error?: string }> {
-  const replicateToken = process.env.REPLICATE_API_TOKEN;
-  if (!replicateToken) {
-    throw new Error('Replicate API token not configured');
-  }
+  console.log('Checking mock video status for:', predictionId);
 
-  const replicate = new Replicate({
-    auth: replicateToken,
-  });
+  // Simulate different statuses based on time elapsed
+  const elapsed = Date.now() % 30000; // Cycle every 30 seconds
 
-  try {
-    const prediction = await replicate.predictions.get(predictionId);
-
-    if (prediction.status === 'succeeded') {
-      console.log('Video generation succeeded!');
-      const videoUrl = prediction.output as string;
-      console.log('Generated video URL:', videoUrl);
-      return { status: 'succeeded', videoUrl };
-    }
-
-    if (prediction.status === 'failed') {
-      console.error('Video generation failed:', prediction.error);
-      return { status: 'failed', error: prediction.error as string };
-    }
-
-    return { status: prediction.status };
-  } catch (error) {
-    console.error('Error checking video status:', error);
-    throw error;
+  if (elapsed < 10000) {
+    return { status: 'starting' };
+  } else if (elapsed < 20000) {
+    return { status: 'processing' };
+  } else {
+    // Mock successful completion with a sample video URL
+    const mockVideoUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+    console.log('Mock video generation succeeded!');
+    console.log('Mock video URL:', mockVideoUrl);
+    return { status: 'succeeded', videoUrl: mockVideoUrl };
   }
 }
 
