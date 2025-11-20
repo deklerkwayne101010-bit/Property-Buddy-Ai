@@ -146,14 +146,30 @@ ${html.substring(0, 8000)}`;
     }
 
     const data = await response.json();
-    const content = data.output;
+    console.log('Replicate API response:', JSON.stringify(data, null, 2));
+
+    let content;
+    if (Array.isArray(data.output)) {
+      content = data.output[0];
+    } else if (typeof data.output === 'string') {
+      content = data.output;
+    } else {
+      content = data.output;
+    }
 
     if (!content) {
       throw new Error('No content received from Replicate');
     }
 
+    console.log('Extracted content from Replicate:', content);
+
     // Parse the JSON response
-    const extractedData = JSON.parse(content.trim());
+    let extractedData;
+    if (typeof content === 'string') {
+      extractedData = JSON.parse(content.trim());
+    } else {
+      extractedData = content;
+    }
 
     // Validate and sanitize the extracted data
     return {
