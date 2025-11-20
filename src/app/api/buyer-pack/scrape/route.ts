@@ -46,16 +46,16 @@ export async function POST(request: NextRequest) {
 
     const html = await response.text();
 
-    // Use OpenAI to extract property data from HTML
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    if (!openaiApiKey) {
-      console.warn('OpenAI API key not found, falling back to mock data');
+    // Use Replicate to extract property data from HTML
+    const replicateApiKey = process.env.REPLICATE_API_TOKEN;
+    if (!replicateApiKey) {
+      console.warn('Replicate API token not found, falling back to mock data');
       return getMockData();
     }
 
-    const extractedData = await extractPropertyDataWithAI(html, url);
+    const extractedData = await extractPropertyDataWithReplicate(html, url);
 
-    console.log('Successfully extracted property data with AI');
+    console.log('Successfully extracted property data with Replicate AI');
 
     return NextResponse.json(extractedData);
 
@@ -89,76 +89,67 @@ function getMockData(): NextResponse {
   return NextResponse.json(mockData);
 }
 
-// Function to extract property data using OpenAI
-async function extractPropertyDataWithAI(html: string, url: string): Promise<ScrapedPropertyData> {
-  const openaiApiKey = process.env.OPENAI_API_KEY;
+// Function to extract property data using Replicate GPT-4o mini
+async function extractPropertyDataWithReplicate(html: string, url: string): Promise<ScrapedPropertyData> {
+  const replicateApiKey = process.env.REPLICATE_API_TOKEN;
 
-  if (!openaiApiKey) {
-    throw new Error('OpenAI API key not configured');
+  if (!replicateApiKey) {
+    throw new Error('Replicate API token not configured');
   }
 
-  // Prepare the prompt for OpenAI
-  const prompt = `
-You are an expert at extracting property information from Property24.com HTML pages. Analyze the following HTML content and extract the key property details.
+  // Prepare the prompt for Replicate
+  const prompt = `You are a web scraping expert. Extract property information from the following Property24 HTML content and return it as a JSON object with these exact fields:
 
-URL: ${url}
+{
+  "title": "Property title",
+  "price": "Price (e.g., R 2,500,000)",
+  "address": "Property address (if available, otherwise leave empty)",
+  "bedrooms": number (0 if not found),
+  "bathrooms": number (0 if not found),
+  "parking": number (0 if not found),
+  "size": "Size in m² or sqm (empty string if not found)",
+  "description": "Property description text",
+  "images": ["array", "of", "image", "URLs", "max", "10"]
+}
 
-HTML Content (first 8000 characters):
-${html.substring(0, 8000)}
+IMPORTANT RULES:
+- Extract data from the actual HTML content provided
+- Look for property title, price, features (bedrooms, bathrooms, parking), size, description
+- Find image URLs from img src attributes
+- Return valid JSON only, no additional text
+- If a field is not found, use appropriate default values
+- Limit images array to maximum 10 URLs
+- Make sure numbers are actual numbers, not strings
 
-Please extract the following information in JSON format:
-- title: The property title/headline
-- price: The property price (include currency symbol)
-- address: The property address/location
-- bedrooms: Number of bedrooms (as integer)
-- bathrooms: Number of bathrooms (as integer)
-- parking: Number of parking spaces (as integer)
-- size: Property size with unit (e.g., "250 m²")
-- description: A detailed property description (combine all description text)
-- images: Array of image URLs (extract from img src attributes, prefer high quality images)
-
-Return ONLY valid JSON with these exact field names. If a field is not found, use appropriate defaults:
-- bedrooms/bathrooms/parking: 0 if not found
-- size: "Size not specified" if not found
-- description: "Description not available" if not found
-- images: [] if no images found
-
-Make sure the JSON is properly formatted and parseable.
-`;
+HTML Content:
+${html.substring(0, 8000)}`;
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.replicate.com/v1/models/openai/gpt-4o-mini/predictions', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${replicateApiKey}`,
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiApiKey}`
+        'Prefer': 'wait'
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a property data extraction expert. Always return valid JSON.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.1,
-        max_tokens: 1000
+        input: {
+          prompt: prompt,
+          system_prompt: 'You are a precise web scraper that extracts property data from HTML and returns clean JSON. Always return valid JSON only.',
+          temperature: 0.1
+        }
       })
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      throw new Error(`Replicate API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const content = data.choices[0]?.message?.content;
+    const content = data.output;
 
     if (!content) {
-      throw new Error('No content received from OpenAI');
+      throw new Error('No content received from Replicate');
     }
 
     // Parse the JSON response
@@ -174,11 +165,11 @@ Make sure the JSON is properly formatted and parseable.
       parking: typeof extractedData.parking === 'number' ? extractedData.parking : 0,
       size: extractedData.size || 'Size not specified',
       description: extractedData.description || 'Description not available',
-      images: Array.isArray(extractedData.images) ? extractedData.images.filter((img: any) => typeof img === 'string' && img.startsWith('http')) : []
+      images: Array.isArray(extractedData.images) ? extractedData.images.filter((img: any) => typeof img === 'string' && img.startsWith('http')).slice(0, 10) : []
     };
 
   } catch (error) {
-    console.error('Error extracting data with AI:', error);
+    console.error('Error extracting data with Replicate:', error);
     throw error;
   }
 }
