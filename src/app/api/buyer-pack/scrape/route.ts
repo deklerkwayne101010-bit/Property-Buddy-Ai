@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
+import chromium from '@sparticuz/chromium-min';
 
 interface ScrapedPropertyData {
   title: string;
@@ -37,12 +37,18 @@ export async function POST(request: NextRequest) {
 
     console.log('Starting Property24 scraping for:', url);
 
-    // Launch Puppeteer with serverless-friendly options for Vercel
-    browser = await puppeteer.launch({
+    // Detect Vercel environment
+    const isVercel = !!process.env.VERCEL_ENV;
+
+    // Launch Puppeteer with conditional configuration for Vercel vs local development
+    browser = await puppeteer.launch(isVercel ? {
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
+    } : {
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
 
     const page = await browser.newPage();
