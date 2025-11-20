@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       return getMockData();
     }
 
-    const extractedData = await extractPropertyDataWithReplicate(html, url);
+    const extractedData = await extractPropertyDataWithReplicate(html);
 
     console.log('Successfully extracted property data with Replicate AI');
 
@@ -90,7 +90,7 @@ function getMockData(): NextResponse {
 }
 
 // Function to extract property data using Replicate GPT-4o mini
-async function extractPropertyDataWithReplicate(html: string, url: string): Promise<ScrapedPropertyData> {
+async function extractPropertyDataWithReplicate(html: string): Promise<ScrapedPropertyData> {
   const replicateApiKey = process.env.REPLICATE_API_TOKEN;
 
   if (!replicateApiKey) {
@@ -165,7 +165,7 @@ ${html.substring(0, 8000)}`;
       parking: typeof extractedData.parking === 'number' ? extractedData.parking : 0,
       size: extractedData.size || 'Size not specified',
       description: extractedData.description || 'Description not available',
-      images: Array.isArray(extractedData.images) ? extractedData.images.filter((img: any) => typeof img === 'string' && img.startsWith('http')).slice(0, 10) : []
+      images: Array.isArray(extractedData.images) ? extractedData.images.filter((img: unknown) => typeof img === 'string' && img.startsWith('http')).slice(0, 10) : []
     };
 
   } catch (error) {
