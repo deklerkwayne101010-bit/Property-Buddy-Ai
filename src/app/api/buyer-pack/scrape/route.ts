@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
+import { chromium } from 'playwright';
 
 interface ScrapedPropertyData {
   title: string;
@@ -27,59 +26,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate URL format
+    // Validate URL format - allow both for-sale and to-rent
     if (!url.includes('property24.com') || (!url.includes('for-sale') && !url.includes('to-rent'))) {
       return NextResponse.json(
-        { error: 'Invalid Property24 URL. Please provide a valid property listing URL.' },
+        { error: 'Invalid URL format. Only Property24 for-sale and to-rent URLs are supported.' },
         { status: 400 }
       );
     }
 
-    console.log('Starting Property24 scraping for:', url);
+    console.log('Starting Property24 scraping with Playwright for:', url);
 
-    // Detect Vercel environment
-    const isVercel = !!process.env.VERCEL_ENV;
-
-    // Launch Puppeteer with conditional configuration for Vercel vs local development
-    browser = await puppeteer.launch(isVercel ? {
+    // Launch Playwright browser
+    browser = await chromium.launch({
+      headless: true,
       args: [
-        ...chromium.args,
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--single-process', // <- this one doesn't work in Windows
-        '--disable-gpu'
-      ],
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    } : {
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        '--disable-gpu',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor'
+      ]
     });
 
-    const page = await browser.newPage();
+    const context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    });
 
-    // Set user agent to avoid bot detection
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+    const page = await context.newPage();
 
-    // Set viewport
-    await page.setViewport({ width: 1366, height: 768 });
+    // Set longer timeout for navigation
+    page.setDefaultTimeout(30000);
 
     // Navigate to the property page
     console.log('Navigating to property page...');
-    await page.goto(url, {
-      waitUntil: 'networkidle0',
-      timeout: 30000
-    });
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
 
     // Wait for content to load
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await page.waitForTimeout(3000);
 
-    // Extract property data using page evaluation
+    // Extract property data
     const propertyData = await page.evaluate(() => {
       const data: ScrapedPropertyData = {
         title: '',
@@ -93,89 +82,129 @@ export async function POST(request: NextRequest) {
         images: []
       };
 
-      try {
-        // Extract title
-        const titleElement = document.querySelector('h1[data-cy="listing-title"], .listing-title, .property-title');
-        data.title = titleElement?.textContent?.trim() || 'Property Title Not Found';
+      // Extract title - try multiple selectors
+      const titleSelectors = [
+        'h1.sc_listingPageTitle',
+        'h1[data-cy="listing-title"]',
+        'h1.p24_listingTitle',
+        'h1'
+      ];
 
-        // Extract price
-        const priceElement = document.querySelector('[data-cy="listing-price"], .listing-price, .property-price, .price');
-        const priceText = priceElement?.textContent?.trim() || '';
-        // Clean up price (remove R, spaces, commas)
-        data.price = priceText.replace(/[R\s,]/g, '').replace(/POA|Price on Application/i, 'POA');
-
-        // Address is not available on Property24 - provide default message
-        data.address = 'Address available upon request - please contact agent for details';
-
-        // Extract property features
-        const featureElements = document.querySelectorAll('[data-cy="listing-feature"], .listing-feature, .property-feature, .feature');
-
-        featureElements.forEach(feature => {
-          const text = feature.textContent?.toLowerCase() || '';
-          const value = parseInt(text.replace(/\D/g, '')) || 0;
-
-          if (text.includes('bedroom') || text.includes('bed')) {
-            data.bedrooms = value;
-          } else if (text.includes('bathroom') || text.includes('bath')) {
-            data.bathrooms = value;
-          } else if (text.includes('parking') || text.includes('garage')) {
-            data.parking = value;
-          } else if (text.includes('m²') || text.includes('sqm') || text.includes('size')) {
-            data.size = text.replace(/size/i, '').trim();
-          }
-        });
-
-        // Extract description
-        const descElement = document.querySelector('[data-cy="listing-description"], .listing-description, .property-description, .description');
-        data.description = descElement?.textContent?.trim() || 'Description not available';
-
-        // Extract images
-        const imageElements = document.querySelectorAll('[data-cy="listing-image"], .listing-image img, .property-image img, .gallery img');
-        const images: string[] = [];
-
-        imageElements.forEach(img => {
-          const src = (img as HTMLImageElement).src;
-          if (src && src.startsWith('http') && !src.includes('placeholder') && !src.includes('no-image')) {
-            images.push(src);
-          }
-        });
-
-        // If no images found, try alternative selectors
-        if (images.length === 0) {
-          const altImages = document.querySelectorAll('img[src*="property24"], img[src*="property-images"]');
-          altImages.forEach(img => {
-            const src = (img as HTMLImageElement).src;
-            if (src && src.startsWith('http')) {
-              images.push(src);
-            }
-          });
+      for (const selector of titleSelectors) {
+        const element = document.querySelector(selector);
+        if (element && element.textContent?.trim()) {
+          data.title = element.textContent.trim();
+          break;
         }
-
-        data.images = images.slice(0, 10); // Limit to 10 images
-
-        // Fallback values if nothing was found
-        if (!data.title || data.title === 'Property Title Not Found') {
-          const fallbackTitle = document.querySelector('title')?.textContent?.split('|')[0]?.trim();
-          data.title = fallbackTitle || 'Property Listing';
-        }
-
-        if (!data.price) {
-          data.price = 'POA';
-        }
-
-      } catch (error) {
-        console.error('Error extracting data from page:', error);
       }
+
+      // Extract price - try multiple selectors
+      const priceSelectors = [
+        '[data-cy="listing-price"]',
+        '.sc_listingPagePrice',
+        '.p24_price',
+        '.listing-price',
+        '[class*="price"]'
+      ];
+
+      for (const selector of priceSelectors) {
+        const element = document.querySelector(selector);
+        if (element && element.textContent?.trim()) {
+          data.price = element.textContent.trim();
+          break;
+        }
+      }
+
+      // Extract property features - look for bedroom, bathroom, parking info
+      const featureSelectors = [
+        '[data-cy="listing-feature"]',
+        '.sc_listingPageFeature',
+        '.p24_feature',
+        '.property-feature',
+        '.feature-item'
+      ];
+
+      featureSelectors.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(feature => {
+          const text = feature.textContent?.trim() || '';
+          if (text.includes('Bedroom') || text.includes('bedroom')) {
+            const match = text.match(/(\d+)/);
+            if (match) data.bedrooms = parseInt(match[1]) || 0;
+          } else if (text.includes('Bathroom') || text.includes('bathroom')) {
+            const match = text.match(/(\d+)/);
+            if (match) data.bathrooms = parseInt(match[1]) || 0;
+          } else if (text.includes('Parking') || text.includes('parking')) {
+            const match = text.match(/(\d+)/);
+            if (match) data.parking = parseInt(match[1]) || 0;
+          } else if (text.includes('m²') || text.includes('sqm') || text.includes('size')) {
+            data.size = text;
+          }
+        });
+      });
+
+      // Extract description - try multiple selectors
+      const descriptionSelectors = [
+        '[data-cy="listing-description"]',
+        '.sc_listingPageDescription',
+        '.p24_description',
+        '.listing-description',
+        '[class*="description"]'
+      ];
+
+      for (const selector of descriptionSelectors) {
+        const element = document.querySelector(selector);
+        if (element && element.textContent?.trim()) {
+          data.description = element.textContent.trim();
+          break;
+        }
+      }
+
+      // Extract images - try multiple selectors
+      const imageSelectors = [
+        '[data-cy="listing-image"] img',
+        '.sc_listingPageImage img',
+        '.p24_image img',
+        '.listing-image img',
+        '.gallery img',
+        'img[data-src]'
+      ];
+
+      imageSelectors.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(img => {
+          const src = img.getAttribute('src') || img.getAttribute('data-src');
+          if (src && src.startsWith('http') && !data.images.includes(src)) {
+            data.images.push(src);
+          }
+        });
+      });
+
+      // Limit images to first 10 to avoid too much data
+      data.images = data.images.slice(0, 10);
 
       return data;
     });
 
+    await browser.close();
+
     console.log('Scraped data:', propertyData);
+
+    // Validate extracted data
+    if (!propertyData.title || !propertyData.price) {
+      return NextResponse.json(
+        { error: 'Failed to extract property data. The page structure may have changed or the URL may be invalid.' },
+        { status: 422 }
+      );
+    }
 
     return NextResponse.json(propertyData);
 
   } catch (error) {
     console.error('Error scraping property:', error);
+    if (browser) {
+      await browser.close();
+    }
 
     // Return fallback data if scraping fails
     const fallbackData: ScrapedPropertyData = {
@@ -191,14 +220,5 @@ export async function POST(request: NextRequest) {
     };
 
     return NextResponse.json(fallbackData);
-
-  } finally {
-    if (browser) {
-      try {
-        await browser.close();
-      } catch (closeError) {
-        console.error('Error closing browser:', closeError);
-      }
-    }
   }
 }
