@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Replicate from 'replicate';
 import {
   checkRateLimit,
   validateRequestSize,
@@ -15,6 +14,59 @@ const RATE_LIMIT_CONFIG = {
   rateLimitWindow: 60 * 1000, // 1 minute
   rateLimitMax: 20,
 };
+
+// Simple prompt refinement templates for different contexts
+const REFINEMENT_TEMPLATES = {
+  property_description: {
+    prefix: "Create a professional real estate photograph showing",
+    enhancements: [
+      "high-quality, well-lit interior",
+      "modern contemporary style",
+      "spacious and inviting atmosphere",
+      "professional photography, 8k resolution, photorealistic",
+      "warm natural lighting, clean and organized space"
+    ]
+  },
+  property_exterior: {
+    prefix: "Photograph of a beautiful property exterior featuring",
+    enhancements: [
+      "well-maintained landscaping",
+      "attractive curb appeal",
+      "daytime natural lighting",
+      "professional real estate photography",
+      "wide-angle view, high detail, photorealistic"
+    ]
+  },
+  property_interior: {
+    prefix: "Interior photograph of a luxury home showing",
+    enhancements: [
+      "spacious and well-lit room",
+      "modern contemporary furnishings",
+      "clean and organized space",
+      "professional real estate photography",
+      "warm ambient lighting, high resolution, photorealistic"
+    ]
+  }
+};
+
+function refinePrompt(instruction: string, context: string): string {
+  const template = REFINEMENT_TEMPLATES[context as keyof typeof REFINEMENT_TEMPLATES] ||
+                   REFINEMENT_TEMPLATES.property_description;
+
+  // Clean and enhance the instruction
+  let refined = instruction.trim();
+
+  // Add prefix if not already present
+  if (!refined.toLowerCase().startsWith(template.prefix.toLowerCase().split(' ')[0])) {
+    refined = `${template.prefix} ${refined}`;
+  }
+
+  // Add enhancements
+  const enhancements = template.enhancements.join(', ');
+  refined = `${refined}, ${enhancements}`;
+
+  return refined;
+}
 
 export async function POST(request: NextRequest) {
   const clientIP = getClientIP(request);
@@ -65,31 +117,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize Replicate client
-    const replicate = new Replicate({
-      auth: process.env.REPLICATE_API_TOKEN,
-    });
-
-    // Call Replicate API for prompt refinement using meta/llama-2-7b-chat
-    const output = await replicate.run(
-      "meta/llama-2-7b-chat",
-      {
-        input: {
-          prompt: `You are an expert at refining AI image generation prompts for real estate photography. Take the following user instruction and refine it into a detailed, professional prompt that would work well with AI image generation models like Stable Diffusion. Focus on making it more descriptive, adding relevant details for ${context}, and ensuring it's optimized for high-quality real estate images.
-
-User instruction: "${agent_instruction}"
-
-Refined prompt:`,
-          max_new_tokens: 500,
-          temperature: 0.7,
-          top_p: 0.9,
-          repetition_penalty: 1.1
-        }
-      }
-    );
-
-    // Extract the refined prompt from the output
-    const refinedPrompt = Array.isArray(output) ? output.join('') : String(output);
+    // Simple prompt refinement without external AI
+    const refinedPrompt = refinePrompt(agent_instruction, context);
 
     return NextResponse.json({
       refined_prompt: refinedPrompt,
@@ -105,23 +134,9 @@ Refined prompt:`,
       ip: clientIP
     });
 
-    // Handle specific Replicate errors
-    let statusCode = 500;
-    let errorMessage = 'Failed to refine prompt';
-
-    if (error instanceof Error) {
-      if (error.message.includes('Replicate API error')) {
-        statusCode = 502; // Bad Gateway
-        errorMessage = 'AI service temporarily unavailable';
-      } else if (error.message.includes('Prediction failed') || error.message.includes('timed out')) {
-        statusCode = 503; // Service Unavailable
-        errorMessage = 'AI processing timeout';
-      }
-    }
-
     return NextResponse.json({
-      error: errorMessage,
+      error: 'Failed to refine prompt',
       details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: statusCode, headers: createSecurityHeaders() });
+    }, { status: 500, headers: createSecurityHeaders() });
   }
 }
