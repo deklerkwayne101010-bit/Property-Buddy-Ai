@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate URL format
-    if (!url.includes('property24.com') || !url.includes('for-sale')) {
+    if (!url.includes('property24.com') || (!url.includes('for-sale') && !url.includes('to-rent'))) {
       return NextResponse.json(
         { error: 'Invalid Property24 URL. Please provide a valid property listing URL.' },
         { status: 400 }
