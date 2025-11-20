@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     // Use GPT-4o mini to extract property data from HTML
     console.log('Processing with AI...');
     const output = await replicate.run(
-      "meta/meta-llama-3.1-405b-instruct",
+      "openai/gpt-4o-mini",
       {
         input: {
           prompt: `You are a web scraping expert. Extract property information from the following Property24 HTML content and return it as a JSON object with these exact fields:
