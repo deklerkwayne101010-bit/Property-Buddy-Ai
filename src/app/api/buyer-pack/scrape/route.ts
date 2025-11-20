@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     console.log('Starting Property24 scraping for:', url);
 
-    // Launch Puppeteer with serverless-friendly options
+    // Launch Puppeteer with serverless-friendly options for Vercel
     browser = await puppeteer.launch({
       headless: true,
       args: [
@@ -49,9 +49,13 @@ export async function POST(request: NextRequest) {
         '--single-process',
         '--disable-gpu',
         '--disable-web-security',
-        '--disable-features=VizDisplayCompositor'
+        '--disable-features=VizDisplayCompositor',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding'
       ],
-      timeout: 60000
+      timeout: 60000,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
     });
 
     const page = await browser.newPage();

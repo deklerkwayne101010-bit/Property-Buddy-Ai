@@ -2,8 +2,14 @@
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 30
+    },
+    "src/app/api/buyer-pack/scrape/route.ts": {
+      "maxDuration": 30,
+      "memory": 1024
     }
   },
+  "buildCommand": "npm run build",
+  "installCommand": "npm install && npx puppeteer browsers install chrome",
   "regions": ["iad1"],
   "headers": [
     {
