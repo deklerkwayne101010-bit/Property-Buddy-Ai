@@ -97,9 +97,8 @@ export async function POST(request: NextRequest) {
         // Clean up price (remove R, spaces, commas)
         data.price = priceText.replace(/[R\s,]/g, '').replace(/POA|Price on Application/i, 'POA');
 
-        // Extract address
-        const addressElement = document.querySelector('[data-cy="listing-address"], .listing-address, .property-address, .address');
-        data.address = addressElement?.textContent?.trim() || 'Address Not Found';
+        // Address is not available on Property24 - provide default message
+        data.address = 'Address available upon request - please contact agent for details';
 
         // Extract property features
         const featureElements = document.querySelectorAll('[data-cy="listing-feature"], .listing-feature, .property-feature, .feature');
