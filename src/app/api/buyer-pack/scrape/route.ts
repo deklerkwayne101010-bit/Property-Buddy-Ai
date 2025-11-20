@@ -98,7 +98,7 @@ async function extractPropertyDataWithReplicate(html: string): Promise<ScrapedPr
   }
 
   // Prepare the prompt for Replicate
-  const prompt = `You are a web scraping expert. Extract property information from the following Property24 HTML content and return it as a JSON object with these exact fields:
+  const prompt = `You are a web scraping expert specializing in Property24.com. Extract property information from the following Property24 HTML content and return it as a JSON object with these exact fields:
 
 {
   "title": "Property title",
@@ -112,17 +112,29 @@ async function extractPropertyDataWithReplicate(html: string): Promise<ScrapedPr
   "images": ["array", "of", "image", "URLs", "max", "10"]
 }
 
+EXTRACTION INSTRUCTIONS:
+1. TITLE: Look for the main property title, usually in h1, h2, or title tags
+2. PRICE: Find the asking price, often in elements with "price", "amount", or "cost" in class/id
+3. ADDRESS: Look for location/address information, may be in address tags or specific location divs
+4. BEDROOMS: Search for bedroom count, often shown as "X bedroom" or "X bed"
+5. BATHROOMS: Search for bathroom count, often shown as "X bathroom" or "X bath"
+6. PARKING: Search for parking spaces, often shown as "X parking" or "garage"
+7. SIZE: Look for area/size in square meters, often shown as "X m²" or "X sqm"
+8. DESCRIPTION: Find the main property description text, usually in longer paragraphs
+9. IMAGES: Extract image URLs from img src attributes, prefer high-quality images
+
 IMPORTANT RULES:
 - Extract data from the actual HTML content provided
-- Look for property title, price, features (bedrooms, bathrooms, parking), size, description
-- Find image URLs from img src attributes
-- Return valid JSON only, no additional text
-- If a field is not found, use appropriate default values
-- Limit images array to maximum 10 URLs
+- Look for structured data, meta tags, and JSON-LD first
+- Then search for specific CSS classes and IDs commonly used on Property24
+- Return valid JSON only, no additional text or explanations
+- If a field is not found, use appropriate default values (0 for numbers, empty string for text, empty array for images)
 - Make sure numbers are actual numbers, not strings
+- Limit images array to maximum 10 URLs
+- Ensure all image URLs are complete and valid
 
 HTML Content:
-${html.substring(0, 8000)}`;
+${html}`;
 
   try {
     const response = await fetch('https://api.replicate.com/v1/models/openai/gpt-4o-mini/predictions', {
@@ -172,18 +184,42 @@ ${html.substring(0, 8000)}`;
       extractedData = content;
     }
 
-    // Validate and sanitize the extracted data
-    return {
-      title: extractedData.title || 'Property Title Not Found',
-      price: extractedData.price || 'POA',
-      address: extractedData.address || 'Address not available',
-      bedrooms: typeof extractedData.bedrooms === 'number' ? extractedData.bedrooms : 0,
-      bathrooms: typeof extractedData.bathrooms === 'number' ? extractedData.bathrooms : 0,
-      parking: typeof extractedData.parking === 'number' ? extractedData.parking : 0,
-      size: extractedData.size || 'Size not specified',
-      description: extractedData.description || 'Description not available',
-      images: Array.isArray(extractedData.images) ? extractedData.images.filter((img: unknown) => typeof img === 'string' && img.startsWith('http')).slice(0, 10) : []
-    };
+    // Validate and clean the extracted data
+    if (extractedData && typeof extractedData === 'object') {
+      // Ensure numeric fields are numbers
+      extractedData.bedrooms = typeof extractedData.bedrooms === 'number' ? extractedData.bedrooms : parseInt(extractedData.bedrooms) || 0;
+      extractedData.bathrooms = typeof extractedData.bathrooms === 'number' ? extractedData.bathrooms : parseInt(extractedData.bathrooms) || 0;
+      extractedData.parking = typeof extractedData.parking === 'number' ? extractedData.parking : parseInt(extractedData.parking) || 0;
+
+      // Filter and validate image URLs
+      if (Array.isArray(extractedData.images)) {
+        extractedData.images = extractedData.images
+          .filter((img: any) => typeof img === 'string' && img.trim().length > 0)
+          .filter((img: string) => {
+            try {
+              const url = new URL(img.startsWith('//') ? 'https:' + img : img);
+              return url.protocol === 'http:' || url.protocol === 'https:';
+            } catch {
+              return false;
+            }
+          })
+          .map((img: string) => img.startsWith('//') ? 'https:' + img : img)
+          .slice(0, 10); // Limit to 10 images
+      } else {
+        extractedData.images = [];
+      }
+
+      // Ensure string fields are strings
+      extractedData.title = typeof extractedData.title === 'string' ? extractedData.title.trim() : '';
+      extractedData.price = typeof extractedData.price === 'string' ? extractedData.price.trim() : '';
+      extractedData.address = typeof extractedData.address === 'string' ? extractedData.address.trim() : '';
+      extractedData.size = typeof extractedData.size === 'string' ? extractedData.size.trim() : '';
+      extractedData.description = typeof extractedData.description === 'string' ? extractedData.description.trim() : '';
+    }
+
+    console.log('Successfully extracted and validated property data with Replicate AI');
+
+    return extractedData;
 
   } catch (error) {
     console.error('Error extracting data with Replicate:', error);
