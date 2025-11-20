@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import html2pdf from 'html2pdf.js';
 import DashboardLayout from '../../components/DashboardLayout';
 import ProtectedRoute from '../../components/ProtectedRoute';
 
@@ -81,6 +80,9 @@ export default function BuyerPackMakerPage() {
     setError('');
 
     try {
+      // Dynamically import html2pdf only on client side
+      const html2pdf = (await import('html2pdf.js')).default;
+
       // Generate HTML content for PDF
       const htmlContent = generatePDFHTML(scrapedData);
 
