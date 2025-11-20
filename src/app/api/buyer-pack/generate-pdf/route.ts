@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium-min';
 import fs from 'fs';
 import path from 'path';
 
@@ -104,10 +105,11 @@ export async function POST(request: NextRequest) {
     const propertiesPlaceholder = '{{#properties}}{{/properties}}';
     templateHtml = templateHtml.replace(propertiesPlaceholder, propertyHtml);
 
-    // Launch Puppeteer and generate PDF
+    // Launch Puppeteer with serverless-compatible configuration
     const browser = await puppeteer.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
     const page = await browser.newPage();
