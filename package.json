@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "^2.18.0",
-    "@sparticuz/chromium-min": "^141.0.0",
     "@supabase/supabase-js": "^2.75.0",
     "@types/formidable": "^3.4.6",
     "axios": "^1.12.2",

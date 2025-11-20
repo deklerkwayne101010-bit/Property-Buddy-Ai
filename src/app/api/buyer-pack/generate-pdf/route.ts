@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium-min';
+import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 
@@ -107,9 +106,16 @@ export async function POST(request: NextRequest) {
 
     // Launch Puppeteer with serverless-compatible configuration
     const browser = await puppeteer.launch({
-      args: chromium.args,
-      executablePath: await chromium.executablePath(),
       headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu'
+      ]
     });
 
     const page = await browser.newPage();
