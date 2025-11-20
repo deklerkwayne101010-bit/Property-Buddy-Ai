@@ -194,7 +194,7 @@ ${html}`;
       // Filter and validate image URLs
       if (Array.isArray(extractedData.images)) {
         extractedData.images = extractedData.images
-          .filter((img: any) => typeof img === 'string' && img.trim().length > 0)
+          .filter((img: unknown) => typeof img === 'string' && img.trim().length > 0)
           .filter((img: string) => {
             try {
               const url = new URL(img.startsWith('//') ? 'https:' + img : img);
