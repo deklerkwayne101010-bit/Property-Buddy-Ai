@@ -150,9 +150,10 @@ ${html.substring(0, 8000)}`;
 
     let content;
     if (Array.isArray(data.output)) {
-      content = data.output[0];
+      // Join all array elements and clean up markdown formatting
+      content = data.output.join('').replace(/```\w*\n?/g, '').trim();
     } else if (typeof data.output === 'string') {
-      content = data.output;
+      content = data.output.replace(/```\w*\n?/g, '').trim();
     } else {
       content = data.output;
     }
