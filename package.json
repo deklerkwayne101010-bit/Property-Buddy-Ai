@@ -19,12 +19,11 @@
     "ffmpeg-static": "^5.2.0",
     "formidable": "^3.5.4",
     "framer-motion": "^12.23.24",
+    "html2pdf.js": "^0.12.1",
     "next": "15.5.5",
-    "puppeteer": "^24.30.0",
     "puppeteer-core": "^24.30.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "replicate": "^1.4.0",
     "sharp": "^0.34.4"
   },
   "devDependencies": {

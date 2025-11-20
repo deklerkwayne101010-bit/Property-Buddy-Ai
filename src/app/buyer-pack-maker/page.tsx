@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import html2pdf from 'html2pdf.js';
 import DashboardLayout from '../../components/DashboardLayout';
 import ProtectedRoute from '../../components/ProtectedRoute';
 
@@ -80,33 +81,199 @@ export default function BuyerPackMakerPage() {
     setError('');
 
     try {
-      const response = await fetch('/api/buyer-pack/generate-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ properties: scrapedData }),
-      });
+      // Generate HTML content for PDF
+      const htmlContent = generatePDFHTML(scrapedData);
 
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'buyer-pack.pdf';
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      } else {
-        setError('Failed to generate PDF. Please try again.');
-      }
+      // Configure html2pdf options
+      const options = {
+        margin: [20, 20, 20, 20] as [number, number, number, number], // top, right, bottom, left
+        filename: 'buyer-pack.pdf',
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff'
+        },
+        jsPDF: {
+          unit: 'mm',
+          format: 'a4',
+          orientation: 'portrait' as const
+        }
+      };
+
+      // Generate and download PDF
+      await html2pdf().set(options).from(htmlContent).save();
+
     } catch (err) {
       setError('Failed to generate PDF. Please try again.');
       console.error(err);
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const generatePDFHTML = (properties: PropertyData[]) => {
+    const templateData = {
+      properties: properties.map(property => ({
+        ...property,
+        price: property.price.replace(/,/g, '') // Remove commas for display
+      })),
+      agentName: 'John Smith',
+      agentEmail: 'john.smith@remax.co.za',
+      agentPhone: '+27 21 123 4567',
+      agentInitial: 'J',
+      currentDate: new Date().toLocaleDateString('en-ZA')
+    };
+
+    // Generate property HTML
+    const propertyHtml = templateData.properties.map(property => `
+      <div style="margin-bottom: 30px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; background: white;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+          <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0;">${property.title}</h2>
+          <div style="font-size: 24px; font-weight: bold; color: #059669;">R ${property.price}</div>
+        </div>
+
+        ${property.address ? `<div style="color: #6b7280; margin-bottom: 10px; font-size: 16px;">${property.address}</div>` : ''}
+
+        <div style="display: flex; gap: 20px; margin-bottom: 15px; font-size: 14px; color: #6b7280;">
+          <div>${property.bedrooms} Bedrooms</div>
+          <div>${property.bathrooms} Bathrooms</div>
+          <div>${property.parking} Parking</div>
+          <div>${property.size}</div>
+        </div>
+
+        ${property.images.length > 0 ? `
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto;">
+          ${property.images.slice(0, 6).map(image => `
+            <img src="${image}" alt="Property Image" style="width: 120px; height: 120px; object-fit: cover; border-radius: 4px; border: 1px solid #e5e7eb;" />
+          `).join('')}
+        </div>
+        ` : ''}
+
+        ${property.description ? `
+        <div style="margin-bottom: 20px;">
+          <h3 style="font-size: 18px; font-weight: bold; color: #1f2937; margin-bottom: 10px;">Property Description</h3>
+          <p style="color: #4b5563; line-height: 1.6;">${property.description}</p>
+        </div>
+        ` : ''}
+
+        <div>
+          <h3 style="font-size: 18px; font-weight: bold; color: #1f2937; margin-bottom: 10px;">Key Features</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
+            <div style="background: #f3f4f6; padding: 8px 12px; border-radius: 4px; font-size: 14px;">Modern Kitchen</div>
+            <div style="background: #f3f4f6; padding: 8px 12px; border-radius: 4px; font-size: 14px;">Spacious Living Areas</div>
+            <div style="background: #f3f4f6; padding: 8px 12px; border-radius: 4px; font-size: 14px;">Quality Finishes</div>
+            <div style="background: #f3f4f6; padding: 8px 12px; border-radius: 4px; font-size: 14px;">Security Estate</div>
+            <div style="background: #f3f4f6; padding: 8px 12px; border-radius: 4px; font-size: 14px;">Close to Amenities</div>
+            <div style="background: #f3f4f6; padding: 8px 12px; border-radius: 4px; font-size: 14px;">Excellent Investment</div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    // Return complete HTML document
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Property Buyer Pack</title>
+        <style>
+          body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f8fafc;
+            margin: 0;
+            padding: 20px;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 20px;
+          }
+          .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #dc2626;
+            margin-bottom: 10px;
+          }
+          .subtitle {
+            font-size: 18px;
+            color: #6b7280;
+          }
+          .agent-info {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid #e5e7eb;
+          }
+          .agent-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+          }
+          .agent-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #dc2626;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-right: 15px;
+          }
+          .agent-details h3 {
+            margin: 0 0 5px 0;
+            font-size: 20px;
+            color: #1f2937;
+          }
+          .agent-details p {
+            margin: 2px 0;
+            color: #6b7280;
+          }
+          .date {
+            text-align: right;
+            color: #6b7280;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="logo">RE/MAX</div>
+          <div class="subtitle">Property Buyer Pack</div>
+        </div>
+
+        <div class="agent-info">
+          <div class="agent-header">
+            <div class="agent-avatar">${templateData.agentInitial}</div>
+            <div class="agent-details">
+              <h3>${templateData.agentName}</h3>
+              <p>${templateData.agentEmail}</p>
+              <p>${templateData.agentPhone}</p>
+            </div>
+          </div>
+          <div class="date">Generated on: ${templateData.currentDate}</div>
+        </div>
+
+        ${propertyHtml}
+
+        <div style="margin-top: 40px; padding: 20px; background: #f8fafc; border-radius: 8px; text-align: center; border: 1px solid #e5e7eb;">
+          <p style="margin: 0; color: #6b7280; font-size: 14px;">
+            This buyer pack was generated using Stagefy AI Property Tools
+          </p>
+        </div>
+      </body>
+      </html>
+    `;
   };
 
   return (
