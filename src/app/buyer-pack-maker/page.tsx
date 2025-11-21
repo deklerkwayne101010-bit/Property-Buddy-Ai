@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import DashboardLayout from '../../components/DashboardLayout';
 import ProtectedRoute from '../../components/ProtectedRoute';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableCell, TableRow, WidthType, ImageRun, PageOrientation, PageMargin, Header, Footer, BorderStyle, ShadingType, VerticalAlign, HeightRule } from 'docx';
 
 interface PropertyData {
   title: string;
@@ -116,7 +115,7 @@ export default function BuyerPackMakerPage() {
     }
   };
 
-  const handleGenerateWord = async () => {
+  const handleGenerateEditableHTML = async () => {
     if (scrapedData.length === 0) {
       setError('No property data available. Please scrape properties first.');
       return;
@@ -126,27 +125,30 @@ export default function BuyerPackMakerPage() {
     setError('');
 
     try {
-      // Generate Word document
-      const doc = await generateWordDocument(scrapedData);
+      // Generate editable HTML content
+      const htmlContent = await generateEditableHTML(scrapedData);
 
-      // Generate and download the Word document
-      const buffer = await Packer.toBuffer(doc);
-      const blob = new Blob([new Uint8Array(buffer)], {
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      });
-
-      // Create download link
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'buyer-pack.docx';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      // Create a new window with the editable HTML
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(htmlContent);
+        newWindow.document.close();
+        newWindow.focus();
+      } else {
+        // Fallback: download as HTML file
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `buyer-pack-${new Date().toISOString().split('T')[0]}.html`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
 
     } catch (err) {
-      setError('Failed to generate Word document. Please try again.');
+      setError('Failed to generate editable buyer pack. Please try again.');
       console.error(err);
     } finally {
       setIsProcessing(false);
@@ -316,11 +318,11 @@ export default function BuyerPackMakerPage() {
     `;
   };
 
-  const generateWordDocument = async (properties: PropertyData[]): Promise<Document> => {
+  const generateEditableHTML = async (properties: PropertyData[]): Promise<string> => {
     // Load the HTML template
     const templateResponse = await fetch('/templates/buyer-pack-word-template.html');
     if (!templateResponse.ok) {
-      throw new Error('Failed to load Word template');
+      throw new Error('Failed to load HTML template');
     }
     let htmlTemplate = await templateResponse.text();
 
@@ -345,69 +347,60 @@ export default function BuyerPackMakerPage() {
 
     // Generate property sections with actual images
     const propertySections = await Promise.all(templateData.properties.map(async (property, index) => {
-      // Download and convert images to base64
-      const imagePromises = property.images.slice(0, 6).map(async (imageUrl, imgIndex) => {
-        try {
-          const response = await fetch(imageUrl);
-          if (!response.ok) throw new Error('Failed to fetch image');
-          const blob = await response.blob();
-          return new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.readAsDataURL(blob);
-          });
-        } catch (error) {
-          console.warn(`Failed to load image ${imgIndex + 1} for property ${index + 1}:`, error);
-          return null;
-        }
-      });
-
-      const imageDataUrls = await Promise.all(imagePromises);
+      // Create image HTML with actual images
+      const imageHtml = property.images.slice(0, 6).map((imageUrl, imgIndex) => `
+        <div class="image-container" style="margin: 10px; display: inline-block;">
+          <img src="${imageUrl}" alt="Property Photo ${imgIndex + 1}"
+               style="max-width: 300px; max-height: 200px; border: 1px solid #ddd; border-radius: 4px;"
+               onerror="this.style.display='none'" />
+          <br><small>Property Photo ${imgIndex + 1}</small>
+        </div>
+      `).join('');
 
       return `
-        <div class="property-section">
-            <h1 class="property-title">PROPERTY ${index + 1}: ${property.title}</h1>
+        <div class="property-section" style="page-break-before: always; margin-bottom: 50px;">
+            <h1 class="property-title" contenteditable="true" style="color: #DC2626; font-size: 24px; margin-bottom: 20px; border-bottom: 2px solid #DC2626; padding-bottom: 10px;">
+              PROPERTY ${index + 1}: ${property.title}
+            </h1>
 
-            <div class="price-highlight">R ${property.price}</div>
+            <div class="price-highlight" style="text-align: center; font-size: 32px; font-weight: bold; color: #059669; margin: 20px 0;">
+              R ${property.price}
+            </div>
 
-            <div class="property-details">
-                <table>
-                    <tr>
-                        <th>Bedrooms</th>
-                        <th>Bathrooms</th>
-                        <th>Parking</th>
-                        <th>Size</th>
+            <div class="property-details" style="margin-bottom: 20px;">
+                <table style="width: 100%; border-collapse: collapse; border: 1px solid #E5E7EB;">
+                    <tr style="background-color: #F9FAFB;">
+                        <th style="padding: 10px; border: 1px solid #E5E7EB; font-weight: bold;">Bedrooms</th>
+                        <th style="padding: 10px; border: 1px solid #E5E7EB; font-weight: bold;">Bathrooms</th>
+                        <th style="padding: 10px; border: 1px solid #E5E7EB; font-weight: bold;">Parking</th>
+                        <th style="padding: 10px; border: 1px solid #E5E7EB; font-weight: bold;">Size</th>
                     </tr>
                     <tr>
-                        <td>${property.bedrooms}</td>
-                        <td>${property.bathrooms}</td>
-                        <td>${property.parking}</td>
-                        <td>${property.size}</td>
+                        <td style="padding: 10px; border: 1px solid #E5E7EB; text-align: center;">${property.bedrooms}</td>
+                        <td style="padding: 10px; border: 1px solid #E5E7EB; text-align: center;">${property.bathrooms}</td>
+                        <td style="padding: 10px; border: 1px solid #E5E7EB; text-align: center;">${property.parking}</td>
+                        <td style="padding: 10px; border: 1px solid #E5E7EB; text-align: center;">${property.size}</td>
                     </tr>
                 </table>
             </div>
 
-            ${property.address ? `<div class="property-address"><strong>Location:</strong> ${property.address}</div>` : ''}
+            ${property.address ? `<div class="property-address" style="margin-bottom: 20px;"><strong>Location:</strong> <span contenteditable="true">${property.address}</span></div>` : ''}
 
-            <div class="property-description">
-                <h3>Property Description</h3>
-                <p>${property.description || 'No description available'}</p>
+            <div class="property-description" style="margin-bottom: 30px;">
+                <h3 style="color: #1F2937; margin-bottom: 15px;">Property Description</h3>
+                <p contenteditable="true" style="line-height: 1.6;">${property.description || 'No description available'}</p>
             </div>
 
-            <div class="property-images">
-                <h3>Property Photos</h3>
-                <div class="image-grid">
-                    ${imageDataUrls.filter(url => url).map((dataUrl, imgIndex) => `
-                        <div class="image-container">
-                            <img src="${dataUrl}" alt="Property Photo ${imgIndex + 1}" style="max-width: 100%; height: auto;" />
-                        </div>
-                    `).join('')}
+            <div class="property-images" style="margin-bottom: 30px;">
+                <h3 style="color: #1F2937; margin-bottom: 15px;">Property Photos</h3>
+                <div class="image-grid" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    ${imageHtml}
                 </div>
             </div>
 
-            <div class="key-features">
-                <h3>Key Features</h3>
-                <ul>
+            <div class="key-features" style="margin-bottom: 30px;">
+                <h3 style="color: #1F2937; margin-bottom: 15px;">Key Features</h3>
+                <ul contenteditable="true" style="line-height: 1.8;">
                     <li>Modern Kitchen</li>
                     <li>Spacious Living Areas</li>
                     <li>Quality Finishes</li>
@@ -416,323 +409,50 @@ export default function BuyerPackMakerPage() {
                     <li>Excellent Investment</li>
                 </ul>
             </div>
+
+            <div class="additional-notes" style="margin-top: 30px; padding: 20px; background-color: #F9FAFB; border-left: 4px solid #DC2626;">
+                <h4 style="margin-bottom: 10px; color: #DC2626;">Additional Notes</h4>
+                <p contenteditable="true" style="margin: 0; font-style: italic; color: #6B7280;">
+                  Add any additional information, special features, or notes about this property here...
+                </p>
+            </div>
         </div>
       `;
     }));
 
-    // Replace property sections in template
-    const propertySectionPattern = /<div class="property-section">[\s\S]*?<\/div>/;
+    // Replace the template's property sections with our generated ones
+    const propertySectionPattern = /<div class="property-section">[\s\S]*?<\/div>\s*<div class="property-section">[\s\S]*?<\/div>/;
     htmlTemplate = htmlTemplate.replace(propertySectionPattern, propertySections.join('\n\n'));
 
-    // Create Word document from HTML structure
-    const children: (Paragraph | Table)[] = [];
+    // Add editing instructions and print styles
+    const editingInstructions = `
+      <div style="position: fixed; top: 10px; right: 10px; background: #DC2626; color: white; padding: 10px; border-radius: 4px; font-size: 12px; z-index: 1000;">
+        <strong>Editable Buyer Pack</strong><br>
+        Click any text to edit • Ctrl+P to print • Save as PDF
+      </div>
 
-    // Header with RE/MAX branding
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: 'RE/MAX',
-            font: 'Arial',
-            size: 48,
-            bold: true,
-            color: 'DC2626',
-          }),
-        ],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 200 },
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: 'Property Buyer Pack',
-            font: 'Arial',
-            size: 32,
-            bold: true,
-            color: '1F2937',
-          }),
-        ],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 400 },
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: 'Professional Property Marketing Solutions',
-            font: 'Arial',
-            size: 20,
-            color: '6B7280',
-          }),
-        ],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 600 },
-      })
-    );
-
-    // Agent Information Section
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: 'AGENT INFORMATION',
-            font: 'Arial',
-            size: 24,
-            bold: true,
-            color: 'DC2626',
-          }),
-        ],
-        spacing: { before: 400, after: 300 },
-      }),
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        borders: {
-          top: { style: BorderStyle.SINGLE, size: 1, color: 'E5E7EB' },
-          bottom: { style: BorderStyle.SINGLE, size: 1, color: 'E5E7EB' },
-          left: { style: BorderStyle.SINGLE, size: 1, color: 'E5E7EB' },
-          right: { style: BorderStyle.SINGLE, size: 1, color: 'E5E7EB' },
-        },
-        rows: [
-          new TableRow({
-            children: [
-              new TableCell({
-                children: [new Paragraph({ children: [new TextRun({ text: 'Name:', font: 'Arial', size: 22, bold: true, color: '374151' })] })],
-                width: { size: 25, type: WidthType.PERCENTAGE },
-                shading: { fill: 'F9FAFB' },
-              }),
-              new TableCell({
-                children: [new Paragraph({ children: [new TextRun({ text: templateData.agentName, font: 'Arial', size: 22, color: '1F2937' })] })],
-                width: { size: 75, type: WidthType.PERCENTAGE },
-              }),
-            ],
-          }),
-          new TableRow({
-            children: [
-              new TableCell({
-                children: [new Paragraph({ children: [new TextRun({ text: 'Email:', font: 'Arial', size: 22, bold: true, color: '374151' })] })],
-                shading: { fill: 'F9FAFB' },
-              }),
-              new TableCell({
-                children: [new Paragraph({ children: [new TextRun({ text: templateData.agentEmail, font: 'Arial', size: 22, color: '1F2937' })] })],
-              }),
-            ],
-          }),
-          new TableRow({
-            children: [
-              new TableCell({
-                children: [new Paragraph({ children: [new TextRun({ text: 'Phone:', font: 'Arial', size: 22, bold: true, color: '374151' })] })],
-                shading: { fill: 'F9FAFB' },
-              }),
-              new TableCell({
-                children: [new Paragraph({ children: [new TextRun({ text: templateData.agentPhone, font: 'Arial', size: 22, color: '1F2937' })] })],
-              }),
-            ],
-          }),
-        ],
-      }),
-      new Paragraph({
-        children: [new TextRun({ text: `Generated on: ${templateData.currentDate}`, font: 'Arial', size: 18, color: '6B7280' })],
-        alignment: AlignmentType.RIGHT,
-        spacing: { before: 300, after: 600 },
-      })
-    );
-
-    // Add each property with images
-    for (const [index, property] of templateData.properties.entries()) {
-      // Property Header
-      children.push(
-        new Paragraph({
-          children: [new TextRun({ text: `PROPERTY ${index + 1}`, font: 'Arial', size: 28, bold: true, color: 'DC2626' })],
-          spacing: { before: 600, after: 200 },
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: property.title, font: 'Arial', size: 24, bold: true, color: '1F2937' })],
-          spacing: { after: 300 },
-        })
-      );
-
-      // Price Highlight
-      children.push(
-        new Paragraph({
-          children: [new TextRun({ text: `R ${property.price}`, font: 'Arial', size: 32, bold: true, color: '059669' })],
-          alignment: AlignmentType.CENTER,
-          spacing: { before: 200, after: 400 },
-        })
-      );
-
-      // Property Images - actually embed them
-      if (property.images.length > 0) {
-        children.push(
-          new Paragraph({
-            children: [new TextRun({ text: 'PROPERTY PHOTOS', font: 'Arial', size: 20, bold: true, color: '374151' })],
-            spacing: { before: 300, after: 200 },
-          })
-        );
-
-        // Download and embed images
-        for (let i = 0; i < Math.min(property.images.length, 6); i++) {
-          try {
-            const response = await fetch(property.images[i]);
-            if (response.ok) {
-              const blob = await response.blob();
-              const arrayBuffer = await blob.arrayBuffer();
-              const uint8Array = new Uint8Array(arrayBuffer);
-
-              children.push(
-                new Paragraph({
-                  children: [
-                    new ImageRun({
-                      data: uint8Array,
-                      transformation: {
-                        width: 400,
-                        height: 300,
-                      },
-                      type: 'png',
-                    }),
-                  ],
-                  spacing: { after: 200 },
-                })
-              );
-            }
-          } catch (error) {
-            console.warn(`Failed to embed image ${i + 1} for property ${index + 1}:`, error);
-            // Add placeholder text if image fails
-            children.push(
-              new Paragraph({
-                children: [new TextRun({ text: `[Property Photo ${i + 1}]`, font: 'Arial', size: 18, color: '6B7280', italics: true })],
-                alignment: AlignmentType.CENTER,
-                spacing: { after: 200 },
-              })
-            );
-          }
+      <style>
+        @media print {
+          .editing-instructions { display: none !important; }
+          body { margin: 0.5in; }
         }
-      }
 
-      // Property Details Table
-      children.push(
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          borders: {
-            top: { style: BorderStyle.SINGLE, size: 1, color: 'E5E7EB' },
-            bottom: { style: BorderStyle.SINGLE, size: 1, color: 'E5E7EB' },
-            left: { style: BorderStyle.SINGLE, size: 1, color: 'E5E7EB' },
-            right: { style: BorderStyle.SINGLE, size: 1, color: 'E5E7EB' },
-          },
-          rows: [
-            new TableRow({
-              children: [
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Bedrooms', font: 'Arial', size: 20, bold: true, color: '374151' })] })], shading: { fill: 'F9FAFB' } }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Bathrooms', font: 'Arial', size: 20, bold: true, color: '374151' })] })], shading: { fill: 'F9FAFB' } }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Parking', font: 'Arial', size: 20, bold: true, color: '374151' })] })], shading: { fill: 'F9FAFB' } }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Size', font: 'Arial', size: 20, bold: true, color: '374151' })] })], shading: { fill: 'F9FAFB' } }),
-              ],
-            }),
-            new TableRow({
-              children: [
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: property.bedrooms.toString(), font: 'Arial', size: 20, color: '1F2937' })] })] }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: property.bathrooms.toString(), font: 'Arial', size: 20, color: '1F2937' })] })] }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: property.parking.toString(), font: 'Arial', size: 20, color: '1F2937' })] })] }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: property.size, font: 'Arial', size: 20, color: '1F2937' })] })] }),
-              ],
-            }),
-          ],
-        })
-      );
+        [contenteditable]:focus {
+          outline: 2px solid #DC2626;
+          background-color: #FEF3C7;
+        }
 
-      // Address
-      if (property.address) {
-        children.push(
-          new Paragraph({
-            children: [new TextRun({ text: `Location: ${property.address}`, font: 'Arial', size: 20, color: '1F2937' })],
-            spacing: { before: 300, after: 300 },
-          })
-        );
-      }
+        .image-container img:hover {
+          transform: scale(1.05);
+          transition: transform 0.2s;
+        }
+      </style>
+    `;
 
-      // Property Description
-      if (property.description) {
-        children.push(
-          new Paragraph({
-            children: [new TextRun({ text: 'PROPERTY DESCRIPTION', font: 'Arial', size: 20, bold: true, color: '374151' })],
-            spacing: { before: 300, after: 200 },
-          }),
-          new Paragraph({
-            children: [new TextRun({ text: property.description, font: 'Arial', size: 20, color: '1F2937' })],
-            spacing: { after: 300 },
-          })
-        );
-      }
+    // Insert editing instructions after body tag
+    htmlTemplate = htmlTemplate.replace('<body>', '<body>' + editingInstructions);
 
-      // Key Features
-      children.push(
-        new Paragraph({
-          children: [new TextRun({ text: 'KEY FEATURES', font: 'Arial', size: 20, bold: true, color: '374151' })],
-          spacing: { before: 300, after: 200 },
-        }),
-        new Paragraph({ children: [new TextRun({ text: '• Modern Kitchen', font: 'Arial', size: 18, color: '1F2937' })] }),
-        new Paragraph({ children: [new TextRun({ text: '• Spacious Living Areas', font: 'Arial', size: 18, color: '1F2937' })] }),
-        new Paragraph({ children: [new TextRun({ text: '• Quality Finishes', font: 'Arial', size: 18, color: '1F2937' })] }),
-        new Paragraph({ children: [new TextRun({ text: '• Security Estate', font: 'Arial', size: 18, color: '1F2937' })] }),
-        new Paragraph({ children: [new TextRun({ text: '• Close to Amenities', font: 'Arial', size: 18, color: '1F2937' })] }),
-        new Paragraph({ children: [new TextRun({ text: '• Excellent Investment', font: 'Arial', size: 18, color: '1F2937' })] }),
-        new Paragraph({ text: '', spacing: { after: 600 } })
-      );
-
-      // Page break between properties (except for the last one)
-      if (index < templateData.properties.length - 1) {
-        children.push(
-          new Paragraph({
-            children: [new TextRun({ text: '', break: 1 })],
-          })
-        );
-      }
-    }
-
-    // Professional Footer
-    children.push(
-      new Paragraph({
-        children: [new TextRun({ text: 'Generated using Stagefy AI Property Tools', font: 'Arial', size: 16, color: '6B7280' })],
-        alignment: AlignmentType.CENTER,
-        spacing: { before: 600 },
-      }),
-      new Paragraph({
-        children: [new TextRun({ text: 'Professional Property Marketing Solutions', font: 'Arial', size: 14, color: '9CA3AF' })],
-        alignment: AlignmentType.CENTER,
-        spacing: { before: 100 },
-      })
-    );
-
-    return new Document({
-      sections: [
-        {
-          properties: {
-            page: {
-              margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
-            },
-          },
-          headers: {
-            default: new Header({
-              children: [
-                new Paragraph({
-                  children: [new TextRun({ text: 'RE/MAX Property Buyer Pack', font: 'Arial', size: 16, color: 'DC2626' })],
-                  alignment: AlignmentType.CENTER,
-                }),
-              ],
-            }),
-          },
-          footers: {
-            default: new Footer({
-              children: [
-                new Paragraph({
-                  children: [new TextRun({ text: `Page | ${new Date().getFullYear()} RE/MAX`, font: 'Arial', size: 12, color: '9CA3AF' })],
-                  alignment: AlignmentType.CENTER,
-                }),
-              ],
-            }),
-          },
-          children: children,
-        },
-      ],
-    });
+    return htmlTemplate;
   };
 
   return (
@@ -742,7 +462,7 @@ export default function BuyerPackMakerPage() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Buyer Pack Maker</h1>
-            <p className="text-gray-600">Create professional property buyer packs by scraping Property24 listings and generating branded PDFs or Word documents.</p>
+            <p className="text-gray-600">Create professional property buyer packs by scraping Property24 listings and generating editable HTML documents that can be printed or saved as PDF.</p>
           </div>
 
           {/* Input Section */}
@@ -787,11 +507,11 @@ export default function BuyerPackMakerPage() {
                     </button>
 
                     <button
-                      onClick={handleGenerateWord}
+                      onClick={handleGenerateEditableHTML}
                       disabled={isProcessing}
                       className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-medium py-2 px-6 rounded-md transition-colors duration-200"
                     >
-                      {isProcessing ? 'Generating...' : 'Generate Word'}
+                      {isProcessing ? 'Generating...' : 'Generate Editable Pack'}
                     </button>
                   </>
                 )}
