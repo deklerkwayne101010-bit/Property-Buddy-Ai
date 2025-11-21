@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Property Buyer Pack Template</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 1in;
+            line-height: 1.6;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .logo {
+            font-size: 36px;
+            font-weight: bold;
+            color: #DC2626;
+            margin-bottom: 10px;
+        }
+        .title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1F2937;
+            margin-bottom: 30px;
+        }
+        .agent-info {
+            margin-bottom: 40px;
+        }
+        .agent-info table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .agent-info td {
+            padding: 8px;
+            border: 1px solid #E5E7EB;
+        }
+        .agent-info .label {
+            font-weight: bold;
+            background-color: #F9FAFB;
+            width: 150px;
+        }
+        .property-section {
+            margin-bottom: 50px;
+            page-break-before: always;
+        }
+        .property-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #DC2626;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #DC2626;
+            padding-bottom: 10px;
+        }
+        .property-details table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .property-details th,
+        .property-details td {
+            padding: 10px;
+            border: 1px solid #E5E7EB;
+            text-align: left;
+        }
+        .property-details th {
+            background-color: #F9FAFB;
+            font-weight: bold;
+        }
+        .property-description {
+            margin-bottom: 30px;
+            line-height: 1.8;
+        }
+        .photo-placeholder {
+            border: 2px dashed #D1D5DB;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            color: #6B7280;
+            font-style: italic;
+        }
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #E5E7EB;
+            text-align: center;
+            font-size: 12px;
+            color: #6B7280;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <div class="header">
+        <div class="logo">RE/MAX</div>
+        <div class="title">Property Buyer Pack</div>
+        <p><strong>Date:</strong> {{current_date}}</p>
+    </div>
+
+    <!-- Agent Information Section -->
+    <div class="agent-info">
+        <h2 style="color: #DC2626; margin-bottom: 20px;">Your Property Consultant</h2>
+        <table>
+            <tr>
+                <td class="label">Name:</td>
+                <td>{{agent_name}}</td>
+            </tr>
+            <tr>
+                <td class="label">Email:</td>
+                <td>{{agent_email}}</td>
+            </tr>
+            <tr>
+                <td class="label">Phone:</td>
+                <td>{{agent_phone}}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Property 1 Section -->
+    <div class="property-section">
+        <div class="property-title">{{property_title}}</div>
+
+        <div class="property-details">
+            <table>
+                <tr>
+                    <th>Price</th>
+                    <th>Bedrooms</th>
+                    <th>Bathrooms</th>
+                    <th>Parking</th>
+                    <th>Size</th>
+                </tr>
+                <tr>
+                    <td>{{property_price}}</td>
+                    <td>{{property_bedrooms}}</td>
+                    <td>{{property_bathrooms}}</td>
+                    <td>{{property_parking}}</td>
+                    <td>{{property_size}}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="property-description">
+            <h3 style="color: #1F2937; margin-bottom: 15px;">Property Description</h3>
+            <p>{{property_description}}</p>
+        </div>
+
+        <div class="photo-placeholder">
+            [Property Photo 1]<br>
+            <small>Insert property photo here</small>
+        </div>
+
+        <div class="photo-placeholder">
+            [Property Photo 2]<br>
+            <small>Insert property photo here</small>
+        </div>
+
+        <div class="photo-placeholder">
+            [Property Photo 3]<br>
+            <small>Insert property photo here</small>
+        </div>
+    </div>
+
+    <!-- Property 2 Section (Repeat for multiple properties) -->
+    <div class="property-section">
+        <div class="property-title">{{property_title}}</div>
+
+        <div class="property-details">
+            <table>
+                <tr>
+                    <th>Price</th>
+                    <th>Bedrooms</th>
+                    <th>Bathrooms</th>
+                    <th>Parking</th>
+                    <th>Size</th>
+                </tr>
+                <tr>
+                    <td>{{property_price}}</td>
+                    <td>{{property_bedrooms}}</td>
+                    <td>{{property_bathrooms}}</td>
+                    <td>{{property_parking}}</td>
+                    <td>{{property_size}}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="property-description">
+            <h3 style="color: #1F2937; margin-bottom: 15px;">Property Description</h3>
+            <p>{{property_description}}</p>
+        </div>
+
+        <div class="photo-placeholder">
+            [Property Photo 1]<br>
+            <small>Insert property photo here</small>
+        </div>
+
+        <div class="photo-placeholder">
+            [Property Photo 2]<br>
+            <small>Insert property photo here</small>
+        </div>
+
+        <div class="photo-placeholder">
+            [Property Photo 3]<br>
+            <small>Insert property photo here</small>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>This buyer pack was generated using Stagefy AI Property Tools</p>
+        <p>For more information, visit www.stagefy.co.za</p>
+    </div>
+</body>
+</html>
