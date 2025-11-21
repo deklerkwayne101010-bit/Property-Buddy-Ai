@@ -343,23 +343,42 @@ export default function BuyerPackMakerPage() {
       .replace(/{{agent_phone}}/g, templateData.agentPhone)
       .replace(/{{current_date}}/g, templateData.currentDate);
 
-    // Generate property sections
-    const propertySections = templateData.properties.map((property, index) => {
+    // Generate property sections with actual images
+    const propertySections = await Promise.all(templateData.properties.map(async (property, index) => {
+      // Download and convert images to base64
+      const imagePromises = property.images.slice(0, 6).map(async (imageUrl, imgIndex) => {
+        try {
+          const response = await fetch(imageUrl);
+          if (!response.ok) throw new Error('Failed to fetch image');
+          const blob = await response.blob();
+          return new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(blob);
+          });
+        } catch (error) {
+          console.warn(`Failed to load image ${imgIndex + 1} for property ${index + 1}:`, error);
+          return null;
+        }
+      });
+
+      const imageDataUrls = await Promise.all(imagePromises);
+
       return `
         <div class="property-section">
-            <div class="property-title">${property.title}</div>
+            <h1 class="property-title">PROPERTY ${index + 1}: ${property.title}</h1>
+
+            <div class="price-highlight">R ${property.price}</div>
 
             <div class="property-details">
                 <table>
                     <tr>
-                        <th>Price</th>
                         <th>Bedrooms</th>
                         <th>Bathrooms</th>
                         <th>Parking</th>
                         <th>Size</th>
                     </tr>
                     <tr>
-                        <td>R ${property.price}</td>
                         <td>${property.bedrooms}</td>
                         <td>${property.bathrooms}</td>
                         <td>${property.parking}</td>
@@ -368,32 +387,47 @@ export default function BuyerPackMakerPage() {
                 </table>
             </div>
 
+            ${property.address ? `<div class="property-address"><strong>Location:</strong> ${property.address}</div>` : ''}
+
             <div class="property-description">
                 <h3>Property Description</h3>
                 <p>${property.description || 'No description available'}</p>
             </div>
 
-            ${property.images.slice(0, 3).map((_, imgIndex) => `
-            <div class="photo-placeholder">
-                [Property Photo ${imgIndex + 1}]<br>
-                <small>Insert property photo here</small>
+            <div class="property-images">
+                <h3>Property Photos</h3>
+                <div class="image-grid">
+                    ${imageDataUrls.filter(url => url).map((dataUrl, imgIndex) => `
+                        <div class="image-container">
+                            <img src="${dataUrl}" alt="Property Photo ${imgIndex + 1}" style="max-width: 100%; height: auto;" />
+                        </div>
+                    `).join('')}
+                </div>
             </div>
-            `).join('')}
+
+            <div class="key-features">
+                <h3>Key Features</h3>
+                <ul>
+                    <li>Modern Kitchen</li>
+                    <li>Spacious Living Areas</li>
+                    <li>Quality Finishes</li>
+                    <li>Security Estate</li>
+                    <li>Close to Amenities</li>
+                    <li>Excellent Investment</li>
+                </ul>
+            </div>
         </div>
       `;
-    }).join('');
+    }));
 
     // Replace property sections in template
-    htmlTemplate = htmlTemplate.replace(
-      /<div class="property-section">[\s\S]*?<\/div>\s*<div class="property-section">[\s\S]*?<\/div>/,
-      propertySections
-    );
+    const propertySectionPattern = /<div class="property-section">[\s\S]*?<\/div>/;
+    htmlTemplate = htmlTemplate.replace(propertySectionPattern, propertySections.join('\n\n'));
 
-    // Create a simple document structure from the HTML
-    // Since docx library doesn't directly convert HTML, we'll create a basic structure
+    // Create Word document from HTML structure
     const children: (Paragraph | Table)[] = [];
 
-    // Add header
+    // Header with RE/MAX branding
     children.push(
       new Paragraph({
         children: [
@@ -420,10 +454,22 @@ export default function BuyerPackMakerPage() {
         ],
         alignment: AlignmentType.CENTER,
         spacing: { after: 400 },
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: 'Professional Property Marketing Solutions',
+            font: 'Arial',
+            size: 20,
+            color: '6B7280',
+          }),
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 600 },
       })
     );
 
-    // Agent Information
+    // Agent Information Section
     children.push(
       new Paragraph({
         children: [
@@ -482,12 +528,17 @@ export default function BuyerPackMakerPage() {
             ],
           }),
         ],
+      }),
+      new Paragraph({
+        children: [new TextRun({ text: `Generated on: ${templateData.currentDate}`, font: 'Arial', size: 18, color: '6B7280' })],
+        alignment: AlignmentType.RIGHT,
+        spacing: { before: 300, after: 600 },
       })
     );
 
-    // Add properties
-    templateData.properties.forEach((property, index) => {
-      // Property header
+    // Add each property with images
+    for (const [index, property] of templateData.properties.entries()) {
+      // Property Header
       children.push(
         new Paragraph({
           children: [new TextRun({ text: `PROPERTY ${index + 1}`, font: 'Arial', size: 28, bold: true, color: 'DC2626' })],
@@ -499,7 +550,7 @@ export default function BuyerPackMakerPage() {
         })
       );
 
-      // Price
+      // Price Highlight
       children.push(
         new Paragraph({
           children: [new TextRun({ text: `R ${property.price}`, font: 'Arial', size: 32, bold: true, color: '059669' })],
@@ -508,7 +559,55 @@ export default function BuyerPackMakerPage() {
         })
       );
 
-      // Property details table
+      // Property Images - actually embed them
+      if (property.images.length > 0) {
+        children.push(
+          new Paragraph({
+            children: [new TextRun({ text: 'PROPERTY PHOTOS', font: 'Arial', size: 20, bold: true, color: '374151' })],
+            spacing: { before: 300, after: 200 },
+          })
+        );
+
+        // Download and embed images
+        for (let i = 0; i < Math.min(property.images.length, 6); i++) {
+          try {
+            const response = await fetch(property.images[i]);
+            if (response.ok) {
+              const blob = await response.blob();
+              const arrayBuffer = await blob.arrayBuffer();
+              const uint8Array = new Uint8Array(arrayBuffer);
+
+              children.push(
+                new Paragraph({
+                  children: [
+                    new ImageRun({
+                      data: uint8Array,
+                      transformation: {
+                        width: 400,
+                        height: 300,
+                      },
+                      type: 'png',
+                    }),
+                  ],
+                  spacing: { after: 200 },
+                })
+              );
+            }
+          } catch (error) {
+            console.warn(`Failed to embed image ${i + 1} for property ${index + 1}:`, error);
+            // Add placeholder text if image fails
+            children.push(
+              new Paragraph({
+                children: [new TextRun({ text: `[Property Photo ${i + 1}]`, font: 'Arial', size: 18, color: '6B7280', italics: true })],
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 200 },
+              })
+            );
+          }
+        }
+      }
+
+      // Property Details Table
       children.push(
         new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
@@ -521,7 +620,6 @@ export default function BuyerPackMakerPage() {
           rows: [
             new TableRow({
               children: [
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Price', font: 'Arial', size: 20, bold: true, color: '374151' })] })], shading: { fill: 'F9FAFB' } }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Bedrooms', font: 'Arial', size: 20, bold: true, color: '374151' })] })], shading: { fill: 'F9FAFB' } }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Bathrooms', font: 'Arial', size: 20, bold: true, color: '374151' })] })], shading: { fill: 'F9FAFB' } }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Parking', font: 'Arial', size: 20, bold: true, color: '374151' })] })], shading: { fill: 'F9FAFB' } }),
@@ -530,7 +628,6 @@ export default function BuyerPackMakerPage() {
             }),
             new TableRow({
               children: [
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `R ${property.price}`, font: 'Arial', size: 20, color: '1F2937' })] })] }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: property.bedrooms.toString(), font: 'Arial', size: 20, color: '1F2937' })] })] }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: property.bathrooms.toString(), font: 'Arial', size: 20, color: '1F2937' })] })] }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: property.parking.toString(), font: 'Arial', size: 20, color: '1F2937' })] })] }),
@@ -541,7 +638,17 @@ export default function BuyerPackMakerPage() {
         })
       );
 
-      // Description
+      // Address
+      if (property.address) {
+        children.push(
+          new Paragraph({
+            children: [new TextRun({ text: `Location: ${property.address}`, font: 'Arial', size: 20, color: '1F2937' })],
+            spacing: { before: 300, after: 300 },
+          })
+        );
+      }
+
+      // Property Description
       if (property.description) {
         children.push(
           new Paragraph({
@@ -555,18 +662,22 @@ export default function BuyerPackMakerPage() {
         );
       }
 
-      // Photo placeholders
-      if (property.images.length > 0) {
-        children.push(
-          new Paragraph({
-            children: [new TextRun({ text: `[Insert ${property.images.length} property photo${property.images.length > 1 ? 's' : ''} here]`, font: 'Arial', size: 18, color: '6B7280', italics: true })],
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 300, after: 400 },
-          })
-        );
-      }
+      // Key Features
+      children.push(
+        new Paragraph({
+          children: [new TextRun({ text: 'KEY FEATURES', font: 'Arial', size: 20, bold: true, color: '374151' })],
+          spacing: { before: 300, after: 200 },
+        }),
+        new Paragraph({ children: [new TextRun({ text: '• Modern Kitchen', font: 'Arial', size: 18, color: '1F2937' })] }),
+        new Paragraph({ children: [new TextRun({ text: '• Spacious Living Areas', font: 'Arial', size: 18, color: '1F2937' })] }),
+        new Paragraph({ children: [new TextRun({ text: '• Quality Finishes', font: 'Arial', size: 18, color: '1F2937' })] }),
+        new Paragraph({ children: [new TextRun({ text: '• Security Estate', font: 'Arial', size: 18, color: '1F2937' })] }),
+        new Paragraph({ children: [new TextRun({ text: '• Close to Amenities', font: 'Arial', size: 18, color: '1F2937' })] }),
+        new Paragraph({ children: [new TextRun({ text: '• Excellent Investment', font: 'Arial', size: 18, color: '1F2937' })] }),
+        new Paragraph({ text: '', spacing: { after: 600 } })
+      );
 
-      // Page break between properties
+      // Page break between properties (except for the last one)
       if (index < templateData.properties.length - 1) {
         children.push(
           new Paragraph({
@@ -574,26 +685,53 @@ export default function BuyerPackMakerPage() {
           })
         );
       }
-    });
+    }
 
-    // Footer
+    // Professional Footer
     children.push(
       new Paragraph({
         children: [new TextRun({ text: 'Generated using Stagefy AI Property Tools', font: 'Arial', size: 16, color: '6B7280' })],
         alignment: AlignmentType.CENTER,
         spacing: { before: 600 },
+      }),
+      new Paragraph({
+        children: [new TextRun({ text: 'Professional Property Marketing Solutions', font: 'Arial', size: 14, color: '9CA3AF' })],
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 100 },
       })
     );
 
     return new Document({
-      sections: [{
-        properties: {
-          page: {
-            margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
+      sections: [
+        {
+          properties: {
+            page: {
+              margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
+            },
           },
+          headers: {
+            default: new Header({
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: 'RE/MAX Property Buyer Pack', font: 'Arial', size: 16, color: 'DC2626' })],
+                  alignment: AlignmentType.CENTER,
+                }),
+              ],
+            }),
+          },
+          footers: {
+            default: new Footer({
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: `Page | ${new Date().getFullYear()} RE/MAX`, font: 'Arial', size: 12, color: '9CA3AF' })],
+                  alignment: AlignmentType.CENTER,
+                }),
+              ],
+            }),
+          },
+          children: children,
         },
-        children: children,
-      }],
+      ],
     });
   };
 
