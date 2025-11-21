@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import DashboardLayout from '../../components/DashboardLayout';
 import ProtectedRoute from '../../components/ProtectedRoute';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableCell, TableRow, WidthType, ImageRun } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableCell, TableRow, WidthType, ImageRun, PageOrientation, PageMargin, Header, Footer, BorderStyle, ShadingType, VerticalAlign, HeightRule } from 'docx';
 
 interface PropertyData {
   title: string;
@@ -330,115 +330,404 @@ export default function BuyerPackMakerPage() {
 
     const children: (Paragraph | Table)[] = [];
 
-    // Header
+    // Professional Header with RE/MAX Branding
     children.push(
       new Paragraph({
-        text: 'RE/MAX',
-        heading: HeadingLevel.TITLE,
+        children: [
+          new TextRun({
+            text: 'RE/MAX',
+            font: 'Arial',
+            size: 48,
+            bold: true,
+            color: 'DC2626', // Red color for RE/MAX branding
+          }),
+        ],
         alignment: AlignmentType.CENTER,
+        spacing: { after: 200 },
       }),
       new Paragraph({
-        text: 'Property Buyer Pack',
-        heading: HeadingLevel.HEADING_1,
+        children: [
+          new TextRun({
+            text: 'Property Buyer Pack',
+            font: 'Arial',
+            size: 32,
+            bold: true,
+            color: '1F2937',
+          }),
+        ],
         alignment: AlignmentType.CENTER,
+        spacing: { after: 400 },
       }),
       new Paragraph({
-        text: '',
+        children: [
+          new TextRun({
+            text: 'Professional Property Marketing Solutions',
+            font: 'Arial',
+            size: 20,
+            color: '6B7280',
+          }),
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 600 },
       })
     );
 
-    // Agent Information
+    // Agent Information Section with Professional Styling
     children.push(
       new Paragraph({
-        text: 'Agent Information',
-        heading: HeadingLevel.HEADING_2,
+        children: [
+          new TextRun({
+            text: 'AGENT INFORMATION',
+            font: 'Arial',
+            size: 24,
+            bold: true,
+            color: 'DC2626',
+          }),
+        ],
+        spacing: { before: 400, after: 300 },
       }),
       new Table({
         width: {
           size: 100,
           type: WidthType.PERCENTAGE,
         },
+        borders: {
+          top: { style: BorderStyle.SINGLE, size: 1, color: 'E5E7EB' },
+          bottom: { style: BorderStyle.SINGLE, size: 1, color: 'E5E7EB' },
+          left: { style: BorderStyle.SINGLE, size: 1, color: 'E5E7EB' },
+          right: { style: BorderStyle.SINGLE, size: 1, color: 'E5E7EB' },
+        },
         rows: [
           new TableRow({
             children: [
               new TableCell({
-                children: [new Paragraph('Name:')],
-                width: { size: 30, type: WidthType.PERCENTAGE },
+                children: [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: 'Name:',
+                        font: 'Arial',
+                        size: 22,
+                        bold: true,
+                        color: '374151',
+                      }),
+                    ],
+                  }),
+                ],
+                width: { size: 25, type: WidthType.PERCENTAGE },
+                shading: { fill: 'F9FAFB' },
               }),
               new TableCell({
-                children: [new Paragraph(templateData.agentName)],
-                width: { size: 70, type: WidthType.PERCENTAGE },
+                children: [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: templateData.agentName,
+                        font: 'Arial',
+                        size: 22,
+                        color: '1F2937',
+                      }),
+                    ],
+                  }),
+                ],
+                width: { size: 75, type: WidthType.PERCENTAGE },
               }),
             ],
           }),
           new TableRow({
             children: [
               new TableCell({
-                children: [new Paragraph('Email:')],
+                children: [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: 'Email:',
+                        font: 'Arial',
+                        size: 22,
+                        bold: true,
+                        color: '374151',
+                      }),
+                    ],
+                  }),
+                ],
+                shading: { fill: 'F9FAFB' },
               }),
               new TableCell({
-                children: [new Paragraph(templateData.agentEmail)],
+                children: [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: templateData.agentEmail,
+                        font: 'Arial',
+                        size: 22,
+                        color: '1F2937',
+                      }),
+                    ],
+                  }),
+                ],
               }),
             ],
           }),
           new TableRow({
             children: [
               new TableCell({
-                children: [new Paragraph('Phone:')],
+                children: [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: 'Phone:',
+                        font: 'Arial',
+                        size: 22,
+                        bold: true,
+                        color: '374151',
+                      }),
+                    ],
+                  }),
+                ],
+                shading: { fill: 'F9FAFB' },
               }),
               new TableCell({
-                children: [new Paragraph(templateData.agentPhone)],
+                children: [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: templateData.agentPhone,
+                        font: 'Arial',
+                        size: 22,
+                        color: '1F2937',
+                      }),
+                    ],
+                  }),
+                ],
               }),
             ],
           }),
         ],
       }),
       new Paragraph({
-        text: `Generated on: ${templateData.currentDate}`,
+        children: [
+          new TextRun({
+            text: `Generated on: ${templateData.currentDate}`,
+            font: 'Arial',
+            size: 18,
+            color: '6B7280',
+          }),
+        ],
         alignment: AlignmentType.RIGHT,
-      }),
-      new Paragraph({
-        text: '',
+        spacing: { before: 300, after: 600 },
       })
     );
 
-    // Properties
+    // Properties Section
     templateData.properties.forEach((property, index) => {
+      // Property Header
       children.push(
         new Paragraph({
-          text: `${index + 1}. ${property.title}`,
-          heading: HeadingLevel.HEADING_2,
+          children: [
+            new TextRun({
+              text: `PROPERTY ${index + 1}`,
+              font: 'Arial',
+              size: 28,
+              bold: true,
+              color: 'DC2626',
+            }),
+          ],
+          spacing: { before: 600, after: 200 },
         }),
         new Paragraph({
-          text: `Price: R ${property.price}`,
-          spacing: { after: 200 },
+          children: [
+            new TextRun({
+              text: property.title,
+              font: 'Arial',
+              size: 24,
+              bold: true,
+              color: '1F2937',
+            }),
+          ],
+          spacing: { after: 300 },
         })
       );
 
-      if (property.address) {
+      // Price Highlight
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `R ${property.price}`,
+              font: 'Arial',
+              size: 32,
+              bold: true,
+              color: '059669',
+            }),
+          ],
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 200, after: 400 },
+        })
+      );
+
+      // Property Images Placeholder
+      if (property.images.length > 0) {
         children.push(
           new Paragraph({
-            text: `Address: ${property.address}`,
+            children: [
+              new TextRun({
+                text: 'PROPERTY PHOTOS',
+                font: 'Arial',
+                size: 20,
+                bold: true,
+                color: '374151',
+              }),
+            ],
+            spacing: { before: 300, after: 200 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `[Insert ${property.images.length} property photo${property.images.length > 1 ? 's' : ''} here]`,
+                font: 'Arial',
+                size: 18,
+                color: '6B7280',
+                italics: true,
+              }),
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 400 },
           })
         );
       }
 
-      // Property details table
+      // Property Details Table
       const propertyDetailsRows = [
         new TableRow({
           children: [
-            new TableCell({ children: [new Paragraph('Bedrooms:')] }),
-            new TableCell({ children: [new Paragraph(property.bedrooms.toString())] }),
-            new TableCell({ children: [new Paragraph('Bathrooms:')] }),
-            new TableCell({ children: [new Paragraph(property.bathrooms.toString())] }),
+            new TableCell({
+              children: [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: 'Bedrooms',
+                      font: 'Arial',
+                      size: 20,
+                      bold: true,
+                      color: '374151',
+                    }),
+                  ],
+                }),
+              ],
+              width: { size: 25, type: WidthType.PERCENTAGE },
+              shading: { fill: 'F9FAFB' },
+            }),
+            new TableCell({
+              children: [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: property.bedrooms.toString(),
+                      font: 'Arial',
+                      size: 20,
+                      color: '1F2937',
+                    }),
+                  ],
+                }),
+              ],
+              width: { size: 25, type: WidthType.PERCENTAGE },
+            }),
+            new TableCell({
+              children: [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: 'Bathrooms',
+                      font: 'Arial',
+                      size: 20,
+                      bold: true,
+                      color: '374151',
+                    }),
+                  ],
+                }),
+              ],
+              width: { size: 25, type: WidthType.PERCENTAGE },
+              shading: { fill: 'F9FAFB' },
+            }),
+            new TableCell({
+              children: [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: property.bathrooms.toString(),
+                      font: 'Arial',
+                      size: 20,
+                      color: '1F2937',
+                    }),
+                  ],
+                }),
+              ],
+              width: { size: 25, type: WidthType.PERCENTAGE },
+            }),
           ],
         }),
         new TableRow({
           children: [
-            new TableCell({ children: [new Paragraph('Parking:')] }),
-            new TableCell({ children: [new Paragraph(property.parking.toString())] }),
-            new TableCell({ children: [new Paragraph('Size:')] }),
-            new TableCell({ children: [new Paragraph(property.size)] }),
+            new TableCell({
+              children: [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: 'Parking',
+                      font: 'Arial',
+                      size: 20,
+                      bold: true,
+                      color: '374151',
+                    }),
+                  ],
+                }),
+              ],
+              shading: { fill: 'F9FAFB' },
+            }),
+            new TableCell({
+              children: [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: property.parking.toString(),
+                      font: 'Arial',
+                      size: 20,
+                      color: '1F2937',
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            new TableCell({
+              children: [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: 'Size',
+                      font: 'Arial',
+                      size: 20,
+                      bold: true,
+                      color: '374151',
+                    }),
+                  ],
+                }),
+              ],
+              shading: { fill: 'F9FAFB' },
+            }),
+            new TableCell({
+              children: [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: property.size,
+                      font: 'Arial',
+                      size: 20,
+                      color: '1F2937',
+                    }),
+                  ],
+                }),
+              ],
+            }),
           ],
         }),
       ];
@@ -449,19 +738,74 @@ export default function BuyerPackMakerPage() {
             size: 100,
             type: WidthType.PERCENTAGE,
           },
+          borders: {
+            top: { style: BorderStyle.SINGLE, size: 1, color: 'E5E7EB' },
+            bottom: { style: BorderStyle.SINGLE, size: 1, color: 'E5E7EB' },
+            left: { style: BorderStyle.SINGLE, size: 1, color: 'E5E7EB' },
+            right: { style: BorderStyle.SINGLE, size: 1, color: 'E5E7EB' },
+          },
           rows: propertyDetailsRows,
+        }),
+        new Paragraph({
+          text: '',
+          spacing: { after: 300 },
         })
       );
 
+      // Address
+      if (property.address) {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: 'LOCATION',
+                font: 'Arial',
+                size: 20,
+                bold: true,
+                color: '374151',
+              }),
+            ],
+            spacing: { before: 300, after: 150 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: property.address,
+                font: 'Arial',
+                size: 20,
+                color: '1F2937',
+              }),
+            ],
+            spacing: { after: 300 },
+          })
+        );
+      }
+
+      // Property Description
       if (property.description) {
         children.push(
           new Paragraph({
-            text: 'Property Description:',
-            spacing: { before: 200, after: 100 },
+            children: [
+              new TextRun({
+                text: 'PROPERTY DESCRIPTION',
+                font: 'Arial',
+                size: 20,
+                bold: true,
+                color: '374151',
+              }),
+            ],
+            spacing: { before: 300, after: 200 },
           }),
           new Paragraph({
-            text: property.description,
-            spacing: { after: 200 },
+            children: [
+              new TextRun({
+                text: property.description,
+                font: 'Arial',
+                size: 20,
+                color: '1F2937',
+              }),
+            ],
+            spacing: { after: 300 },
           })
         );
       }
@@ -469,46 +813,173 @@ export default function BuyerPackMakerPage() {
       // Key Features
       children.push(
         new Paragraph({
-          text: 'Key Features:',
-          spacing: { before: 200, after: 100 },
+          children: [
+            new TextRun({
+              text: 'KEY FEATURES',
+              font: 'Arial',
+              size: 20,
+              bold: true,
+              color: '374151',
+            }),
+          ],
+          spacing: { before: 300, after: 200 },
         }),
         new Paragraph({
-          text: '• Modern Kitchen',
+          children: [
+            new TextRun({
+              text: '• Modern Kitchen',
+              font: 'Arial',
+              size: 18,
+              color: '1F2937',
+            }),
+          ],
         }),
         new Paragraph({
-          text: '• Spacious Living Areas',
+          children: [
+            new TextRun({
+              text: '• Spacious Living Areas',
+              font: 'Arial',
+              size: 18,
+              color: '1F2937',
+            }),
+          ],
         }),
         new Paragraph({
-          text: '• Quality Finishes',
+          children: [
+            new TextRun({
+              text: '• Quality Finishes',
+              font: 'Arial',
+              size: 18,
+              color: '1F2937',
+            }),
+          ],
         }),
         new Paragraph({
-          text: '• Security Estate',
+          children: [
+            new TextRun({
+              text: '• Security Estate',
+              font: 'Arial',
+              size: 18,
+              color: '1F2937',
+            }),
+          ],
         }),
         new Paragraph({
-          text: '• Close to Amenities',
+          children: [
+            new TextRun({
+              text: '• Close to Amenities',
+              font: 'Arial',
+              size: 18,
+              color: '1F2937',
+            }),
+          ],
         }),
         new Paragraph({
-          text: '• Excellent Investment',
+          children: [
+            new TextRun({
+              text: '• Excellent Investment',
+              font: 'Arial',
+              size: 18,
+              color: '1F2937',
+            }),
+          ],
         }),
         new Paragraph({
           text: '',
+          spacing: { after: 600 },
         })
       );
+
+      // Page break between properties (except for the last one)
+      if (index < templateData.properties.length - 1) {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: '',
+                break: 1, // Page break
+              }),
+            ],
+          })
+        );
+      }
     });
 
-    // Footer
+    // Professional Footer
     children.push(
       new Paragraph({
-        text: 'This buyer pack was generated using Stagefy AI Property Tools',
+        children: [
+          new TextRun({
+            text: 'Generated using Stagefy AI Property Tools',
+            font: 'Arial',
+            size: 16,
+            color: '6B7280',
+          }),
+        ],
         alignment: AlignmentType.CENTER,
-        spacing: { before: 400 },
+        spacing: { before: 600 },
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: 'Professional Property Marketing Solutions',
+            font: 'Arial',
+            size: 14,
+            color: '9CA3AF',
+          }),
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 100 },
       })
     );
 
     return new Document({
       sections: [
         {
-          properties: {},
+          properties: {
+            page: {
+              margin: {
+                top: 1440, // 1 inch in twentieths of a point
+                right: 1440,
+                bottom: 1440,
+                left: 1440,
+              },
+            },
+          },
+          headers: {
+            default: new Header({
+              children: [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: 'RE/MAX Property Buyer Pack',
+                      font: 'Arial',
+                      size: 16,
+                      color: 'DC2626',
+                    }),
+                  ],
+                  alignment: AlignmentType.CENTER,
+                }),
+              ],
+            }),
+          },
+          footers: {
+            default: new Footer({
+              children: [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: `Page | ${new Date().getFullYear()} RE/MAX`,
+                      font: 'Arial',
+                      size: 12,
+                      color: '9CA3AF',
+                    }),
+                  ],
+                  alignment: AlignmentType.CENTER,
+                }),
+              ],
+            }),
+          },
           children: children,
         },
       ],
