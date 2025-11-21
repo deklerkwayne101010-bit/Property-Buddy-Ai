@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import DashboardLayout from '../../components/DashboardLayout';
 import ProtectedRoute from '../../components/ProtectedRoute';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableCell, TableRow, WidthType, ImageRun } from 'docx';
 
 interface PropertyData {
   title: string;
@@ -109,6 +110,43 @@ export default function BuyerPackMakerPage() {
 
     } catch (err) {
       setError('Failed to generate PDF. Please try again.');
+      console.error(err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleGenerateWord = async () => {
+    if (scrapedData.length === 0) {
+      setError('No property data available. Please scrape properties first.');
+      return;
+    }
+
+    setIsProcessing(true);
+    setError('');
+
+    try {
+      // Generate Word document
+      const doc = await generateWordDocument(scrapedData);
+
+      // Generate and download the Word document
+      const buffer = await Packer.toBuffer(doc);
+      const blob = new Blob([new Uint8Array(buffer)], {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      });
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'buyer-pack.docx';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+    } catch (err) {
+      setError('Failed to generate Word document. Please try again.');
       console.error(err);
     } finally {
       setIsProcessing(false);
@@ -278,6 +316,205 @@ export default function BuyerPackMakerPage() {
     `;
   };
 
+  const generateWordDocument = async (properties: PropertyData[]): Promise<Document> => {
+    const templateData = {
+      properties: properties.map(property => ({
+        ...property,
+        price: property.price.replace(/,/g, '') // Remove commas for display
+      })),
+      agentName: 'John Smith',
+      agentEmail: 'john.smith@remax.co.za',
+      agentPhone: '+27 21 123 4567',
+      currentDate: new Date().toLocaleDateString('en-ZA')
+    };
+
+    const children: (Paragraph | Table)[] = [];
+
+    // Header
+    children.push(
+      new Paragraph({
+        text: 'RE/MAX',
+        heading: HeadingLevel.TITLE,
+        alignment: AlignmentType.CENTER,
+      }),
+      new Paragraph({
+        text: 'Property Buyer Pack',
+        heading: HeadingLevel.HEADING_1,
+        alignment: AlignmentType.CENTER,
+      }),
+      new Paragraph({
+        text: '',
+      })
+    );
+
+    // Agent Information
+    children.push(
+      new Paragraph({
+        text: 'Agent Information',
+        heading: HeadingLevel.HEADING_2,
+      }),
+      new Table({
+        width: {
+          size: 100,
+          type: WidthType.PERCENTAGE,
+        },
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({
+                children: [new Paragraph('Name:')],
+                width: { size: 30, type: WidthType.PERCENTAGE },
+              }),
+              new TableCell({
+                children: [new Paragraph(templateData.agentName)],
+                width: { size: 70, type: WidthType.PERCENTAGE },
+              }),
+            ],
+          }),
+          new TableRow({
+            children: [
+              new TableCell({
+                children: [new Paragraph('Email:')],
+              }),
+              new TableCell({
+                children: [new Paragraph(templateData.agentEmail)],
+              }),
+            ],
+          }),
+          new TableRow({
+            children: [
+              new TableCell({
+                children: [new Paragraph('Phone:')],
+              }),
+              new TableCell({
+                children: [new Paragraph(templateData.agentPhone)],
+              }),
+            ],
+          }),
+        ],
+      }),
+      new Paragraph({
+        text: `Generated on: ${templateData.currentDate}`,
+        alignment: AlignmentType.RIGHT,
+      }),
+      new Paragraph({
+        text: '',
+      })
+    );
+
+    // Properties
+    templateData.properties.forEach((property, index) => {
+      children.push(
+        new Paragraph({
+          text: `${index + 1}. ${property.title}`,
+          heading: HeadingLevel.HEADING_2,
+        }),
+        new Paragraph({
+          text: `Price: R ${property.price}`,
+          spacing: { after: 200 },
+        })
+      );
+
+      if (property.address) {
+        children.push(
+          new Paragraph({
+            text: `Address: ${property.address}`,
+          })
+        );
+      }
+
+      // Property details table
+      const propertyDetailsRows = [
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph('Bedrooms:')] }),
+            new TableCell({ children: [new Paragraph(property.bedrooms.toString())] }),
+            new TableCell({ children: [new Paragraph('Bathrooms:')] }),
+            new TableCell({ children: [new Paragraph(property.bathrooms.toString())] }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph('Parking:')] }),
+            new TableCell({ children: [new Paragraph(property.parking.toString())] }),
+            new TableCell({ children: [new Paragraph('Size:')] }),
+            new TableCell({ children: [new Paragraph(property.size)] }),
+          ],
+        }),
+      ];
+
+      children.push(
+        new Table({
+          width: {
+            size: 100,
+            type: WidthType.PERCENTAGE,
+          },
+          rows: propertyDetailsRows,
+        })
+      );
+
+      if (property.description) {
+        children.push(
+          new Paragraph({
+            text: 'Property Description:',
+            spacing: { before: 200, after: 100 },
+          }),
+          new Paragraph({
+            text: property.description,
+            spacing: { after: 200 },
+          })
+        );
+      }
+
+      // Key Features
+      children.push(
+        new Paragraph({
+          text: 'Key Features:',
+          spacing: { before: 200, after: 100 },
+        }),
+        new Paragraph({
+          text: '• Modern Kitchen',
+        }),
+        new Paragraph({
+          text: '• Spacious Living Areas',
+        }),
+        new Paragraph({
+          text: '• Quality Finishes',
+        }),
+        new Paragraph({
+          text: '• Security Estate',
+        }),
+        new Paragraph({
+          text: '• Close to Amenities',
+        }),
+        new Paragraph({
+          text: '• Excellent Investment',
+        }),
+        new Paragraph({
+          text: '',
+        })
+      );
+    });
+
+    // Footer
+    children.push(
+      new Paragraph({
+        text: 'This buyer pack was generated using Stagefy AI Property Tools',
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 400 },
+      })
+    );
+
+    return new Document({
+      sections: [
+        {
+          properties: {},
+          children: children,
+        },
+      ],
+    });
+  };
+
   return (
     <ProtectedRoute>
       <DashboardLayout>
@@ -285,7 +522,7 @@ export default function BuyerPackMakerPage() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Buyer Pack Maker</h1>
-            <p className="text-gray-600">Create professional property buyer packs by scraping Property24 listings and generating branded PDFs.</p>
+            <p className="text-gray-600">Create professional property buyer packs by scraping Property24 listings and generating branded PDFs or Word documents.</p>
           </div>
 
           {/* Input Section */}
@@ -320,13 +557,23 @@ export default function BuyerPackMakerPage() {
                 </button>
 
                 {scrapedData.length > 0 && (
-                  <button
-                    onClick={handleGeneratePDF}
-                    disabled={isProcessing}
-                    className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium py-2 px-6 rounded-md transition-colors duration-200"
-                  >
-                    {isProcessing ? 'Generating...' : 'Generate PDF'}
-                  </button>
+                  <>
+                    <button
+                      onClick={handleGeneratePDF}
+                      disabled={isProcessing}
+                      className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium py-2 px-6 rounded-md transition-colors duration-200"
+                    >
+                      {isProcessing ? 'Generating...' : 'Generate PDF'}
+                    </button>
+
+                    <button
+                      onClick={handleGenerateWord}
+                      disabled={isProcessing}
+                      className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-medium py-2 px-6 rounded-md transition-colors duration-200"
+                    >
+                      {isProcessing ? 'Generating...' : 'Generate Word'}
+                    </button>
+                  </>
                 )}
               </div>
 
