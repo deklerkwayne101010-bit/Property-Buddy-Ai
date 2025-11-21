@@ -11,22 +11,46 @@ interface SidebarProps {
   onToggle: () => void;
 }
 
+interface MenuItem {
+  href?: string;
+  label: string;
+  icon: string;
+  children?: MenuItem[];
+}
+
 export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { signOut, user } = useAuth();
+  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
   const handleSignOut = async () => {
     await signOut();
     router.push('/');
   };
 
-  const menuItems = [
+  const toggleMenu = (label: string) => {
+    const newExpanded = new Set(expandedMenus);
+    if (newExpanded.has(label)) {
+      newExpanded.delete(label);
+    } else {
+      newExpanded.add(label);
+    }
+    setExpandedMenus(newExpanded);
+  };
+
+  const menuItems: MenuItem[] = [
     { href: '/dashboard', label: 'Dashboard', icon: '🏠' },
-    { href: '/photo-editor', label: 'AI Photo Editor', icon: '🖼️' },
-    { href: '/video-ai-maker', label: 'AI Video Maker', icon: '🎬' },
-    { href: '/property-descriptions', label: 'AI Property Descriptions', icon: '📝' },
-    { href: '/ai-chat', label: 'AI Chat Assistant', icon: '💬' },
+    {
+      label: 'AI Editors',
+      icon: '🤖',
+      children: [
+        { href: '/photo-editor', label: 'AI Photo Editor', icon: '🖼️' },
+        { href: '/video-ai-maker', label: 'AI Video Maker', icon: '🎬' },
+        { href: '/property-descriptions', label: 'AI Property Descriptions', icon: '📝' },
+        { href: '/ai-chat', label: 'AI Chat Assistant', icon: '💬' },
+      ]
+    },
     { href: '/templates', label: 'Templates', icon: '📋' },
     { href: '/marketing-materials', label: 'Marketing Materials', icon: '📢' },
     { href: '/crm', label: 'CRM', icon: '👥' },
@@ -77,37 +101,112 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
           {/* Menu items */}
           <ul className="space-y-2 px-6 py-6 flex-shrink-0">
             {menuItems.map((item, index) => (
-              <li key={item.href} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
-                <Link
-                  href={item.href}
-                  className={`group relative flex items-center px-4 py-4 rounded-xl transition-all duration-300 ease-out transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:ring-offset-2 focus:ring-offset-slate-900 overflow-hidden ${
-                    pathname === item.href
-                      ? 'bg-gradient-to-r from-blue-600/90 to-purple-600/90 text-white shadow-lg shadow-blue-500/25 backdrop-blur-sm border border-white/20'
-                      : 'text-white/80 hover:text-white hover:bg-white/10 hover:shadow-lg hover:shadow-white/5 backdrop-blur-sm border border-transparent hover:border-white/10'
-                  }`}
-                  onClick={() => {
-                    if (window.innerWidth < 1024) onToggle(); // Close on mobile after click
-                  }}
-                  aria-current={pathname === item.href ? 'page' : undefined}
-                >
-                  {/* Hover glow effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+              <li key={item.href || item.label} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                {item.children ? (
+                  // Parent menu item with submenu
+                  <div>
+                    <button
+                      onClick={() => toggleMenu(item.label)}
+                      className={`group relative flex items-center w-full px-4 py-4 rounded-xl transition-all duration-300 ease-out transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:ring-offset-2 focus:ring-offset-slate-900 overflow-hidden ${
+                        expandedMenus.has(item.label)
+                          ? 'bg-gradient-to-r from-blue-600/90 to-purple-600/90 text-white shadow-lg shadow-blue-500/25 backdrop-blur-sm border border-white/20'
+                          : 'text-white/80 hover:text-white hover:bg-white/10 hover:shadow-lg hover:shadow-white/5 backdrop-blur-sm border border-transparent hover:border-white/10'
+                      }`}
+                    >
+                      {/* Hover glow effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
 
-                  <span className={`relative mr-4 text-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 ${
-                    pathname === item.href ? 'animate-pulse text-blue-300' : 'group-hover:text-blue-300'
-                  }`}>
-                    {item.icon}
-                  </span>
-                  <span className="relative font-medium">{item.label}</span>
-                  {pathname === item.href && (
-                    <div className="relative ml-auto w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full animate-scale-in shadow-lg shadow-blue-400/50"></div>
-                  )}
+                      <span className={`relative mr-4 text-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 ${
+                        expandedMenus.has(item.label) ? 'animate-pulse text-blue-300' : 'group-hover:text-blue-300'
+                      }`}>
+                        {item.icon}
+                      </span>
+                      <span className="relative font-medium">{item.label}</span>
+                      <svg
+                        className={`relative ml-auto w-5 h-5 transition-transform duration-300 ${
+                          expandedMenus.has(item.label) ? 'rotate-90' : ''
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
 
-                  {/* Active indicator line */}
-                  {pathname === item.href && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-blue-400 to-purple-400 rounded-r-full animate-pulse"></div>
-                  )}
-                </Link>
+                    {/* Submenu */}
+                    {expandedMenus.has(item.label) && (
+                      <ul className="ml-6 mt-2 space-y-1 animate-fade-in">
+                        {item.children.map((child, childIndex) => (
+                          <li key={child.href} className="animate-fade-in" style={{ animationDelay: `${(index + childIndex + 1) * 0.1}s` }}>
+                            <Link
+                              href={child.href!}
+                              className={`group relative flex items-center px-4 py-3 rounded-lg transition-all duration-300 ease-out transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:ring-offset-2 focus:ring-offset-slate-900 overflow-hidden ${
+                                pathname === child.href
+                                  ? 'bg-gradient-to-r from-blue-600/80 to-purple-600/80 text-white shadow-md shadow-blue-500/20 backdrop-blur-sm border border-white/15'
+                                  : 'text-white/70 hover:text-white hover:bg-white/8 hover:shadow-md hover:shadow-white/3 backdrop-blur-sm border border-transparent hover:border-white/8'
+                              }`}
+                              onClick={() => {
+                                if (window.innerWidth < 1024) onToggle(); // Close on mobile after click
+                              }}
+                              aria-current={pathname === child.href ? 'page' : undefined}
+                            >
+                              {/* Hover glow effect */}
+                              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/15 to-purple-500/15 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"></div>
+
+                              <span className={`relative mr-3 text-lg transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 ${
+                                pathname === child.href ? 'animate-pulse text-blue-300' : 'group-hover:text-blue-300'
+                              }`}>
+                                {child.icon}
+                              </span>
+                              <span className="relative font-medium text-sm">{child.label}</span>
+                              {pathname === child.href && (
+                                <div className="relative ml-auto w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full animate-scale-in shadow-lg shadow-blue-400/50"></div>
+                              )}
+
+                              {/* Active indicator line */}
+                              {pathname === child.href && (
+                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-blue-400 to-purple-400 rounded-r-full animate-pulse"></div>
+                              )}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ) : (
+                  // Regular menu item
+                  <Link
+                    href={item.href!}
+                    className={`group relative flex items-center px-4 py-4 rounded-xl transition-all duration-300 ease-out transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:ring-offset-2 focus:ring-offset-slate-900 overflow-hidden ${
+                      pathname === item.href
+                        ? 'bg-gradient-to-r from-blue-600/90 to-purple-600/90 text-white shadow-lg shadow-blue-500/25 backdrop-blur-sm border border-white/20'
+                        : 'text-white/80 hover:text-white hover:bg-white/10 hover:shadow-lg hover:shadow-white/5 backdrop-blur-sm border border-transparent hover:border-white/10'
+                    }`}
+                    onClick={() => {
+                      if (window.innerWidth < 1024) onToggle(); // Close on mobile after click
+                    }}
+                    aria-current={pathname === item.href ? 'page' : undefined}
+                  >
+                    {/* Hover glow effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+
+                    <span className={`relative mr-4 text-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 ${
+                      pathname === item.href ? 'animate-pulse text-blue-300' : 'group-hover:text-blue-300'
+                    }`}>
+                      {item.icon}
+                    </span>
+                    <span className="relative font-medium">{item.label}</span>
+                    {pathname === item.href && (
+                      <div className="relative ml-auto w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full animate-scale-in shadow-lg shadow-blue-400/50"></div>
+                    )}
+
+                    {/* Active indicator line */}
+                    {pathname === item.href && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-blue-400 to-purple-400 rounded-r-full animate-pulse"></div>
+                    )}
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
