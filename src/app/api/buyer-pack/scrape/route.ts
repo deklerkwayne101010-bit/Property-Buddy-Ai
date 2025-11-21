@@ -160,17 +160,26 @@ ${html}`;
     const data = await response.json();
     console.log('Replicate API response:', JSON.stringify(data, null, 2));
 
+    // Handle different response formats from Replicate
     let content;
-    if (Array.isArray(data.output)) {
-      // Join all array elements and clean up markdown formatting
-      content = data.output.join('').replace(/```\w*\n?/g, '').trim();
-    } else if (typeof data.output === 'string') {
-      content = data.output.replace(/```\w*\n?/g, '').trim();
+    if (data.output) {
+      if (Array.isArray(data.output)) {
+        // Join all array elements and clean up markdown formatting
+        content = data.output.join('').replace(/```\w*\n?/g, '').trim();
+      } else if (typeof data.output === 'string') {
+        content = data.output.replace(/```\w*\n?/g, '').trim();
+      } else {
+        content = String(data.output).replace(/```\w*\n?/g, '').trim();
+      }
+    } else if (data.text) {
+      // Some models return 'text' instead of 'output'
+      content = data.text.replace(/```\w*\n?/g, '').trim();
     } else {
-      content = data.output;
+      console.error('Unexpected Replicate response format:', data);
+      throw new Error('Unexpected response format from Replicate API');
     }
 
-    if (!content) {
+    if (!content || content.length === 0) {
       throw new Error('No content received from Replicate');
     }
 
@@ -178,10 +187,17 @@ ${html}`;
 
     // Parse the JSON response
     let extractedData;
-    if (typeof content === 'string') {
-      extractedData = JSON.parse(content.trim());
-    } else {
-      extractedData = content;
+    try {
+      // Try to parse as JSON first
+      if (typeof content === 'string') {
+        extractedData = JSON.parse(content.trim());
+      } else {
+        extractedData = content;
+      }
+    } catch (parseError) {
+      console.error('Failed to parse JSON response:', parseError);
+      console.error('Raw content:', content);
+      throw new Error('Failed to parse JSON response from Replicate');
     }
 
     // Validate and clean the extracted data
