@@ -161,10 +161,10 @@ export default function BuyerPackMakerPage() {
         ...property,
         price: property.price.replace(/,/g, '') // Remove commas for display
       })),
-      agentName: 'John Smith',
-      agentEmail: 'john.smith@remax.co.za',
-      agentPhone: '+27 21 123 4567',
-      agentInitial: 'J',
+      agentName: 'Wayne Deklerk',
+      agentEmail: 'admin@stagefy.co.za',
+      agentPhone: '+27 26 695 7151',
+      agentInitial: 'W',
       currentDate: new Date().toLocaleDateString('en-ZA')
     };
 
@@ -319,31 +319,18 @@ export default function BuyerPackMakerPage() {
   };
 
   const generateEditableHTML = async (properties: PropertyData[]): Promise<string> => {
-    // Load the HTML template
-    const templateResponse = await fetch('/templates/buyer-pack-word-template.html');
-    if (!templateResponse.ok) {
-      throw new Error('Failed to load HTML template');
-    }
-    let htmlTemplate = await templateResponse.text();
-
-    // Prepare template data
+    // Prepare template data with proper agent information
     const templateData = {
       properties: properties.map(property => ({
         ...property,
         price: property.price.replace(/,/g, '') // Remove commas for display
       })),
-      agentName: 'John Smith',
-      agentEmail: 'john.smith@remax.co.za',
-      agentPhone: '+27 21 123 4567',
+      agentName: 'Wayne Deklerk', // Correct agent name
+      agentEmail: 'admin@stagefy.co.za',
+      agentPhone: '+27 26 695 7151',
+      agentInitial: 'W',
       currentDate: new Date().toLocaleDateString('en-ZA')
     };
-
-    // Replace basic placeholders
-    htmlTemplate = htmlTemplate
-      .replace(/{{agent_name}}/g, templateData.agentName)
-      .replace(/{{agent_email}}/g, templateData.agentEmail)
-      .replace(/{{agent_phone}}/g, templateData.agentPhone)
-      .replace(/{{current_date}}/g, templateData.currentDate);
 
     // Generate property sections with actual images
     const propertySections = await Promise.all(templateData.properties.map(async (property, index) => {
@@ -351,8 +338,8 @@ export default function BuyerPackMakerPage() {
       const imageHtml = property.images.slice(0, 6).map((imageUrl, imgIndex) => `
         <div class="image-container" style="margin: 10px; display: inline-block;">
           <img src="${imageUrl}" alt="Property Photo ${imgIndex + 1}"
-               style="max-width: 300px; max-height: 200px; border: 1px solid #ddd; border-radius: 4px;"
-               onerror="this.style.display='none'" />
+                style="max-width: 300px; max-height: 200px; border: 1px solid #ddd; border-radius: 4px;"
+                onerror="this.style.display='none'" />
           <br><small>Property Photo ${imgIndex + 1}</small>
         </div>
       `).join('');
@@ -420,37 +407,246 @@ export default function BuyerPackMakerPage() {
       `;
     }));
 
-    // Replace the template's property sections with our generated ones
-    const propertySectionPattern = /<div class="property-section">[\s\S]*?<\/div>\s*<div class="property-section">[\s\S]*?<\/div>/;
-    htmlTemplate = htmlTemplate.replace(propertySectionPattern, propertySections.join('\n\n'));
+    // Generate complete HTML document
+    const htmlTemplate = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Editable Property Buyer Pack</title>
+        <style>
+          body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f8fafc;
+            margin: 0;
+            padding: 20px;
+          }
 
-    // Add editing instructions and print styles
-    const editingInstructions = `
-      <div style="position: fixed; top: 10px; right: 10px; background: #DC2626; color: white; padding: 10px; border-radius: 4px; font-size: 12px; z-index: 1000;">
-        <strong>Editable Buyer Pack</strong><br>
-        Click any text to edit • Ctrl+P to print • Save as PDF
-      </div>
+          .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 20px;
+          }
 
-      <style>
-        @media print {
-          .editing-instructions { display: none !important; }
-          body { margin: 0.5in; }
-        }
+          .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #dc2626;
+            margin-bottom: 10px;
+          }
 
-        [contenteditable]:focus {
-          outline: 2px solid #DC2626;
-          background-color: #FEF3C7;
-        }
+          .subtitle {
+            font-size: 18px;
+            color: #6b7280;
+          }
 
-        .image-container img:hover {
-          transform: scale(1.05);
-          transition: transform 0.2s;
-        }
-      </style>
+          .agent-info {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid #e5e7eb;
+          }
+
+          .agent-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+          }
+
+          .agent-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #dc2626;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-right: 15px;
+          }
+
+          .agent-details h3 {
+            margin: 0 0 5px 0;
+            font-size: 20px;
+            color: #1f2937;
+          }
+
+          .agent-details p {
+            margin: 2px 0;
+            color: #6b7280;
+          }
+
+          .date {
+            text-align: right;
+            color: #6b7280;
+            font-size: 14px;
+          }
+
+          .property-section {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid #e5e7eb;
+          }
+
+          .property-title {
+            color: #DC2626;
+            font-size: 24px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #DC2626;
+            padding-bottom: 10px;
+          }
+
+          .price-highlight {
+            text-align: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: #059669;
+            margin: 20px 0;
+          }
+
+          .property-details table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #E5E7EB;
+          }
+
+          .property-details th,
+          .property-details td {
+            padding: 10px;
+            border: 1px solid #E5E7EB;
+          }
+
+          .property-details th {
+            background-color: #F9FAFB;
+            font-weight: bold;
+          }
+
+          .property-details td {
+            text-align: center;
+          }
+
+          .property-description h3,
+          .property-images h3,
+          .key-features h3 {
+            color: #1F2937;
+            margin-bottom: 15px;
+          }
+
+          .property-description p {
+            line-height: 1.6;
+          }
+
+          .image-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+          }
+
+          .image-container {
+            margin: 10px;
+            display: inline-block;
+          }
+
+          .image-container img {
+            max-width: 300px;
+            max-height: 200px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+          }
+
+          .key-features ul {
+            line-height: 1.8;
+          }
+
+          .additional-notes {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #F9FAFB;
+            border-left: 4px solid #DC2626;
+          }
+
+          .additional-notes h4 {
+            margin-bottom: 10px;
+            color: #DC2626;
+          }
+
+          .additional-notes p {
+            margin: 0;
+            font-style: italic;
+            color: #6B7280;
+          }
+
+          .editing-instructions {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #DC2626;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+          }
+
+          @media print {
+            .editing-instructions { display: none !important; }
+            body { margin: 0.5in; }
+            .property-section { page-break-inside: avoid; }
+          }
+
+          [contenteditable]:focus {
+            outline: 2px solid #DC2626;
+            background-color: #FEF3C7;
+          }
+
+          .image-container img:hover {
+            transform: scale(1.05);
+            transition: transform 0.2s;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="editing-instructions">
+          <strong>Editable Buyer Pack</strong><br>
+          Click any text to edit • Ctrl+P to print • Save as PDF
+        </div>
+
+        <div class="header">
+          <div class="logo">RE/MAX</div>
+          <div class="subtitle">Property Buyer Pack</div>
+        </div>
+
+        <div class="agent-info">
+          <div class="agent-header">
+            <div class="agent-avatar">${templateData.agentInitial}</div>
+            <div class="agent-details">
+              <h3>${templateData.agentName}</h3>
+              <p>${templateData.agentEmail}</p>
+              <p>${templateData.agentPhone}</p>
+            </div>
+          </div>
+          <div class="date">Generated on: ${templateData.currentDate}</div>
+        </div>
+
+        ${propertySections.join('\n\n')}
+
+        <div style="margin-top: 40px; padding: 20px; background: #f8fafc; border-radius: 8px; text-align: center; border: 1px solid #e5e7eb;">
+          <p style="margin: 0; color: #6b7280; font-size: 14px;">
+            This buyer pack was generated using Stagefy AI Property Tools
+          </p>
+        </div>
+      </body>
+      </html>
     `;
-
-    // Insert editing instructions after body tag
-    htmlTemplate = htmlTemplate.replace('<body>', '<body>' + editingInstructions);
 
     return htmlTemplate;
   };
