@@ -1,15 +1,52 @@
+# Robots.txt for Stagefy - AI-Powered Real Estate Marketing Platform
+# Website: https://www.stagefy.co.za
+
+# Allow all web crawlers access to public content
 User-agent: *
 Allow: /
 
-# Block access to admin areas
+# Block access to sensitive areas
 Disallow: /admin/
 Disallow: /api/
+Disallow: /_next/
+Disallow: /dashboard/
+Disallow: /account/
+Disallow: /payment/
+Disallow: /login/
+Disallow: /register/
+Disallow: /forgot-password/
+Disallow: /verify-email/
 
-# Allow access to sitemap
+# Allow access to important public resources
 Allow: /sitemap.xml
+Allow: /robots.txt
+Allow: /manifest.json
+Allow: /favicon.ico
+Allow: /og-image.jpg
+Allow: /twitter-image.jpg
 
-# Crawl delay (optional)
+# Specific rules for major search engines
+User-agent: Googlebot
+Allow: /
 Crawl-delay: 1
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 2
+
+User-agent: Slurp
+Allow: /
+Crawl-delay: 2
+
+# Block unwanted bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
 
 # Sitemap location
 Sitemap: https://www.stagefy.co.za/sitemap.xml

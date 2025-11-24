@@ -46,6 +46,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
       icon: '🤖',
       children: [
         { href: '/photo-editor', label: 'AI Photo Editor', icon: '🖼️' },
+        { href: '/ai-playground', label: 'AI Playground', icon: '🎨' },
         { href: '/video-ai-maker', label: 'AI Video Maker', icon: '🎬' },
         { href: '/property-descriptions', label: 'AI Property Descriptions', icon: '📝' },
         { href: '/ai-chat', label: 'AI Chat Assistant', icon: '💬' },
