@@ -343,7 +343,7 @@ export default function AIPlayground() {
               </h1>
 
               <p className="text-lg text-slate-600 mb-6 max-w-2xl mx-auto">
-                Experiment with Google's Nano Banana Pro AI model. Upload reference images and craft creative prompts to generate unique images.
+                Experiment with Google&apos;s Nano Banana Pro AI model. Upload reference images and craft creative prompts to generate unique images.
               </p>
 
               {/* Credits Badge */}
@@ -377,7 +377,7 @@ export default function AIPlayground() {
                       </svg>
                       Reference Images (Optional)
                     </h2>
-                    <p className="text-sm text-slate-600 mt-0.5">Upload images to guide the AI's creative process</p>
+                    <p className="text-sm text-slate-600 mt-0.5">Upload images to guide the AI&apos;s creative process</p>
                   </div>
                 </div>
               </div>
