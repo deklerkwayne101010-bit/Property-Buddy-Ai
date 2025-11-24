@@ -25,8 +25,18 @@ export async function POST(request: NextRequest) {
 
     // Validate URL format - allow both for-sale and to-rent
     if (!url.includes('property24.com') || (!url.includes('for-sale') && !url.includes('to-rent'))) {
+      console.error('Invalid URL format rejected:', url);
       return NextResponse.json(
         { error: 'Invalid URL format. Only Property24 for-sale and to-rent URLs are supported.' },
+        { status: 400 }
+      );
+    }
+
+    // Additional validation to prevent scraping non-property URLs
+    if (url.includes('supabase.co') || url.includes('seeklogo') || url.includes('.png') || url.includes('.jpg') || url.includes('.jpeg')) {
+      console.error('Image URL rejected:', url);
+      return NextResponse.json(
+        { error: 'Invalid URL format. Only Property24 property listing URLs are supported.' },
         { status: 400 }
       );
     }
