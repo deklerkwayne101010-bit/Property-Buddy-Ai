@@ -437,7 +437,7 @@ export default function AIPlayground() {
                       </svg>
                       Reference Images (Optional)
                     </h2>
-                    <p className="text-sm text-slate-600 mt-0.5">Upload images to guide the AI's creative process</p>
+                    <p className="text-sm text-slate-600 mt-0.5">Upload images to guide the AI&apos;s creative process</p>
                   </div>
                 </div>
               </div>
