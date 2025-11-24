@@ -510,22 +510,13 @@ export default function AIPlayground() {
                 <div
                   className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center cursor-pointer transition-all duration-200 hover:border-purple-400 hover:bg-purple-50/30"
                   onDragOver={handleDragOver}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const files = e.dataTransfer.files;
-                    if (files.length > 0) {
-                      const file = files[0];
-                      if (file.type === 'image/jpeg' || file.type === 'image/png') {
-                        handleAssetUpload(file);
-                      }
-                    }
-                  }}
-                  onClick={() => assetFileInputRef.current?.click()}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
                 >
                   <input
                     type="file"
-                    ref={assetFileInputRef}
-                    onChange={handleAssetFileSelect}
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
                     accept="image/jpeg,image/png"
                     className="hidden"
                   />
@@ -862,7 +853,7 @@ export default function AIPlayground() {
                         </div>
                         <p className="text-xs text-slate-500 mb-3">No assets yet</p>
                         <button
-                          onClick={() => fileInputRef.current?.click()}
+                          onClick={() => assetFileInputRef.current?.click()}
                           className="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded font-medium transition-colors duration-200"
                         >
                           Add Assets
@@ -887,13 +878,22 @@ export default function AIPlayground() {
                     <div
                       className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center cursor-pointer transition-all duration-200 hover:border-purple-400 hover:bg-purple-50/30"
                       onDragOver={handleDragOver}
-                      onDrop={handleDrop}
-                      onClick={() => fileInputRef.current?.click()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const files = e.dataTransfer.files;
+                        if (files.length > 0) {
+                          const file = files[0];
+                          if (file.type === 'image/jpeg' || file.type === 'image/png') {
+                            handleAssetUpload(file);
+                          }
+                        }
+                      }}
+                      onClick={() => assetFileInputRef.current?.click()}
                     >
                       <input
                         type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileSelect}
+                        ref={assetFileInputRef}
+                        onChange={handleAssetFileSelect}
                         accept="image/jpeg,image/png"
                         className="hidden"
                       />
