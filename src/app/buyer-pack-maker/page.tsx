@@ -325,17 +325,16 @@ export default function BuyerPackMakerPage() {
           <div class="subtitle">Property Buyer Pack</div>
         </div>
 
-        <div class="agent-info">
-          <div class="agent-header">
-            <div class="agent-avatar">${templateData.agentInitial}</div>
-            <div class="agent-details">
-              <h3 contenteditable="true">${templateData.agentName}</h3>
-              <p contenteditable="true">${templateData.agentEmail}</p>
-              <p contenteditable="true">${templateData.agentPhone}</p>
-            </div>
+        <div class="agent-card">
+          <div class="agent-avatar">${templateData.agentInitial}</div>
+          <div class="agent-details">
+            <h3 contenteditable="true">${templateData.agentName}</h3>
+            <p contenteditable="true">${templateData.agentEmail}</p>
+            <p contenteditable="true">${templateData.agentPhone}</p>
           </div>
-          <div class="date">Generated on: ${templateData.currentDate}</div>
         </div>
+
+        <div class="date">Generated on: ${templateData.currentDate}</div>
 
         ${propertyHtml}
 
@@ -367,73 +366,58 @@ export default function BuyerPackMakerPage() {
     const propertySections = await Promise.all(templateData.properties.map(async (property, index) => {
       // Create image HTML with actual images
       const imageHtml = property.images.slice(0, 6).map((imageUrl, imgIndex) => `
-        <div class="image-container" style="margin: 10px; display: inline-block;">
-          <img src="${imageUrl}" alt="Property Photo ${imgIndex + 1}"
-                style="max-width: 300px; max-height: 200px; border: 1px solid #ddd; border-radius: 4px;"
-                onerror="this.style.display='none'" />
-          <br><small>Property Photo ${imgIndex + 1}</small>
-        </div>
+        <img src="${imageUrl}" alt="Property Photo ${imgIndex + 1}" onerror="this.style.display='none'" />
       `).join('');
 
       return `
-        <div class="property-section" style="page-break-before: always; margin-bottom: 50px;">
-            <h1 class="property-title" contenteditable="true" style="color: #DC2626; font-size: 24px; margin-bottom: 20px; border-bottom: 2px solid #DC2626; padding-bottom: 10px;">
+        <div class="property-section">
+            <h1 class="property-title" contenteditable="true">
               PROPERTY ${index + 1}: ${property.title}
             </h1>
 
-            <div class="price-highlight" style="text-align: center; font-size: 32px; font-weight: bold; color: #059669; margin: 20px 0;">
+            <div class="price">
               ${property.price}
             </div>
 
-            <div class="property-details" style="margin-bottom: 20px;">
-                <table style="width: 100%; border-collapse: collapse; border: 1px solid #E5E7EB;">
-                    <tr style="background-color: #F9FAFB;">
-                        <th style="padding: 10px; border: 1px solid #E5E7EB; font-weight: bold;">Bedrooms</th>
-                        <th style="padding: 10px; border: 1px solid #E5E7EB; font-weight: bold;">Bathrooms</th>
-                        <th style="padding: 10px; border: 1px solid #E5E7EB; font-weight: bold;">Parking</th>
-                        <th style="padding: 10px; border: 1px solid #E5E7EB; font-weight: bold;">Size</th>
-                    </tr>
-                    <tr>
-                        <td style="padding: 10px; border: 1px solid #E5E7EB; text-align: center;">${property.bedrooms}</td>
-                        <td style="padding: 10px; border: 1px solid #E5E7EB; text-align: center;">${property.bathrooms}</td>
-                        <td style="padding: 10px; border: 1px solid #E5E7EB; text-align: center;">${property.parking}</td>
-                        <td style="padding: 10px; border: 1px solid #E5E7EB; text-align: center;">${property.size}</td>
-                    </tr>
-                </table>
+            <table>
+                <tr>
+                    <th>Bedrooms</th>
+                    <th>Bathrooms</th>
+                    <th>Parking</th>
+                    <th>Size</th>
+                </tr>
+                <tr>
+                    <td>${property.bedrooms}</td>
+                    <td>${property.bathrooms}</td>
+                    <td>${property.parking}</td>
+                    <td>${property.size}</td>
+                </tr>
+            </table>
+
+            ${property.address ? `<div class="section-label">Location: <span contenteditable="true">${property.address}</span></div>` : ''}
+
+            <div class="section-label">Property Description</div>
+            <p contenteditable="true" style="margin-bottom: 25px; line-height: 1.6;">${property.description || 'No description available'}</p>
+
+            <div class="section-label">Property Photos</div>
+            <div class="image-grid">
+                ${imageHtml}
             </div>
 
-            ${property.address ? `<div class="property-address" style="margin-bottom: 20px;"><strong>Location:</strong> <span contenteditable="true">${property.address}</span></div>` : ''}
+            <div class="section-label">Key Features</div>
+            <ul contenteditable="true" style="margin-bottom: 25px; line-height: 1.8;">
+                <li>Modern Kitchen</li>
+                <li>Spacious Living Areas</li>
+                <li>Quality Finishes</li>
+                <li>Security Estate</li>
+                <li>Close to Amenities</li>
+                <li>Excellent Investment</li>
+            </ul>
 
-            <div class="property-description" style="margin-bottom: 30px;">
-                <h3 style="color: #1F2937; margin-bottom: 15px;">Property Description</h3>
-                <p contenteditable="true" style="line-height: 1.6;">${property.description || 'No description available'}</p>
-            </div>
-
-            <div class="property-images" style="margin-bottom: 30px;">
-                <h3 style="color: #1F2937; margin-bottom: 15px;">Property Photos</h3>
-                <div class="image-grid" style="display: flex; flex-wrap: wrap; gap: 10px;">
-                    ${imageHtml}
-                </div>
-            </div>
-
-            <div class="key-features" style="margin-bottom: 30px;">
-                <h3 style="color: #1F2937; margin-bottom: 15px;">Key Features</h3>
-                <ul contenteditable="true" style="line-height: 1.8;">
-                    <li>Modern Kitchen</li>
-                    <li>Spacious Living Areas</li>
-                    <li>Quality Finishes</li>
-                    <li>Security Estate</li>
-                    <li>Close to Amenities</li>
-                    <li>Excellent Investment</li>
-                </ul>
-            </div>
-
-            <div class="additional-notes" style="margin-top: 30px; padding: 20px; background-color: #F9FAFB; border-left: 4px solid #DC2626;">
-                <h4 style="margin-bottom: 10px; color: #DC2626;">Additional Notes</h4>
-                <p contenteditable="true" style="margin: 0; font-style: italic; color: #6B7280;">
-                  Add any additional information, special features, or notes about this property here...
-                </p>
-            </div>
+            <div class="section-label">Additional Notes</div>
+            <p contenteditable="true" style="font-style: italic; color: var(--gray-600);">
+              Add any additional information, special features, or notes about this property here...
+            </p>
         </div>
       `;
     }));
@@ -443,250 +427,241 @@ export default function BuyerPackMakerPage() {
       <!DOCTYPE html>
       <html lang="en">
       <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Editable Property Buyer Pack</title>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>RE/MAX Buyer Pack</title>
+
+        <!-- Modern Font -->
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
         <style>
-          body {
-            font-family: 'Arial', sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: #f8fafc;
-            margin: 0;
-            padding: 20px;
+          :root {
+            --remax-red: #E21B22;
+            --remax-blue: #0054A4;
+            --gray-100: #F3F4F6;
+            --gray-200: #E5E7EB;
+            --gray-600: #6B7280;
+            --gray-900: #111827;
+            --radius: 12px;
           }
 
+          body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            color: var(--gray-900);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+          }
+
+          /* Header */
           .header {
             text-align: center;
             margin-bottom: 40px;
-            border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 20px;
+            padding-bottom: 30px;
+            border-bottom: 3px solid var(--remax-red);
           }
 
           .logo {
-            max-width: 200px;
-            height: auto;
+            width: 220px;
             margin-bottom: 10px;
           }
 
           .subtitle {
-            font-size: 18px;
-            color: #6b7280;
+            font-size: 20px;
+            color: var(--gray-600);
+            letter-spacing: 1px;
+            font-weight: 500;
           }
 
-          .agent-info {
+          /* Agent Card */
+          .agent-card {
             background: white;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 30px;
-            border: 1px solid #e5e7eb;
-          }
-
-          .agent-header {
+            padding: 25px;
+            border-radius: var(--radius);
+            border: 1px solid var(--gray-200);
             display: flex;
             align-items: center;
-            margin-bottom: 15px;
+            gap: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
           }
 
           .agent-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: #dc2626;
+            width: 70px;
+            height: 70px;
+            background: var(--remax-blue);
             color: white;
+            border-radius: 50%;
+            font-size: 28px;
+            font-weight: bold;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
-            font-weight: bold;
-            margin-right: 15px;
           }
 
           .agent-details h3 {
-            margin: 0 0 5px 0;
-            font-size: 20px;
-            color: #1f2937;
+            font-size: 22px;
+            margin: 0;
+            font-weight: 600;
           }
 
           .agent-details p {
             margin: 2px 0;
-            color: #6b7280;
+            color: var(--gray-600);
+            font-size: 15px;
           }
 
           .date {
             text-align: right;
-            color: #6b7280;
+            color: var(--gray-600);
             font-size: 14px;
+            margin-top: 5px;
           }
 
+          /* Property Section */
           .property-section {
             background: white;
-            border-radius: 8px;
             padding: 30px;
-            margin-bottom: 30px;
-            border: 1px solid #e5e7eb;
+            margin: 40px 0;
+            border-radius: var(--radius);
+            border: 1px solid var(--gray-200);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            page-break-inside: avoid;
           }
 
           .property-title {
-            color: #DC2626;
-            font-size: 24px;
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--remax-red);
             margin-bottom: 20px;
-            border-bottom: 2px solid #DC2626;
-            padding-bottom: 10px;
+            border-left: 6px solid var(--remax-blue);
+            padding-left: 12px;
           }
 
-          .price-highlight {
+          .property-hero img {
+            width: 100%;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+          }
+
+          .price {
             text-align: center;
-            font-size: 32px;
-            font-weight: bold;
+            font-size: 34px;
+            font-weight: 700;
             color: #059669;
             margin: 20px 0;
           }
 
-          .property-details table {
+          /* Table */
+          table {
             width: 100%;
             border-collapse: collapse;
-            border: 1px solid #E5E7EB;
+            margin: 25px 0;
+            border-radius: var(--radius);
+            overflow: hidden;
           }
 
-          .property-details th,
-          .property-details td {
-            padding: 10px;
-            border: 1px solid #E5E7EB;
+          th {
+            background: var(--remax-blue);
+            color: white;
+            padding: 12px;
+            font-weight: 600;
           }
 
-          .property-details th {
-            background-color: #F9FAFB;
-            font-weight: bold;
-          }
-
-          .property-details td {
+          td {
+            background: var(--gray-100);
+            padding: 12px;
             text-align: center;
+            border-bottom: 1px solid var(--gray-200);
           }
 
-          .property-description h3,
-          .property-images h3,
-          .key-features h3 {
-            color: #1F2937;
-            margin-bottom: 15px;
-          }
-
-          .property-description p {
-            line-height: 1.6;
+          /* Description */
+          .section-label {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--remax-blue);
+            margin: 25px 0 10px;
           }
 
           .image-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 15px;
           }
 
-          .image-container {
-            margin: 10px;
-            display: inline-block;
+          .image-grid img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: var(--radius);
+            border: 1px solid var(--gray-200);
           }
 
-          .image-container img {
-            max-width: 300px;
-            max-height: 200px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-          }
-
-          .key-features ul {
-            line-height: 1.8;
-          }
-
-          .additional-notes {
-            margin-top: 30px;
+          .footer {
+            text-align: center;
+            margin-top: 40px;
             padding: 20px;
-            background-color: #F9FAFB;
-            border-left: 4px solid #DC2626;
+            color: var(--gray-600);
+            font-size: 14px;
+            border-top: 2px solid var(--gray-200);
           }
 
-          .additional-notes h4 {
-            margin-bottom: 10px;
-            color: #DC2626;
+          /* Print Rules */
+          @media print {
+            body { padding: 0; margin: 0.3in; }
+            .editing-note { display: none; }
           }
 
-          .additional-notes p {
-            margin: 0;
-            font-style: italic;
-            color: #6B7280;
+          /* Editable Highlight */
+          [contenteditable]:focus {
+            outline: 2px solid var(--remax-red);
+            background: #fff7f7;
           }
 
-          .editing-instructions {
+          /* Edit Label */
+          .editing-note {
             position: fixed;
             top: 10px;
             right: 10px;
-            background: #DC2626;
+            background: var(--remax-red);
             color: white;
-            padding: 10px;
-            border-radius: 4px;
+            padding: 10px 12px;
             font-size: 12px;
-            z-index: 1000;
-          }
-
-          @media print {
-            .editing-instructions { display: none !important; }
-            body { margin: 0.5in; }
-            .property-section {
-              page-break-before: always;
-              page-break-inside: avoid;
-              page-break-after: always;
-            }
-            .property-section:first-child {
-              page-break-before: avoid;
-            }
-            .header {
-              page-break-after: avoid;
-            }
-            .agent-info {
-              page-break-after: avoid;
-            }
-          }
-
-          [contenteditable]:focus {
-            outline: 2px solid #DC2626;
-            background-color: #FEF3C7;
-          }
-
-          .image-container img:hover {
-            transform: scale(1.05);
-            transition: transform 0.2s;
+            border-radius: 6px;
+            z-index: 2000;
           }
         </style>
       </head>
+
       <body>
-        <div class="editing-instructions">
-          <strong>Editable Buyer Pack</strong><br>
-          Click any text to edit • Ctrl+P to print • Save as PDF
+
+        <div class="editing-note">
+          Editable Buyer Pack • Click to Edit • Ctrl+P to Save as PDF
         </div>
 
         <div class="header">
-          <img src="https://nvifcvqzxqhlrtvekbvq.supabase.co/storage/v1/object/public/images/re-max-2025-logo-png_seeklogo-619513.png" alt="RE/MAX Logo" class="logo" />
-          <div class="subtitle">Property Buyer Pack</div>
+          <img class="logo" src="https://nvifcvqzxqhlrtvekbvq.supabase.co/storage/v1/object/public/images/re-max-2025-logo-png_seeklogo-619513.png" alt="RE/MAX Logo">
+          <div class="subtitle">Property Buyer Viewing Pack</div>
         </div>
 
-        <div class="agent-info">
-          <div class="agent-header">
-            <div class="agent-avatar">${templateData.agentInitial}</div>
-            <div class="agent-details">
-              <h3 contenteditable="true">${templateData.agentName}</h3>
-              <p contenteditable="true">${templateData.agentEmail}</p>
-              <p contenteditable="true">${templateData.agentPhone}</p>
-            </div>
+        <div class="agent-card">
+          <div class="agent-avatar">${templateData.agentInitial}</div>
+          <div class="agent-details">
+            <h3 contenteditable="true">${templateData.agentName}</h3>
+            <p contenteditable="true">${templateData.agentEmail}</p>
+            <p contenteditable="true">${templateData.agentPhone}</p>
           </div>
-          <div class="date">Generated on: ${templateData.currentDate}</div>
         </div>
+
+        <div class="date">Generated on: ${templateData.currentDate}</div>
 
         ${propertySections.join('\n\n')}
 
-        <div style="margin-top: 40px; padding: 20px; background: #f8fafc; border-radius: 8px; text-align: center; border: 1px solid #e5e7eb;">
-          <p style="margin: 0; color: #6b7280; font-size: 14px;">
-            This buyer pack was generated using Stagefy AI Property Tools
-          </p>
+        <div class="footer">
+          Generated using Stagefy AI — RE/MAX Agent Tools
         </div>
+
       </body>
       </html>
     `;
