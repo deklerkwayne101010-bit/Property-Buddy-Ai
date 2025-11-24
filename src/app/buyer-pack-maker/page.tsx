@@ -321,7 +321,7 @@ export default function BuyerPackMakerPage() {
       </head>
       <body>
         <div class="header">
-          <div class="logo">RE/MAX</div>
+          <img src="https://nvifcvqzxqhlrtvekbvq.supabase.co/storage/v1/object/public/images/re-max-2025-logo-png_seeklogo-619513.png" alt="RE/MAX Logo" class="logo" />
           <div class="subtitle">Property Buyer Pack</div>
         </div>
 
@@ -329,9 +329,9 @@ export default function BuyerPackMakerPage() {
           <div class="agent-header">
             <div class="agent-avatar">${templateData.agentInitial}</div>
             <div class="agent-details">
-              <h3>${templateData.agentName}</h3>
-              <p>${templateData.agentEmail}</p>
-              <p>${templateData.agentPhone}</p>
+              <h3 contenteditable="true">${templateData.agentName}</h3>
+              <p contenteditable="true">${templateData.agentEmail}</p>
+              <p contenteditable="true">${templateData.agentPhone}</p>
             </div>
           </div>
           <div class="date">Generated on: ${templateData.currentDate}</div>
@@ -382,7 +382,7 @@ export default function BuyerPackMakerPage() {
             </h1>
 
             <div class="price-highlight" style="text-align: center; font-size: 32px; font-weight: bold; color: #059669; margin: 20px 0;">
-              R ${property.price}
+              ${property.price}
             </div>
 
             <div class="property-details" style="margin-bottom: 20px;">
@@ -464,9 +464,8 @@ export default function BuyerPackMakerPage() {
           }
 
           .logo {
-            font-size: 32px;
-            font-weight: bold;
-            color: #dc2626;
+            max-width: 200px;
+            height: auto;
             margin-bottom: 10px;
           }
 
@@ -631,7 +630,20 @@ export default function BuyerPackMakerPage() {
           @media print {
             .editing-instructions { display: none !important; }
             body { margin: 0.5in; }
-            .property-section { page-break-inside: avoid; }
+            .property-section {
+              page-break-before: always;
+              page-break-inside: avoid;
+              page-break-after: always;
+            }
+            .property-section:first-child {
+              page-break-before: avoid;
+            }
+            .header {
+              page-break-after: avoid;
+            }
+            .agent-info {
+              page-break-after: avoid;
+            }
           }
 
           [contenteditable]:focus {
