@@ -34,7 +34,15 @@ CREATE POLICY "Users can update own generated images" ON generated_images
 CREATE POLICY "Users can delete own generated images" ON generated_images
   FOR DELETE USING (auth.uid() = user_id);
 
+-- Update user_media table to support AI Playground media types
+-- Run this if you already have the user_media table from the main schema
+ALTER TABLE user_media DROP CONSTRAINT IF EXISTS user_media_media_type_check;
+ALTER TABLE user_media ADD CONSTRAINT user_media_media_type_check
+  CHECK (media_type IN ('image', 'voice', 'voice_clone', 'avatar_video', 'reference_image', 'asset_image'));
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_generated_images_user ON generated_images(user_id);
 CREATE INDEX IF NOT EXISTS idx_generated_images_tool ON generated_images(tool_type);
 CREATE INDEX IF NOT EXISTS idx_generated_images_created ON generated_images(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_media_type ON user_media(media_type);
+CREATE INDEX IF NOT EXISTS idx_user_media_user_type ON user_media(user_id, media_type);
