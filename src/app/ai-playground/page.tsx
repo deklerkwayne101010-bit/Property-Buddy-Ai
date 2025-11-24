@@ -28,15 +28,18 @@ export default function AIPlayground() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingStep, setLoadingStep] = useState('');
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
-  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [referenceImages, setReferenceImages] = useState<UploadedImage[]>([]);
+  const [assetImages, setAssetImages] = useState<UploadedImage[]>([]);
   const [selectedReferenceImages, setSelectedReferenceImages] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [creditsRemaining, setCreditsRemaining] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const assetFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load uploaded images and generated images on component mount
+  // Load images and generated images on component mount
   useEffect(() => {
-    loadUploadedImages();
+    loadReferenceImages();
+    loadAssetImages();
     loadGeneratedImages();
     loadCredits();
   }, []);
@@ -62,7 +65,7 @@ export default function AIPlayground() {
     }
   };
 
-  const loadUploadedImages = async () => {
+  const loadReferenceImages = async () => {
     if (!user) return;
 
     try {
@@ -70,12 +73,12 @@ export default function AIPlayground() {
         .from('user_media')
         .select('*')
         .eq('user_id', user.id)
-        .eq('media_type', 'image')
+        .eq('media_type', 'reference_image')
         .order('created_at', { ascending: false })
         .limit(20);
 
       if (error) {
-        console.error('Error loading user images:', error);
+        console.error('Error loading reference images:', error);
         return;
       }
 
@@ -86,9 +89,39 @@ export default function AIPlayground() {
         uploadedAt: media.created_at
       }));
 
-      setUploadedImages(images);
+      setReferenceImages(images);
     } catch (error) {
-      console.error('Error loading uploaded images:', error);
+      console.error('Error loading reference images:', error);
+    }
+  };
+
+  const loadAssetImages = async () => {
+    if (!user) return;
+
+    try {
+      const { data: userMedia, error } = await supabase
+        .from('user_media')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('media_type', 'asset_image')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error loading asset images:', error);
+        return;
+      }
+
+      const images: UploadedImage[] = (userMedia || []).map(media => ({
+        id: media.id,
+        url: media.file_url,
+        filename: media.file_name,
+        uploadedAt: media.created_at
+      }));
+
+      setAssetImages(images);
+    } catch (error) {
+      console.error('Error loading asset images:', error);
     }
   };
 
@@ -112,6 +145,56 @@ export default function AIPlayground() {
       setGeneratedImages(images || []);
     } catch (error) {
       console.error('Error loading generated images:', error);
+    }
+  };
+
+  const handleAssetUpload = async (file: File) => {
+    if (!user) {
+      alert('You must be logged in to upload assets.');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const timestamp = Date.now();
+      const fileName = `playground-asset-${timestamp}-${file.name}`;
+
+      const { data, error } = await supabase.storage
+        .from('images')
+        .upload(fileName, file, {
+          contentType: file.type,
+          cacheControl: '3600',
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('images')
+        .getPublicUrl(fileName);
+
+      const { error: mediaError } = await supabase
+        .from('user_media')
+        .insert({
+          user_id: user.id,
+          media_type: 'asset_image',
+          file_name: fileName,
+          file_url: publicUrl,
+          file_size: file.size
+        });
+
+      if (mediaError) {
+        console.error('Error storing asset metadata:', mediaError);
+      }
+
+      await loadAssetImages();
+      alert('Asset uploaded successfully!');
+    } catch (error) {
+      console.error('Error uploading asset:', error);
+      alert('Failed to upload asset. Please try again.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -145,7 +228,7 @@ export default function AIPlayground() {
         .from('user_media')
         .insert({
           user_id: user.id,
-          media_type: 'image',
+          media_type: 'reference_image',
           file_name: fileName,
           file_url: publicUrl,
           file_size: file.size
@@ -155,7 +238,7 @@ export default function AIPlayground() {
         console.error('Error storing media metadata:', mediaError);
       }
 
-      await loadUploadedImages();
+      await loadReferenceImages();
       alert('Reference image uploaded successfully!');
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -186,6 +269,16 @@ export default function AIPlayground() {
       const file = files[0];
       if (file.type === 'image/jpeg' || file.type === 'image/png') {
         handleImageUpload(file);
+      }
+    }
+  };
+
+  const handleAssetFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type === 'image/jpeg' || file.type === 'image/png') {
+        handleAssetUpload(file);
       }
     }
   };
@@ -305,7 +398,7 @@ export default function AIPlayground() {
       }
 
       // Refresh the uploaded images list
-      await loadUploadedImages();
+      await loadReferenceImages();
       alert('Image deleted successfully!');
     } catch (error) {
       console.error('Error deleting image:', error);
@@ -417,13 +510,22 @@ export default function AIPlayground() {
                 <div
                   className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center cursor-pointer transition-all duration-200 hover:border-purple-400 hover:bg-purple-50/30"
                   onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                      const file = files[0];
+                      if (file.type === 'image/jpeg' || file.type === 'image/png') {
+                        handleAssetUpload(file);
+                      }
+                    }
+                  }}
+                  onClick={() => assetFileInputRef.current?.click()}
                 >
                   <input
                     type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileSelect}
+                    ref={assetFileInputRef}
+                    onChange={handleAssetFileSelect}
                     accept="image/jpeg,image/png"
                     className="hidden"
                   />
@@ -448,7 +550,7 @@ export default function AIPlayground() {
             </div>
 
             {/* Reference Images Gallery */}
-            {uploadedImages.length > 0 && (
+            {referenceImages.length > 0 && (
               <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
                 <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
                   <div className="flex items-center justify-between">
@@ -469,7 +571,7 @@ export default function AIPlayground() {
 
                 <div className="p-6">
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {uploadedImages.map((image) => (
+                    {referenceImages.map((image) => (
                       <div
                         key={image.id}
                         className={`relative group cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-300 hover:scale-105 ${
@@ -678,17 +780,17 @@ export default function AIPlayground() {
                         My Assets
                       </h3>
                       <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                        {uploadedImages.length}
+                        {assetImages.length}
                       </span>
                     </div>
                   </div>
 
                   <div className="p-4">
-                    {uploadedImages.length > 0 ? (
+                    {assetImages.length > 0 ? (
                       <div className="space-y-3">
                         <div className="max-h-80 overflow-y-auto">
                           <div className="grid grid-cols-2 gap-2 pr-1">
-                            {uploadedImages.map((image) => (
+                            {assetImages.map((image) => (
                               <div
                                 key={image.id}
                                 className={`relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
