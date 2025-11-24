@@ -686,41 +686,37 @@ export default function AIPlayground() {
                   <div className="p-4">
                     {uploadedImages.length > 0 ? (
                       <div className="space-y-3">
-                        <div className="grid grid-cols-2 gap-2">
-                          {uploadedImages.slice(0, 6).map((image) => (
-                            <div
-                              key={image.id}
-                              className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
-                                selectedReferenceImages.includes(image.url)
-                                  ? 'border-purple-500 shadow-md shadow-purple-500/30'
-                                  : 'border-slate-200 hover:border-slate-300'
-                              }`}
-                              onClick={() => toggleReferenceImage(image.url)}
-                            >
-                              <div className="aspect-square">
-                                <img
-                                  src={image.url}
-                                  alt={image.filename}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-
-                              {selectedReferenceImages.includes(image.url) && (
-                                <div className="absolute top-1 right-1 bg-purple-500 text-white rounded-full p-0.5">
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                  </svg>
+                        <div className="max-h-80 overflow-y-auto">
+                          <div className="grid grid-cols-2 gap-2 pr-1">
+                            {uploadedImages.map((image) => (
+                              <div
+                                key={image.id}
+                                className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                                  selectedReferenceImages.includes(image.url)
+                                    ? 'border-purple-500 shadow-md shadow-purple-500/30'
+                                    : 'border-slate-200 hover:border-slate-300'
+                                }`}
+                                onClick={() => toggleReferenceImage(image.url)}
+                              >
+                                <div className="aspect-square">
+                                  <img
+                                    src={image.url}
+                                    alt={image.filename}
+                                    className="w-full h-full object-cover"
+                                  />
                                 </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
 
-                        {uploadedImages.length > 6 && (
-                          <p className="text-xs text-slate-500 text-center">
-                            +{uploadedImages.length - 6} more assets
-                          </p>
-                        )}
+                                {selectedReferenceImages.includes(image.url) && (
+                                  <div className="absolute top-1 right-1 bg-purple-500 text-white rounded-full p-0.5">
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
 
                         {selectedReferenceImages.length > 0 && (
                           <div className="mt-3 p-2 bg-purple-50 border border-purple-200 rounded-lg">
