@@ -672,9 +672,9 @@ export default function BuyerPackMakerPage() {
           <div class="agent-header">
             <div class="agent-avatar">${templateData.agentInitial}</div>
             <div class="agent-details">
-              <h3>${templateData.agentName}</h3>
-              <p>${templateData.agentEmail}</p>
-              <p>${templateData.agentPhone}</p>
+              <h3 contenteditable="true">${templateData.agentName}</h3>
+              <p contenteditable="true">${templateData.agentEmail}</p>
+              <p contenteditable="true">${templateData.agentPhone}</p>
             </div>
           </div>
           <div class="date">Generated on: ${templateData.currentDate}</div>
