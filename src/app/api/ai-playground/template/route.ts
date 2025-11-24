@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { WACKY_TEMPLATE_PROMPT, PROFESSIONAL_TEMPLATE_PROMPT } from '@/lib/template-prompts';
+import { WACKY_TEMPLATE_PROMPT, PROFESSIONAL_TEMPLATE_PROMPT, MARKETING_TEMPLATE_PROMPT } from '@/lib/template-prompts';
 
 
 export async function POST(request: NextRequest) {
@@ -14,9 +14,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!['wacky', 'professional'].includes(templateType)) {
+    if (!['wacky', 'professional', 'marketing'].includes(templateType)) {
       return NextResponse.json(
-        { error: 'Invalid template type. Supported: wacky, professional' },
+        { error: 'Invalid template type. Supported: wacky, professional, marketing' },
         { status: 400 }
       );
     }
@@ -28,6 +28,8 @@ export async function POST(request: NextRequest) {
       aiPrompt = WACKY_TEMPLATE_PROMPT;
     } else if (templateType === 'professional') {
       aiPrompt = PROFESSIONAL_TEMPLATE_PROMPT;
+    } else if (templateType === 'marketing') {
+      aiPrompt = MARKETING_TEMPLATE_PROMPT;
     } else {
       throw new Error('Unsupported template type');
     }

@@ -514,49 +514,41 @@ export default function AIPlayground() {
     }
   };
 
-  const generateMarketingMaterial = () => {
-    // Marketing material template prompt - focused on conversion and attention-grabbing design
-    const marketingPrompt = `Create a high-impact, conversion-focused real estate marketing flyer with the following specifications:
+  const generateMarketingMaterial = async () => {
+    if (!user) {
+      alert('You must be logged in to use template generation.');
+      return;
+    }
 
-DESIGN STYLE:
-- Bold, attention-grabbing visual design
-- Vibrant color palette: red (#E53E3E), orange (#ED8936), and yellow (#ECC94B) accents
-- Dynamic, energetic layout that demands attention
-- Eye-catching typography with bold headlines and clear calls-to-action
-- Modern, trendy aesthetic that stands out from competitors
+    setIsGeneratingTemplate(true);
+    setTemplateResult(null);
 
-LAYOUT STRUCTURE:
-- Massive, compelling headline at the top (30% of canvas height)
-- Hero image with overlay text and price prominently displayed
-- Three-column feature highlights (bedrooms, bathrooms, parking)
-- Central call-to-action button ("View Property" or "Schedule Viewing")
-- Contact information and agent details at bottom
-- Urgency elements like "Limited Time" or "Hot Property"
+    try {
+      const response = await fetch('/api/ai-playground/template', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          templateType: 'marketing',
+          userId: user.id,
+        }),
+      });
 
-VISUAL ELEMENTS:
-- Bright, contrasting colors to grab attention
-- Dynamic arrows, stars, or icons pointing to key information
-- Price displayed in large, eye-catching font with currency symbol
-- Professional photography with vibrant, appealing presentation
-- Gradient backgrounds and modern design elements
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate template');
+      }
 
-CONTENT AREAS:
-- Powerful headline that creates desire ("Dream Home Available Now!")
-- Key selling points in bullet points with checkmark icons
-- Price displayed prominently with "From" or "Only" emphasis
-- Agent photo and credentials to build trust
-- Multiple contact methods (phone, email, website)
-- Social proof elements if applicable
+      const { template } = await response.json();
+      setPrompt(template); // Set the result directly in the main prompt input
 
-MARKETING FOCUS:
-- Emphasize urgency and scarcity
-- Highlight unique selling propositions
-- Include clear calls-to-action
-- Use persuasive, benefit-focused language
-- Create emotional connection with potential buyers
-
-The design should immediately capture attention and compel viewers to take action, while maintaining professionalism appropriate for real estate marketing.`;
-    setPrompt(marketingPrompt);
+    } catch (error) {
+      console.error('Error generating marketing template:', error);
+      alert(`Failed to generate template: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
+    } finally {
+      setIsGeneratingTemplate(false);
+    }
   };
 
   // Redirect to login if not authenticated
@@ -800,12 +792,25 @@ The design should immediately capture attention and compel viewers to take actio
 
                       <button
                         onClick={generateMarketingMaterial}
-                        className="px-4 py-2 bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2"
+                        disabled={isGeneratingTemplate || !user}
+                        className="px-4 py-2 bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 disabled:from-slate-400 disabled:to-slate-400 text-white text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 disabled:cursor-not-allowed"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-                        </svg>
-                        Marketing Material
+                        {isGeneratingTemplate ? (
+                          <>
+                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                            </svg>
+                            Marketing Material
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
