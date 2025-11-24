@@ -147,10 +147,10 @@ export default function BuyerPackMakerPage() {
           });
         }
 
-        // Add a longer random delay between requests to avoid detection (3-8 seconds)
+        // Add a very long random delay between requests to avoid detection (12-20 seconds)
         if (i < urls.length - 1) {
-          const delay = Math.random() * 5000 + 3000; // 3-8 seconds
-          console.log(`Waiting ${Math.round(delay/1000)} seconds before next property...`);
+          const delay = Math.random() * 8000 + 12000; // 12-20 seconds
+          console.log(`Waiting ${Math.round(delay/1000)} seconds before next property to avoid anti-bot detection...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }

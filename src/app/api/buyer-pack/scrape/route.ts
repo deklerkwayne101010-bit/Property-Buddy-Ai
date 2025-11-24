@@ -57,11 +57,11 @@ export async function POST(request: NextRequest) {
 
     const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
 
-    // Add realistic headers to avoid detection
+    // Add comprehensive realistic headers to avoid detection
     const headers = {
       'User-Agent': randomUserAgent,
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-      'Accept-Language': 'en-US,en;q=0.9,af;q=0.8',
+      'Accept-Language': 'en-ZA,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,af;q=0.6',
       'Accept-Encoding': 'gzip, deflate, br',
       'DNT': '1',
       'Connection': 'keep-alive',
@@ -70,11 +70,16 @@ export async function POST(request: NextRequest) {
       'Sec-Fetch-Mode': 'navigate',
       'Sec-Fetch-Site': 'none',
       'Sec-Fetch-User': '?1',
-      'Cache-Control': 'max-age=0'
+      'Cache-Control': 'max-age=0',
+      'Referer': 'https://www.google.com/',
+      'sec-ch-ua': '"Google Chrome";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
+      'sec-ch-ua-mobile': '?0',
+      'sec-ch-ua-platform': '"Windows"'
     };
 
-    // Add a random delay to simulate human behavior (2-5 seconds)
-    const delay = Math.random() * 3000 + 2000; // 2-5 seconds
+    // Add a longer random delay to simulate human behavior (8-15 seconds)
+    const delay = Math.random() * 7000 + 8000; // 8-15 seconds
+    console.log(`Waiting ${Math.round(delay/1000)} seconds before scraping to avoid detection...`);
     await new Promise(resolve => setTimeout(resolve, delay));
 
     console.log(`Fetching with User-Agent: ${randomUserAgent.substring(0, 50)}...`);
