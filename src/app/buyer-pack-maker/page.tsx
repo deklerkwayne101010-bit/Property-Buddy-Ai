@@ -938,7 +938,7 @@ https://www.property24.com/for-sale/johannesburg/gauteng/789"
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="text-sm font-semibold text-blue-900 mb-2">How to add properties:</h4>
               <ul className="text-sm text-blue-800 space-y-1">
-                <li>• Use the "Quick Add" field to add one property at a time</li>
+                <li>• Use the &quot;Quick Add&quot; field to add one property at a time</li>
                 <li>• Or paste multiple URLs in the bulk textarea (one per line)</li>
                 <li>• Each property will become a separate page in your buyer pack</li>
                 <li>• Maximum 10 properties per pack for optimal performance</li>
