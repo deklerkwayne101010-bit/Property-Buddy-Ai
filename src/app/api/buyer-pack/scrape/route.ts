@@ -13,8 +13,11 @@ interface ScrapedPropertyData {
 }
 
 export async function POST(request: NextRequest) {
+  let url = '';
+
   try {
-    const { url } = await request.json();
+    const body = await request.json();
+    url = body.url;
 
     if (!url) {
       return NextResponse.json(
@@ -71,9 +74,26 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error in property data extraction:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      url: url,
+      timestamp: new Date().toISOString()
+    });
 
-    // Return fallback data if extraction fails
-    return getMockData();
+    // Return fallback data with error indication
+    const mockData: ScrapedPropertyData = {
+      title: `Failed to scrape: ${url.split('/').pop() || 'Property'}`,
+      price: "Price not available",
+      address: url,
+      bedrooms: 0,
+      bathrooms: 0,
+      parking: 0,
+      size: "Size not available",
+      description: `Unable to automatically extract data from this Property24 listing. Error: ${error instanceof Error ? error.message : 'Unknown error'}. You can manually edit this information in the buyer pack.`,
+      images: []
+    };
+
+    return NextResponse.json(mockData);
   }
 }
 

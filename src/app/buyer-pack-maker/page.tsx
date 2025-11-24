@@ -94,23 +94,62 @@ export default function BuyerPackMakerPage() {
     try {
       const results: PropertyData[] = [];
 
+      // Process URLs sequentially to avoid rate limiting and improve reliability
       for (let i = 0; i < urls.length; i++) {
         setProgress(Math.round(((i + 1) / urls.length) * 100));
 
-        const response = await fetch('/api/buyer-pack/scrape', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ url: urls[i].trim() }),
-        });
+        try {
+          console.log(`Scraping property ${i + 1}/${urls.length}: ${urls[i].trim()}`);
 
-        if (response.ok) {
-          const data = await response.json();
-          results.push(data);
-        } else {
-          console.error(`Failed to scrape ${urls[i]}`);
-          // Continue with other URLs
+          const response = await fetch('/api/buyer-pack/scrape', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url: urls[i].trim() }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log(`Successfully scraped property ${i + 1}:`, data.title);
+            results.push(data);
+          } else {
+            const errorText = await response.text();
+            console.error(`Failed to scrape ${urls[i]}: ${response.status} - ${errorText}`);
+
+            // Add a fallback entry for failed scrapes
+            results.push({
+              title: `Property ${i + 1} (Failed to scrape)`,
+              price: "Price not available",
+              address: urls[i].trim(),
+              bedrooms: 0,
+              bathrooms: 0,
+              parking: 0,
+              size: "Size not available",
+              description: "This property could not be automatically scraped. Please check the URL and try again, or manually add the property details.",
+              images: []
+            });
+          }
+        } catch (error) {
+          console.error(`Error scraping ${urls[i]}:`, error);
+
+          // Add a fallback entry for network errors
+          results.push({
+            title: `Property ${i + 1} (Network error)`,
+            price: "Price not available",
+            address: urls[i].trim(),
+            bedrooms: 0,
+            bathrooms: 0,
+            parking: 0,
+            size: "Size not available",
+            description: "Network error occurred while scraping this property. Please check your connection and try again.",
+            images: []
+          });
+        }
+
+        // Add a small delay between requests to be respectful to the target website
+        if (i < urls.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
         }
       }
 
