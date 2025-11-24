@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch the webpage content with retry logic
     let response: Response | undefined;
-    let retries = 3;
+    const retries = 3;
 
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
