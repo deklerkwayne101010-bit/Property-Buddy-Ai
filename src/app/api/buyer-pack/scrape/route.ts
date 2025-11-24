@@ -46,20 +46,61 @@ export async function POST(request: NextRequest) {
 
     console.log('Starting AI-powered property data extraction for:', url);
 
-    // Rotate user agents to avoid detection
-    const userAgents = [
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
-      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    // Advanced anti-detection system
+    console.log('🔒 Initializing advanced anti-detection system...');
+
+    // Simulate human-like browsing session
+    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    console.log(`📋 Session ID: ${sessionId}`);
+
+    // Create realistic browser fingerprints
+    const browserConfigs = [
+      {
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        platform: 'Windows NT 10.0; Win64; x64',
+        secChUa: '"Google Chrome";v="120", "Chromium";v="120", "Not-A.Brand";v="99"',
+        viewport: '1920x1080'
+      },
+      {
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        platform: 'Macintosh; Intel Mac OS X 10_15_7',
+        secChUa: '"Google Chrome";v="120", "Chromium";v="120", "Not-A.Brand";v="99"',
+        viewport: '1440x900'
+      },
+      {
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/121.0',
+        platform: 'Windows NT 10.0; Win64; x64; rv:120.0',
+        secChUa: '"Not-A.Brand";v="99"',
+        viewport: '1366x768'
+      }
     ];
 
-    const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
+    const selectedBrowser = browserConfigs[Math.floor(Math.random() * browserConfigs.length)];
+    console.log(`🎭 Selected browser fingerprint: ${selectedBrowser.userAgent.substring(0, 50)}...`);
 
-    // Add comprehensive realistic headers to avoid detection
+    // Simulate realistic browsing behavior with multiple phases
+    console.log('🚶 Simulating human browsing behavior...');
+
+    // Phase 1: Initial page load simulation (2-4 seconds)
+    const initialDelay = Math.random() * 2000 + 2000;
+    await new Promise(resolve => setTimeout(resolve, initialDelay));
+
+    // Phase 2: Simulate reading time (3-6 seconds)
+    const readingDelay = Math.random() * 3000 + 3000;
+    await new Promise(resolve => setTimeout(resolve, readingDelay));
+
+    // Phase 3: Simulate scrolling and interaction (1-3 seconds)
+    const interactionDelay = Math.random() * 2000 + 1000;
+    await new Promise(resolve => setTimeout(resolve, interactionDelay));
+
+    // Phase 4: Final delay before actual request (5-10 seconds)
+    const finalDelay = Math.random() * 5000 + 5000;
+    console.log(`⏳ Final preparation delay: ${Math.round(finalDelay/1000)} seconds...`);
+    await new Promise(resolve => setTimeout(resolve, finalDelay));
+
+    // Create sophisticated headers that mimic real browser behavior
     const headers = {
-      'User-Agent': randomUserAgent,
+      'User-Agent': selectedBrowser.userAgent,
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
       'Accept-Language': 'en-ZA,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,af;q=0.6',
       'Accept-Encoding': 'gzip, deflate, br',
@@ -68,57 +109,100 @@ export async function POST(request: NextRequest) {
       'Upgrade-Insecure-Requests': '1',
       'Sec-Fetch-Dest': 'document',
       'Sec-Fetch-Mode': 'navigate',
-      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-Site': 'cross-site',
       'Sec-Fetch-User': '?1',
       'Cache-Control': 'max-age=0',
-      'Referer': 'https://www.google.com/',
-      'sec-ch-ua': '"Google Chrome";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
+      'Referer': 'https://www.google.co.za/',
+      'sec-ch-ua': selectedBrowser.secChUa,
       'sec-ch-ua-mobile': '?0',
-      'sec-ch-ua-platform': '"Windows"'
+      'sec-ch-ua-platform': `"${selectedBrowser.platform.split(';')[0]}"`,
+      'Sec-Purpose': 'prefetch',
+      'X-Requested-With': 'XMLHttpRequest'
     };
 
-    // Add a longer random delay to simulate human behavior (8-15 seconds)
-    const delay = Math.random() * 7000 + 8000; // 8-15 seconds
-    console.log(`Waiting ${Math.round(delay/1000)} seconds before scraping to avoid detection...`);
-    await new Promise(resolve => setTimeout(resolve, delay));
+    console.log(`🌐 Making request with sophisticated headers...`);
 
-    console.log(`Fetching with User-Agent: ${randomUserAgent.substring(0, 50)}...`);
+    // Advanced retry logic with different strategies
+    let html: string | null = null;
+    const maxAttempts = 5;
 
-    // Fetch the webpage content with retry logic
-    let response: Response | undefined;
-    const retries = 3;
-
-    for (let attempt = 1; attempt <= retries; attempt++) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        response = await fetch(url, {
-          headers,
-          // Add timeout
-          signal: AbortSignal.timeout(30000) // 30 second timeout
+        console.log(`🔄 Attempt ${attempt}/${maxAttempts} - ${new Date().toISOString()}`);
+
+        // Create headers object with attempt-specific variations
+        const attemptHeaders: Record<string, string> = { ...headers };
+        if (attempt > 1) {
+          attemptHeaders['Cache-Control'] = 'no-cache';
+          attemptHeaders['Pragma'] = 'no-cache';
+        }
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: attemptHeaders,
+          signal: AbortSignal.timeout(45000), // 45 second timeout
         });
 
-        // If we get a 503, wait longer and retry
-        if (response.status === 503 && attempt < retries) {
-          console.log(`Attempt ${attempt} failed with 503, retrying in ${attempt * 5} seconds...`);
-          await new Promise(resolve => setTimeout(resolve, attempt * 5000));
-          continue;
+        console.log(`📊 Response status: ${response.status} (${response.statusText})`);
+
+        // Handle different response codes
+        if (response.status === 200) {
+          html = await response.text();
+          console.log(`✅ Successfully fetched HTML (${html.length} characters)`);
+          break;
+        } else if (response.status === 503) {
+          console.log(`🚫 Got 503 Service Unavailable - anti-bot detected`);
+
+          // For 503, use exponential backoff with jitter
+          const baseDelay = Math.pow(2, attempt) * 10000; // 20s, 40s, 80s...
+          const jitter = Math.random() * 5000; // Add randomness
+          const totalDelay = baseDelay + jitter;
+
+          if (attempt < maxAttempts) {
+            console.log(`⏳ Waiting ${Math.round(totalDelay/1000)}s before retry...`);
+            await new Promise(resolve => setTimeout(resolve, totalDelay));
+          }
+        } else if (response.status === 429) {
+          console.log(`🚫 Got 429 Too Many Requests - rate limited`);
+
+          // For 429, wait longer
+          const rateLimitDelay = (attempt * 15000) + Math.random() * 5000;
+          if (attempt < maxAttempts) {
+            console.log(`⏳ Rate limit delay: ${Math.round(rateLimitDelay/1000)}s...`);
+            await new Promise(resolve => setTimeout(resolve, rateLimitDelay));
+          }
+        } else if (response.status >= 400 && response.status < 500) {
+          // Client errors - don't retry
+          console.log(`❌ Client error ${response.status} - not retrying`);
+          break;
+        } else {
+          // Other server errors - retry with shorter delay
+          const retryDelay = attempt * 3000 + Math.random() * 2000;
+          if (attempt < maxAttempts) {
+            console.log(`⏳ Server error delay: ${Math.round(retryDelay/1000)}s...`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+          }
         }
 
-        break; // Success or non-503 error
+      } catch (error) {
+        console.error(`💥 Attempt ${attempt} failed:`, error instanceof Error ? error.message : 'Unknown error');
 
-      } catch (fetchError) {
-        if (attempt === retries) {
-          throw fetchError;
+        if (attempt === maxAttempts) {
+          throw new Error(`All ${maxAttempts} attempts failed. Last error: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
-        console.log(`Attempt ${attempt} failed, retrying in ${attempt * 2} seconds...`);
-        await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+
+        // Wait before retrying
+        const errorDelay = attempt * 2000 + Math.random() * 3000;
+        console.log(`⏳ Error recovery delay: ${Math.round(errorDelay/1000)}s...`);
+        await new Promise(resolve => setTimeout(resolve, errorDelay));
       }
     }
 
-    if (!response || !response.ok) {
-      throw new Error(`Failed to fetch property page: ${response?.status || 'unknown'}`);
+    if (!html) {
+      throw new Error('Failed to fetch HTML content after all retry attempts');
     }
 
-    const html = await response.text();
+    console.log('🎉 Successfully bypassed anti-detection measures!');
 
     // Use Replicate to extract property data from HTML
     const replicateApiKey = process.env.REPLICATE_API_TOKEN;
