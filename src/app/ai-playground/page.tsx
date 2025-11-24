@@ -478,14 +478,82 @@ export default function AIPlayground() {
   };
 
   const generateProfessionalTemplate = () => {
-    // For now, just set a professional template prompt
-    const professionalPrompt = "Create a professional, clean, and modern design for a real estate marketing material. Use a sophisticated color palette with blues and grays, clean typography, and elegant layouts. Focus on luxury and trust-building elements.";
+    // Professional template prompt - focused on clean, corporate real estate design
+    const professionalPrompt = `Create a professional, sophisticated real estate marketing template with the following specifications:
+
+DESIGN STYLE:
+- Clean, modern corporate aesthetic
+- Minimalist layout with ample white space
+- Professional color palette: navy blue (#003366), charcoal gray (#333333), and crisp white (#FFFFFF)
+- Subtle gold accents (#D4AF37) for luxury elements
+- Sans-serif typography (Helvetica, Arial, or similar)
+
+LAYOUT STRUCTURE:
+- Header section with property address and price prominently displayed
+- Large hero image area (70% of canvas width)
+- Two-column layout below: property details on left, agent info on right
+- Footer with company branding and contact information
+
+VISUAL ELEMENTS:
+- Thin, clean borders and dividing lines
+- Professional icons for bedrooms, bathrooms, parking
+- High-quality, well-lit property photography
+- Subtle shadow effects for depth
+- Balanced composition with proper visual hierarchy
+
+CONTENT AREAS:
+- Property price in large, elegant font
+- Key features listed in clean bullet points
+- Agent photo and professional headshot styling
+- Company logo positioned tastefully
+- Contact information clearly visible but not overwhelming
+
+Ensure the design conveys trust, professionalism, and luxury while maintaining excellent readability and visual appeal. The layout should work well for both print and digital marketing materials.`;
     setPrompt(professionalPrompt);
   };
 
   const generateMarketingMaterial = () => {
-    // For now, just set a marketing material prompt
-    const marketingPrompt = "Design an eye-catching marketing flyer for a property listing. Use bold colors, compelling headlines, and persuasive copy. Include call-to-action elements and highlight key selling points.";
+    // Marketing material template prompt - focused on conversion and attention-grabbing design
+    const marketingPrompt = `Create a high-impact, conversion-focused real estate marketing flyer with the following specifications:
+
+DESIGN STYLE:
+- Bold, attention-grabbing visual design
+- Vibrant color palette: red (#E53E3E), orange (#ED8936), and yellow (#ECC94B) accents
+- Dynamic, energetic layout that demands attention
+- Eye-catching typography with bold headlines and clear calls-to-action
+- Modern, trendy aesthetic that stands out from competitors
+
+LAYOUT STRUCTURE:
+- Massive, compelling headline at the top (30% of canvas height)
+- Hero image with overlay text and price prominently displayed
+- Three-column feature highlights (bedrooms, bathrooms, parking)
+- Central call-to-action button ("View Property" or "Schedule Viewing")
+- Contact information and agent details at bottom
+- Urgency elements like "Limited Time" or "Hot Property"
+
+VISUAL ELEMENTS:
+- Bright, contrasting colors to grab attention
+- Dynamic arrows, stars, or icons pointing to key information
+- Price displayed in large, eye-catching font with currency symbol
+- Professional photography with vibrant, appealing presentation
+- Gradient backgrounds and modern design elements
+
+CONTENT AREAS:
+- Powerful headline that creates desire ("Dream Home Available Now!")
+- Key selling points in bullet points with checkmark icons
+- Price displayed prominently with "From" or "Only" emphasis
+- Agent photo and credentials to build trust
+- Multiple contact methods (phone, email, website)
+- Social proof elements if applicable
+
+MARKETING FOCUS:
+- Emphasize urgency and scarcity
+- Highlight unique selling propositions
+- Include clear calls-to-action
+- Use persuasive, benefit-focused language
+- Create emotional connection with potential buyers
+
+The design should immediately capture attention and compel viewers to take action, while maintaining professionalism appropriate for real estate marketing.`;
     setPrompt(marketingPrompt);
   };
 
