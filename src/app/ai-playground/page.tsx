@@ -477,39 +477,41 @@ export default function AIPlayground() {
     alert('Template applied to prompt! Ready to generate with AI.');
   };
 
-  const generateProfessionalTemplate = () => {
-    // Professional template prompt - focused on clean, corporate real estate design
-    const professionalPrompt = `Create a professional, sophisticated real estate marketing template with the following specifications:
+  const generateProfessionalTemplate = async () => {
+    if (!user) {
+      alert('You must be logged in to use template generation.');
+      return;
+    }
 
-DESIGN STYLE:
-- Clean, modern corporate aesthetic
-- Minimalist layout with ample white space
-- Professional color palette: navy blue (#003366), charcoal gray (#333333), and crisp white (#FFFFFF)
-- Subtle gold accents (#D4AF37) for luxury elements
-- Sans-serif typography (Helvetica, Arial, or similar)
+    setIsGeneratingTemplate(true);
+    setTemplateResult(null);
 
-LAYOUT STRUCTURE:
-- Header section with property address and price prominently displayed
-- Large hero image area (70% of canvas width)
-- Two-column layout below: property details on left, agent info on right
-- Footer with company branding and contact information
+    try {
+      const response = await fetch('/api/ai-playground/template', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          templateType: 'professional',
+          userId: user.id,
+        }),
+      });
 
-VISUAL ELEMENTS:
-- Thin, clean borders and dividing lines
-- Professional icons for bedrooms, bathrooms, parking
-- High-quality, well-lit property photography
-- Subtle shadow effects for depth
-- Balanced composition with proper visual hierarchy
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate template');
+      }
 
-CONTENT AREAS:
-- Property price in large, elegant font
-- Key features listed in clean bullet points
-- Agent photo and professional headshot styling
-- Company logo positioned tastefully
-- Contact information clearly visible but not overwhelming
+      const { template } = await response.json();
+      setPrompt(template); // Set the result directly in the main prompt input
 
-Ensure the design conveys trust, professionalism, and luxury while maintaining excellent readability and visual appeal. The layout should work well for both print and digital marketing materials.`;
-    setPrompt(professionalPrompt);
+    } catch (error) {
+      console.error('Error generating professional template:', error);
+      alert(`Failed to generate template: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
+    } finally {
+      setIsGeneratingTemplate(false);
+    }
   };
 
   const generateMarketingMaterial = () => {

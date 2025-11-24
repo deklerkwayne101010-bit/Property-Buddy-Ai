@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { WACKY_TEMPLATE_PROMPT, PROFESSIONAL_TEMPLATE_PROMPT } from '@/lib/template-prompts';
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,15 +14,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (templateType !== 'wacky') {
+    if (!['wacky', 'professional'].includes(templateType)) {
       return NextResponse.json(
-        { error: 'Only wacky template is currently supported' },
+        { error: 'Invalid template type. Supported: wacky, professional' },
         { status: 400 }
       );
     }
 
-    // The exact prompt from the user requirements
-    const wackyPrompt = `You are the Algorithmic Art Director for REMAX South Africa.
+    // Select the appropriate prompt based on template type
+    let aiPrompt: string;
+
+    if (templateType === 'wacky') {
+      aiPrompt = WACKY_TEMPLATE_PROMPT;
+    } else if (templateType === 'professional') {
+      aiPrompt = PROFESSIONAL_TEMPLATE_PROMPT;
+    } else {
+      throw new Error('Unsupported template type');
+    }
+
+    console.log(`Generating ${templateType} template with Replicate AI...`);
 Your task is to generate a TOTALLY DIFFERENT, highly creative template blueprint every time.
 You MUST avoid repeating previous structures, styles, shapes, or layouts.
 
