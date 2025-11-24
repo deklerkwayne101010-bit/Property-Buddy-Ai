@@ -29,6 +29,7 @@ export default function BuyerPackMakerPage() {
   const [scrapedData, setScrapedData] = useState<PropertyData[]>([]);
   const [error, setError] = useState('');
   const [creditsRemaining, setCreditsRemaining] = useState<number | null>(null);
+  const [singleUrl, setSingleUrl] = useState('');
 
   // Load credits on component mount
   useEffect(() => {
@@ -54,6 +55,28 @@ export default function BuyerPackMakerPage() {
     } catch (error) {
       console.error('Error loading credits:', error);
     }
+  };
+
+  // Helper function to get URL count
+  const getUrlCount = () => {
+    return propertyUrls.split('\n').filter(url => url.trim()).length;
+  };
+
+  // Helper function to add a single URL
+  const addUrl = () => {
+    if (!singleUrl.trim()) return;
+
+    const currentUrls = propertyUrls.trim();
+    const newUrls = currentUrls ? `${currentUrls}\n${singleUrl.trim()}` : singleUrl.trim();
+    setPropertyUrls(newUrls);
+    setSingleUrl('');
+  };
+
+  // Helper function to remove a URL by index
+  const removeUrl = (indexToRemove: number) => {
+    const urls = propertyUrls.split('\n').filter(url => url.trim());
+    urls.splice(indexToRemove, 1);
+    setPropertyUrls(urls.join('\n'));
   };
 
   const handleScrapeProperties = async () => {
@@ -717,64 +740,170 @@ export default function BuyerPackMakerPage() {
 
           {/* Input Section */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Property URLs</h2>
-            <div className="space-y-4">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Add Multiple Properties</h2>
+                <p className="text-gray-600">Create a professional buyer pack with multiple properties for your viewing</p>
+              </div>
+              {getUrlCount() > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
+                  <div className="text-sm text-blue-700 font-medium">
+                    {getUrlCount()} {getUrlCount() === 1 ? 'Property' : 'Properties'} Added
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Add Section */}
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Quick Add Property</h3>
+              <div className="flex gap-3">
+                <input
+                  type="url"
+                  value={singleUrl}
+                  onChange={(e) => setSingleUrl(e.target.value)}
+                  placeholder="Paste Property24 URL here..."
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  onKeyPress={(e) => e.key === 'Enter' && addUrl()}
+                />
+                <button
+                  onClick={addUrl}
+                  disabled={!singleUrl.trim()}
+                  className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Property
+                </button>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                Tip: Copy the URL from any Property24 listing page
+              </p>
+            </div>
+
+            {/* Bulk Add Section */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Bulk Add Properties</h3>
               <div>
                 <label htmlFor="property-urls" className="block text-sm font-medium text-gray-700 mb-2">
-                  Enter Property24 URLs (one per line)
+                  Or paste multiple Property24 URLs (one per line)
                 </label>
                 <textarea
                   id="property-urls"
-                  rows={6}
+                  rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="https://www.property24.com/for-sale/durban/kwazulu-natal/123&#10;https://www.property24.com/for-sale/cape-town/western-cape/456"
+                  placeholder="https://www.property24.com/for-sale/durban/kwazulu-natal/123
+https://www.property24.com/for-sale/cape-town/western-cape/456
+https://www.property24.com/for-sale/johannesburg/gauteng/789"
                   value={propertyUrls}
                   onChange={(e) => setPropertyUrls(e.target.value)}
                 />
               </div>
+            </div>
 
-              {error && (
-                <div className="text-red-600 text-sm">{error}</div>
-              )}
+            {/* URL List Preview */}
+            {getUrlCount() > 0 && (
+              <div className="mb-6">
+                <h4 className="text-md font-semibold text-gray-900 mb-3">Properties to Process:</h4>
+                <div className="bg-gray-50 rounded-lg p-4 max-h-40 overflow-y-auto">
+                  {propertyUrls.split('\n').filter(url => url.trim()).map((url, index) => (
+                    <div key={index} className="flex items-center justify-between py-1">
+                      <span className="text-sm text-gray-700 truncate flex-1 mr-3">{url}</span>
+                      <button
+                        onClick={() => removeUrl(index)}
+                        className="text-red-500 hover:text-red-700 p-1"
+                        title="Remove this property"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-              <div className="flex space-x-4">
-                <button
-                  onClick={handleScrapeProperties}
-                  disabled={isProcessing}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-6 rounded-md transition-colors duration-200"
-                >
-                  {isProcessing ? 'Scraping...' : 'Scrape Properties'}
-                </button>
+            {error && (
+              <div className="text-red-600 text-sm mb-4 p-3 bg-red-50 border border-red-200 rounded-md">{error}</div>
+            )}
 
-                {scrapedData.length > 0 && (
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={handleScrapeProperties}
+                disabled={isProcessing || getUrlCount() === 0}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-3 px-6 rounded-md transition-colors duration-200 flex items-center gap-2"
+              >
+                {isProcessing ? (
                   <>
-                    <button
-                      onClick={handleGeneratePDF}
-                      disabled={isProcessing}
-                      className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium py-2 px-6 rounded-md transition-colors duration-200"
-                    >
-                      {isProcessing ? 'Generating...' : 'Generate PDF'}
-                    </button>
-
-                    <button
-                      onClick={handleGenerateEditableHTML}
-                      disabled={isProcessing}
-                      className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-medium py-2 px-6 rounded-md transition-colors duration-200"
-                    >
-                      {isProcessing ? 'Generating...' : 'Generate Editable Pack'}
-                    </button>
+                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Scraping {getUrlCount()} Properties...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Scrape {getUrlCount()} {getUrlCount() === 1 ? 'Property' : 'Properties'}
                   </>
                 )}
-              </div>
+              </button>
 
-              {isProcessing && (
+              {scrapedData.length > 0 && (
+                <>
+                  <button
+                    onClick={handleGeneratePDF}
+                    disabled={isProcessing}
+                    className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-3 px-6 rounded-md transition-colors duration-200 flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {isProcessing ? 'Generating PDF...' : 'Generate PDF Pack'}
+                  </button>
+
+                  <button
+                    onClick={handleGenerateEditableHTML}
+                    disabled={isProcessing}
+                    className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-medium py-3 px-6 rounded-md transition-colors duration-200 flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    {isProcessing ? 'Generating Editable Pack...' : 'Generate Editable Pack'}
+                  </button>
+                </>
+              )}
+            </div>
+
+            {isProcessing && (
+              <div className="mt-4">
+                <div className="flex justify-between text-sm text-gray-600 mb-2">
+                  <span>Processing properties...</span>
+                  <span>{Math.round(progress)}% complete</span>
+                </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${progress}%` }}
                   ></div>
                 </div>
-              )}
+              </div>
+            )}
+
+            {/* Help Text */}
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="text-sm font-semibold text-blue-900 mb-2">How to add properties:</h4>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• Use the "Quick Add" field to add one property at a time</li>
+                <li>• Or paste multiple URLs in the bulk textarea (one per line)</li>
+                <li>• Each property will become a separate page in your buyer pack</li>
+                <li>• Maximum 10 properties per pack for optimal performance</li>
+              </ul>
             </div>
           </div>
 
