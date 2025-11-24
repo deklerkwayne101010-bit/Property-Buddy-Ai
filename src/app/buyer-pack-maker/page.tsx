@@ -147,9 +147,11 @@ export default function BuyerPackMakerPage() {
           });
         }
 
-        // Add a small delay between requests to be respectful to the target website
+        // Add a longer random delay between requests to avoid detection (3-8 seconds)
         if (i < urls.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+          const delay = Math.random() * 5000 + 3000; // 3-8 seconds
+          console.log(`Waiting ${Math.round(delay/1000)} seconds before next property...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
 

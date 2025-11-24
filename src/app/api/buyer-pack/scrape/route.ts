@@ -46,15 +46,71 @@ export async function POST(request: NextRequest) {
 
     console.log('Starting AI-powered property data extraction for:', url);
 
-    // Fetch the webpage content
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
-    });
+    // Rotate user agents to avoid detection
+    const userAgents = [
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    ];
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch property page: ${response.status}`);
+    const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
+
+    // Add realistic headers to avoid detection
+    const headers = {
+      'User-Agent': randomUserAgent,
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      'Accept-Language': 'en-US,en;q=0.9,af;q=0.8',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'DNT': '1',
+      'Connection': 'keep-alive',
+      'Upgrade-Insecure-Requests': '1',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
+      'Cache-Control': 'max-age=0'
+    };
+
+    // Add a random delay to simulate human behavior (2-5 seconds)
+    const delay = Math.random() * 3000 + 2000; // 2-5 seconds
+    await new Promise(resolve => setTimeout(resolve, delay));
+
+    console.log(`Fetching with User-Agent: ${randomUserAgent.substring(0, 50)}...`);
+
+    // Fetch the webpage content with retry logic
+    let response: Response | undefined;
+    let retries = 3;
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        response = await fetch(url, {
+          headers,
+          // Add timeout
+          signal: AbortSignal.timeout(30000) // 30 second timeout
+        });
+
+        // If we get a 503, wait longer and retry
+        if (response.status === 503 && attempt < retries) {
+          console.log(`Attempt ${attempt} failed with 503, retrying in ${attempt * 5} seconds...`);
+          await new Promise(resolve => setTimeout(resolve, attempt * 5000));
+          continue;
+        }
+
+        break; // Success or non-503 error
+
+      } catch (fetchError) {
+        if (attempt === retries) {
+          throw fetchError;
+        }
+        console.log(`Attempt ${attempt} failed, retrying in ${attempt * 2} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw new Error(`Failed to fetch property page: ${response?.status || 'unknown'}`);
     }
 
     const html = await response.text();
