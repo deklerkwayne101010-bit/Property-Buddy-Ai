@@ -32,7 +32,6 @@ export default function AIPlayground() {
   const [selectedReferenceImages, setSelectedReferenceImages] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [creditsRemaining, setCreditsRemaining] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'generate' | 'assets'>('generate');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load uploaded images and generated images on component mount
@@ -195,10 +194,11 @@ export default function AIPlayground() {
     setSelectedReferenceImages(prev => {
       if (prev.includes(imageUrl)) {
         return prev.filter(url => url !== imageUrl);
-      } else if (prev.length < 4) {
+      } else if (prev.length < 14) {
         return [...prev, imageUrl];
       } else {
-        return [prev[1], prev[2], prev[3], imageUrl];
+        // Replace the last image if at limit
+        return [...prev.slice(0, 13), imageUrl];
       }
     });
   };
@@ -393,39 +393,10 @@ export default function AIPlayground() {
         </section>
 
         <div className="container mx-auto px-4 py-8 max-w-7xl">
-          {/* Tab Navigation */}
-          <div className="max-w-5xl mx-auto mb-8">
-            <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-              <div className="flex border-b border-slate-200">
-                <button
-                  onClick={() => setActiveTab('generate')}
-                  className={`flex-1 px-6 py-4 text-center font-medium transition-all duration-200 ${
-                    activeTab === 'generate'
-                      ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-500'
-                      : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50'
-                  }`}
-                >
-                  🎨 Generate Images
-                </button>
-                <button
-                  onClick={() => setActiveTab('assets')}
-                  className={`flex-1 px-6 py-4 text-center font-medium transition-all duration-200 ${
-                    activeTab === 'assets'
-                      ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-500'
-                      : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50'
-                  }`}
-                >
-                  📁 My Assets
-                </button>
-              </div>
-            </div>
-          </div>
+          <div className="grid gap-8 lg:gap-12 max-w-7xl mx-auto lg:grid-cols-3">
 
-          <div className="grid gap-8 lg:gap-12 max-w-5xl mx-auto">
-
-            {/* Generate Tab Content */}
-            {activeTab === 'generate' && (
-              <>
+            {/* Main Content - Left Side */}
+            <div className="lg:col-span-2 space-y-8">
                 {/* Reference Images Upload Section */}
                 <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
               <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
@@ -465,7 +436,7 @@ export default function AIPlayground() {
                     </div>
                     <div>
                       <p className="text-lg font-medium text-slate-800 mb-1">Drop reference images here</p>
-                      <p className="text-sm text-slate-600">or click to browse files (max 4 images)</p>
+                      <p className="text-sm text-slate-600">or click to browse files (up to 14 total)</p>
                     </div>
                     <div className="flex items-center justify-center space-x-2">
                       <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-md">JPEG</span>
@@ -491,7 +462,7 @@ export default function AIPlayground() {
                       <p className="text-sm text-slate-600 mt-0.5">Select images to use as reference for AI generation</p>
                     </div>
                     <div className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
-                      {selectedReferenceImages.length}/4 selected
+                      {selectedReferenceImages.length}/14 selected
                     </div>
                   </div>
                 </div>
@@ -691,31 +662,115 @@ export default function AIPlayground() {
                     </div>
                   </div>
                 )}
-              </>
-            )}
+            </div>
 
-            {/* Assets Tab Content */}
-            {activeTab === 'assets' && (
-              <div className="space-y-8">
-                {/* Upload Assets Section */}
+            {/* Assets Sidebar - Right Side */}
+            <div className="lg:col-span-1">
+              <div className="sticky top-8 space-y-6">
+                {/* Assets Widget */}
                 <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-                  <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
+                  <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <h2 className="text-lg font-semibold text-slate-800 flex items-center">
-                          <svg className="w-5 h-5 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                          </svg>
-                          Upload Assets
-                        </h2>
-                        <p className="text-sm text-slate-600 mt-0.5">Add images to your personal asset library for quick reference</p>
-                      </div>
+                      <h3 className="text-sm font-semibold text-slate-800 flex items-center">
+                        <svg className="w-4 h-4 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        My Assets
+                      </h3>
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                        {uploadedImages.length}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="p-6">
+                  <div className="p-4">
+                    {uploadedImages.length > 0 ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-2">
+                          {uploadedImages.slice(0, 6).map((image) => (
+                            <div
+                              key={image.id}
+                              className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                                selectedReferenceImages.includes(image.url)
+                                  ? 'border-purple-500 shadow-md shadow-purple-500/30'
+                                  : 'border-slate-200 hover:border-slate-300'
+                              }`}
+                              onClick={() => toggleReferenceImage(image.url)}
+                            >
+                              <div className="aspect-square">
+                                <img
+                                  src={image.url}
+                                  alt={image.filename}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+
+                              {selectedReferenceImages.includes(image.url) && (
+                                <div className="absolute top-1 right-1 bg-purple-500 text-white rounded-full p-0.5">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        {uploadedImages.length > 6 && (
+                          <p className="text-xs text-slate-500 text-center">
+                            +{uploadedImages.length - 6} more assets
+                          </p>
+                        )}
+
+                        {selectedReferenceImages.length > 0 && (
+                          <div className="mt-3 p-2 bg-purple-50 border border-purple-200 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-purple-800">
+                                {selectedReferenceImages.length} selected
+                              </span>
+                              <button
+                                onClick={() => setSelectedReferenceImages([])}
+                                className="text-xs text-purple-600 hover:text-purple-800 font-medium"
+                              >
+                                Clear
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <div className="w-8 h-8 mx-auto bg-slate-100 rounded-lg flex items-center justify-center mb-2">
+                          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                          </svg>
+                        </div>
+                        <p className="text-xs text-slate-500 mb-3">No assets yet</p>
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded font-medium transition-colors duration-200"
+                        >
+                          Add Assets
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick Upload Widget */}
+                <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+                  <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
+                    <h3 className="text-sm font-semibold text-slate-800 flex items-center">
+                      <svg className="w-4 h-4 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      Quick Upload
+                    </h3>
+                  </div>
+
+                  <div className="p-4">
                     <div
-                      className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center cursor-pointer transition-all duration-200 hover:border-purple-400 hover:bg-purple-50/30"
+                      className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center cursor-pointer transition-all duration-200 hover:border-purple-400 hover:bg-purple-50/30"
                       onDragOver={handleDragOver}
                       onDrop={handleDrop}
                       onClick={() => fileInputRef.current?.click()}
@@ -728,131 +783,20 @@ export default function AIPlayground() {
                         className="hidden"
                       />
 
-                      <div className="space-y-4">
-                        <div className="w-12 h-12 mx-auto bg-slate-100 rounded-lg flex items-center justify-center">
-                          <svg className="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      <div className="space-y-2">
+                        <div className="w-6 h-6 mx-auto bg-slate-100 rounded flex items-center justify-center">
+                          <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                           </svg>
                         </div>
-                        <div>
-                          <p className="text-lg font-medium text-slate-800 mb-1">Drop assets here</p>
-                          <p className="text-sm text-slate-600">or click to browse files</p>
-                        </div>
-                        <div className="flex items-center justify-center space-x-2">
-                          <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-md">JPEG</span>
-                          <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-md">PNG</span>
-                        </div>
+                        <p className="text-xs font-medium text-slate-800">Add to Assets</p>
+                        <p className="text-xs text-slate-600">JPEG or PNG</p>
                       </div>
                     </div>
                   </div>
                 </div>
-
-                {/* Assets Gallery */}
-                {uploadedImages.length > 0 && (
-                  <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-                    <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h2 className="text-lg font-semibold text-slate-800 flex items-center">
-                            <svg className="w-5 h-5 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                            </svg>
-                            Your Assets Library
-                          </h2>
-                          <p className="text-sm text-slate-600 mt-0.5">Manage your uploaded reference images</p>
-                        </div>
-                        <div className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
-                          {uploadedImages.length} assets
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-6">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                        {uploadedImages.map((image) => (
-                          <div
-                            key={image.id}
-                            className="relative group bg-slate-50 rounded-xl overflow-hidden border border-slate-200 hover:border-purple-300 transition-all duration-200 hover:scale-105"
-                          >
-                            <div className="aspect-square">
-                              <img
-                                src={image.url}
-                                alt={image.filename}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                              <div className="flex space-x-2">
-                                <button
-                                  onClick={() => toggleReferenceImage(image.url)}
-                                  className={`px-3 py-1 rounded text-xs font-medium transition-colors duration-200 ${
-                                    selectedReferenceImages.includes(image.url)
-                                      ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                                      : 'bg-white hover:bg-slate-100 text-slate-800'
-                                  }`}
-                                >
-                                  {selectedReferenceImages.includes(image.url) ? 'Selected' : 'Select'}
-                                </button>
-                                <button
-                                  onClick={() => deleteImage(image)}
-                                  className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors duration-200"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                              <p className="text-white text-xs truncate">{image.filename}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {selectedReferenceImages.length > 0 && (
-                        <div className="mt-6 p-4 bg-purple-50 border border-purple-200 rounded-xl">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                              </svg>
-                              <span className="text-sm font-medium text-purple-800">
-                                {selectedReferenceImages.length} asset{selectedReferenceImages.length > 1 ? 's' : ''} selected for generation
-                              </span>
-                            </div>
-                            <button
-                              onClick={() => setSelectedReferenceImages([])}
-                              className="text-xs text-purple-600 hover:text-purple-800 font-medium"
-                            >
-                              Clear selection
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {uploadedImages.length === 0 && (
-                  <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-12 text-center">
-                    <div className="w-16 h-16 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                      <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-semibold text-slate-800 mb-2">No assets yet</h3>
-                    <p className="text-slate-600 mb-6">Upload some images to build your personal asset library</p>
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200"
-                    >
-                      Upload Your First Asset
-                    </button>
-                  </div>
-                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       </motion.div>

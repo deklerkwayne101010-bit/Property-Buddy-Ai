@@ -24,6 +24,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Insufficient credits. AI Playground requires 5 credits per generation.' }, { status: 400 });
     }
 
+    // Validate total images (up to 14 supported by Nano Banana Pro)
+    if (imageUrls && imageUrls.length > 14) {
+      return NextResponse.json({ error: 'Too many reference images. Maximum 14 images allowed.' }, { status: 400 });
+    }
+
     // Prepare Replicate API request
     const replicatePayload = {
       input: {
