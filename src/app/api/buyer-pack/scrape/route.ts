@@ -118,7 +118,7 @@ async function extractPropertyDataWithReplicate(html: string): Promise<ScrapedPr
   "bathrooms": number (0 if not found),
   "parking": number (0 if not found),
   "size": "Size in m² or sqm (empty string if not found)",
-  "description": "Property description text",
+  "description": "SHORT property description (max 5-8 lines, summarize the key features concisely)",
   "images": ["array", "of", "image", "URLs", "max", "10"]
 }
 
@@ -130,7 +130,7 @@ EXTRACTION INSTRUCTIONS:
 5. BATHROOMS: Search for bathroom count, often shown as "X bathroom" or "X bath"
 6. PARKING: Search for parking spaces, often shown as "X parking" or "garage"
 7. SIZE: Look for area/size in square meters, often shown as "X m²" or "X sqm"
-8. DESCRIPTION: Find the main property description text, usually in longer paragraphs
+8. DESCRIPTION: Find the main property description and SUMMARIZE it to be SHORT AND SWEET (maximum 5-8 lines). Focus on key features, highlights, and selling points. Remove redundant information and make it concise for buyer packs.
 9. IMAGES: Extract image URLs from img src attributes, prefer high-quality images
 
 IMPORTANT RULES:
@@ -140,6 +140,7 @@ IMPORTANT RULES:
 - Return valid JSON only, no additional text or explanations
 - If a field is not found, use appropriate default values (0 for numbers, empty string for text, empty array for images)
 - Make sure numbers are actual numbers, not strings
+- DESCRIPTION must be CONCISE - summarize long descriptions into 5-8 lines maximum
 - Limit images array to maximum 10 URLs
 - Ensure all image URLs are complete and valid
 

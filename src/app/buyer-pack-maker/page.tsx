@@ -664,7 +664,7 @@ export default function BuyerPackMakerPage() {
         </div>
 
         <div class="header">
-          <div class="logo">RE/MAX</div>
+          <img src="https://nvifcvqzxqhlrtvekbvq.supabase.co/storage/v1/object/public/images/re-max-2025-logo-png_seeklogo-619513.png" alt="RE/MAX Logo" class="logo" />
           <div class="subtitle">Property Buyer Pack</div>
         </div>
 
