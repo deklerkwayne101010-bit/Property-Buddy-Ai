@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import DashboardLayout from '../../components/DashboardLayout';
 import ProtectedRoute from '../../components/ProtectedRoute';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 interface PropertyData {
   title: string;
@@ -19,11 +22,39 @@ interface PropertyData {
 }
 
 export default function BuyerPackMakerPage() {
+  const { user } = useAuth();
   const [propertyUrls, setPropertyUrls] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [scrapedData, setScrapedData] = useState<PropertyData[]>([]);
   const [error, setError] = useState('');
+  const [creditsRemaining, setCreditsRemaining] = useState<number | null>(null);
+
+  // Load credits on component mount
+  useEffect(() => {
+    loadCredits();
+  }, []);
+
+  const loadCredits = async () => {
+    if (!user) return;
+
+    try {
+      const { data: credits, error } = await supabase
+        .from('profiles')
+        .select('credits_balance')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error loading credits:', error);
+        return;
+      }
+
+      setCreditsRemaining(credits?.credits_balance || 0);
+    } catch (error) {
+      console.error('Error loading credits:', error);
+    }
+  };
 
   const handleScrapeProperties = async () => {
     if (!propertyUrls.trim()) {
@@ -654,12 +685,48 @@ export default function BuyerPackMakerPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Buyer Pack Maker</h1>
-            <p className="text-gray-600">Create professional property buyer packs by scraping Property24 listings and generating editable HTML documents that can be printed or saved as PDF.</p>
-          </div>
+        <motion.div
+          className="bg-gradient-to-br from-slate-50 via-white to-blue-50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8 }}
+        >
+          {/* Compact Hero Section */}
+          <section className="relative bg-gradient-to-br from-slate-50 via-white to-blue-50 border-b border-slate-200">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl mb-6 shadow-lg">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+
+                <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3">
+                  Viewing Pack Maker
+                </h1>
+
+                <p className="text-lg text-slate-600 mb-6 max-w-2xl mx-auto">
+                  Create professional property viewing packs by scraping Property24 listings and generating PDF documents. Perfect for real estate agents preparing for property showings.
+                </p>
+
+                {/* Credits Badge */}
+                <div className="inline-flex items-center bg-green-50 border border-green-200 rounded-full px-3 py-1.5 mb-6">
+                  <span className="text-green-700 text-sm font-medium">
+                    {creditsRemaining !== null ? `${creditsRemaining} Credits Remaining` : 'Loading credits...'}
+                  </span>
+                </div>
+
+                {/* Cost Information */}
+                <div className="inline-flex items-center bg-orange-50 border border-orange-200 rounded-full px-3 py-1.5 mb-6">
+                  <span className="text-orange-700 text-sm font-medium">
+                    1 Credit per PDF generation
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div className="container mx-auto px-4 py-8 max-w-7xl">
 
           {/* Input Section */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
@@ -763,7 +830,8 @@ export default function BuyerPackMakerPage() {
               </div>
             </div>
           )}
-        </div>
+          </div>
+        </motion.div>
       </DashboardLayout>
     </ProtectedRoute>
   );

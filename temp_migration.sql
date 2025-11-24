@@ -1,1 +1,0 @@
-"ALTER TABLE user_media DROP CONSTRAINT IF EXISTS user_media_media_type_check; ALTER TABLE user_media ADD CONSTRAINT user_media_media_type_check CHECK (media_type IN ('image', 'voice', 'voice_clone', 'avatar_video', 'reference_image', 'asset_image'));" 
