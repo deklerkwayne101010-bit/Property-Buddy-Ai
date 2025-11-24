@@ -123,9 +123,12 @@ export async function POST(request: NextRequest) {
     // Use Replicate to extract property data from HTML
     const replicateApiKey = process.env.REPLICATE_API_TOKEN;
     if (!replicateApiKey) {
-      console.warn('Replicate API token not found, falling back to mock data');
+      console.warn('Replicate API token not found, falling back to mock data. Please add REPLICATE_API_TOKEN to your .env.local file.');
+      console.warn('Get your API token from: https://replicate.com/account/api-tokens');
       return getMockData();
     }
+
+    console.log('Replicate API token found, proceeding with AI extraction...');
 
     const extractedData = await extractPropertyDataWithReplicate(html);
 
