@@ -36,6 +36,14 @@ export interface CanvasElement {
   shapeType?: ShapeType;
   opacity?: number;
   borderRadius?: number;
+
+  // Image cropping
+  cropX?: number;
+  cropY?: number;
+  cropWidth?: number;
+  cropHeight?: number;
+  originalWidth?: number; // Original image dimensions
+  originalHeight?: number;
 }
 
 export interface DragState {

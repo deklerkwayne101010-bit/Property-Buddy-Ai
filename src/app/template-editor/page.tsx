@@ -21,6 +21,7 @@ const TemplateEditorPage: React.FC = () => {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [fileName, setFileName] = useState('Untitled Design');
   const [zoom, setZoom] = useState(1);
+  const [cropMode, setCropMode] = useState(false);
 
   // Undo/Redo Logic
   const addToHistory = useCallback((newElements: CanvasElement[]) => {
@@ -164,17 +165,17 @@ const TemplateEditorPage: React.FC = () => {
         throw new Error('Unable to create canvas context');
       }
 
-      // Set canvas size (higher resolution for better quality)
+      // Set canvas size to Facebook optimal dimensions (higher resolution for better quality)
       const scale = 2; // 2x scale for high quality
-      exportCanvas.width = 800 * scale;
-      exportCanvas.height = 600 * scale;
+      exportCanvas.width = 1200 * scale;
+      exportCanvas.height = 630 * scale;
 
       // Scale context for high DPI
       ctx.scale(scale, scale);
 
       // Fill white background
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 800, 600);
+      ctx.fillRect(0, 0, 1200, 630);
 
       // Sort elements by z-index for proper layering
       const sortedElements = [...elements].sort((a, b) => a.zIndex - b.zIndex);
@@ -196,22 +197,59 @@ const TemplateEditorPage: React.FC = () => {
           // Render text element
           if (!element.content) continue;
 
-          ctx.font = `${element.fontStyle || 'normal'} ${element.fontWeight || 'normal'} ${element.fontSize || 16}px ${element.fontFamily || 'Arial, sans-serif'}`;
+          // Calculate optimal font size to fit text within the box
+          const text = element.content;
+          const maxWidth = element.width - 20; // Padding
+          const maxHeight = element.height - 20; // Padding
+          const lines = text.split('\n');
+
+          // Start with a reasonable font size and scale down if needed
+          let fontSize = Math.min(element.fontSize || 32, maxHeight / lines.length * 0.8);
+
+          // Binary search for optimal font size
+          let minSize = 8;
+          let maxSize = fontSize * 2;
+
+          while (maxSize - minSize > 1) {
+            const testSize = (minSize + maxSize) / 2;
+            ctx.font = `${element.fontStyle || 'normal'} ${element.fontWeight || 'normal'} ${testSize}px ${element.fontFamily || 'Arial, sans-serif'}`;
+
+            let totalHeight = 0;
+            let fitsWidth = true;
+
+            for (const line of lines) {
+              const metrics = ctx.measureText(line);
+              if (metrics.width > maxWidth) {
+                fitsWidth = false;
+                break;
+              }
+              totalHeight += testSize * 1.2; // Line height
+            }
+
+            if (fitsWidth && totalHeight <= maxHeight) {
+              minSize = testSize;
+            } else {
+              maxSize = testSize;
+            }
+          }
+
+          // Use the optimal font size
+          const optimalFontSize = Math.floor(minSize);
+          ctx.font = `${element.fontStyle || 'normal'} ${element.fontWeight || 'normal'} ${optimalFontSize}px ${element.fontFamily || 'Arial, sans-serif'}`;
           ctx.fillStyle = element.color || '#000000';
           ctx.textAlign = (element.textAlign as CanvasTextAlign) || 'left';
 
-          // Handle text wrapping and positioning
-          const lines = element.content.split('\n');
-          const lineHeight = element.fontSize || 16;
-          let y = 0;
+          // Render text with calculated font size
+          const lineHeight = optimalFontSize * 1.2;
+          let y = 10; // Top padding
 
           for (const line of lines) {
             if (element.textAlign === 'center') {
               ctx.fillText(line, element.width / 2, y);
             } else if (element.textAlign === 'right') {
-              ctx.fillText(line, element.width, y);
+              ctx.fillText(line, element.width - 10, y);
             } else {
-              ctx.fillText(line, 0, y);
+              ctx.fillText(line, 10, y);
             }
             y += lineHeight;
           }
@@ -237,8 +275,24 @@ const TemplateEditorPage: React.FC = () => {
               ctx.clip();
             }
 
-            // Draw the image
-            ctx.drawImage(img, 0, 0, element.width, element.height);
+            // Handle cropping if crop properties are set
+            if (element.cropX !== undefined && element.cropY !== undefined &&
+                element.cropWidth !== undefined && element.cropHeight !== undefined) {
+              // Draw the cropped portion of the image
+              const sourceX = element.cropX;
+              const sourceY = element.cropY;
+              const sourceWidth = element.cropWidth;
+              const sourceHeight = element.cropHeight;
+
+              ctx.drawImage(
+                img,
+                sourceX, sourceY, sourceWidth, sourceHeight, // Source rectangle
+                0, 0, element.width, element.height // Destination rectangle
+              );
+            } else {
+              // Draw the full image
+              ctx.drawImage(img, 0, 0, element.width, element.height);
+            }
 
             if (element.borderRadius && element.borderRadius > 0) {
               ctx.restore();
@@ -350,6 +404,9 @@ const TemplateEditorPage: React.FC = () => {
 
   const selectedElement = elements.find(el => el.id === selectedId) || null;
 
+  const handleToggleCropMode = () => {
+    setCropMode(prev => !prev);
+  };
 
   return (
     <ProtectedRoute>
@@ -372,6 +429,8 @@ const TemplateEditorPage: React.FC = () => {
             elements={elements}
             onUpdateElement={updateElement}
             onAddElement={addElement}
+            cropMode={cropMode}
+            onToggleCropMode={handleToggleCropMode}
           />
 
           <div className="flex flex-1 overflow-hidden relative">
@@ -394,6 +453,7 @@ const TemplateEditorPage: React.FC = () => {
                 onDelete={deleteElement}
                 onDuplicate={duplicateElement}
                 zoom={zoom}
+                cropMode={cropMode}
               />
             </div>
 

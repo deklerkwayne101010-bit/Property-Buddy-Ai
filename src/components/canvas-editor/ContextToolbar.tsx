@@ -12,13 +12,17 @@ interface ContextToolbarProps {
    elements: CanvasElement[];
    onUpdateElement: (id: string, updates: Partial<CanvasElement>) => void;
    onAddElement: (type: ElementType, payload?: Partial<CanvasElement>) => void;
+   cropMode?: boolean;
+   onToggleCropMode?: () => void;
 }
 
 const ContextToolbar: React.FC<ContextToolbarProps> = ({
    selectedElement,
    elements,
    onUpdateElement,
-   onAddElement
+   onAddElement,
+   cropMode = false,
+   onToggleCropMode
 }) => {
 
 
@@ -201,6 +205,24 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({
                     className="w-24 accent-purple-600"
                  />
                </div>
+
+               <div className="h-6 w-px bg-gray-300"></div>
+
+               <button
+                 onClick={onToggleCropMode}
+                 className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition ${
+                   cropMode
+                     ? 'bg-blue-600 text-white shadow-md'
+                     : 'bg-blue-500 hover:bg-blue-600 text-white'
+                 }`}
+                 title="Crop image"
+               >
+                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" />
+                 </svg>
+                 <span>{cropMode ? 'Exit Crop' : 'Crop'}</span>
+               </button>
 
                <div className="h-6 w-px bg-gray-300"></div>
 

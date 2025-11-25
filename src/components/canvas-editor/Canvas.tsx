@@ -17,6 +17,7 @@ interface CanvasProps {
    onDelete: (id: string) => void;
    onDuplicate?: (id: string) => void;
    zoom: number;
+   cropMode?: boolean;
 }
 
 const Canvas: React.FC<CanvasProps> = ({
@@ -26,7 +27,8 @@ const Canvas: React.FC<CanvasProps> = ({
    onUpdateElement,
    onDelete,
    onDuplicate,
-   zoom
+   zoom,
+   cropMode = false
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   
@@ -35,6 +37,11 @@ const Canvas: React.FC<CanvasProps> = ({
   const [resizeState, setResizeState] = useState<ResizeState | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, id: string } | null>(null);
+
+  // Cropping State
+  const [cropRect, setCropRect] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
+  const [isCropping, setIsCropping] = useState(false);
+  const [cropStart, setCropStart] = useState<{ x: number, y: number } | null>(null);
 
 
   // Close context menu on global click
@@ -229,6 +236,75 @@ const Canvas: React.FC<CanvasProps> = ({
       }
   };
 
+  // Cropping Handlers
+  const handleCanvasMouseDown = (e: React.MouseEvent) => {
+      if (!cropMode || !selectedId) return;
+
+      const selectedElement = elements.find(el => el.id === selectedId);
+      if (!selectedElement || selectedElement.type !== ElementType.IMAGE) return;
+
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const x = (e.clientX - rect.left) / zoom;
+      const y = (e.clientY - rect.top) / zoom;
+
+      // Check if click is within the selected image bounds
+      if (x >= selectedElement.x && x <= selectedElement.x + selectedElement.width &&
+          y >= selectedElement.y && y <= selectedElement.y + selectedElement.height) {
+
+          setIsCropping(true);
+          setCropStart({ x, y });
+          setCropRect({ x, y, width: 0, height: 0 });
+      }
+  };
+
+  const handleCanvasMouseMove = (e: React.MouseEvent) => {
+      if (!isCropping || !cropStart) return;
+
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const x = (e.clientX - rect.left) / zoom;
+      const y = (e.clientY - rect.top) / zoom;
+
+      const width = x - cropStart.x;
+      const height = y - cropStart.y;
+
+      setCropRect({
+          x: Math.min(cropStart.x, x),
+          y: Math.min(cropStart.y, y),
+          width: Math.abs(width),
+          height: Math.abs(height)
+      });
+  };
+
+  const handleCanvasMouseUp = () => {
+      if (!isCropping || !cropRect || !selectedId) return;
+
+      const selectedElement = elements.find(el => el.id === selectedId);
+      if (!selectedElement) return;
+
+      // Convert crop rectangle to image-relative coordinates
+      const cropX = (cropRect.x - selectedElement.x) / selectedElement.width * (selectedElement.originalWidth || selectedElement.width);
+      const cropY = (cropRect.y - selectedElement.y) / selectedElement.height * (selectedElement.originalHeight || selectedElement.height);
+      const cropWidth = cropRect.width / selectedElement.width * (selectedElement.originalWidth || selectedElement.width);
+      const cropHeight = cropRect.height / selectedElement.height * (selectedElement.originalHeight || selectedElement.height);
+
+      // Apply cropping
+      onUpdateElement(selectedId, {
+          cropX: Math.max(0, cropX),
+          cropY: Math.max(0, cropY),
+          cropWidth: Math.max(1, cropWidth),
+          cropHeight: Math.max(1, cropHeight)
+      });
+
+      // Reset cropping state
+      setIsCropping(false);
+      setCropStart(null);
+      setCropRect(null);
+  };
+
 
   return (
     <>
@@ -236,16 +312,22 @@ const Canvas: React.FC<CanvasProps> = ({
             ref={canvasRef}
             className="canvas-container relative bg-white shadow-lg overflow-hidden transition-transform transform origin-center"
             style={{
-                width: 800,
-                height: 600,
+                width: 1200,
+                height: 630,
                 transform: `scale(${zoom})`,
                 backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
                 backgroundSize: '20px 20px'
             }}
-            onMouseDown={() => {
-                onSelect(null);
-                setEditingId(null);
+            onMouseDown={(e) => {
+                if (cropMode) {
+                    handleCanvasMouseDown(e);
+                } else {
+                    onSelect(null);
+                    setEditingId(null);
+                }
             }}
+            onMouseMove={handleCanvasMouseMove}
+            onMouseUp={handleCanvasMouseUp}
             onDragOver={(e) => e.preventDefault()}
             onContextMenu={(e) => e.preventDefault()} // Disable default context menu on canvas bg
         >
@@ -320,12 +402,18 @@ const Canvas: React.FC<CanvasProps> = ({
                         )}
 
                         {el.type === ElementType.IMAGE && (
-                            <img 
-                                src={el.src} 
-                                alt="element" 
-                                className="w-full h-full object-cover pointer-events-none"
-                                style={{ borderRadius: el.borderRadius }}
-                            />
+                            <div className="w-full h-full relative overflow-hidden" style={{ borderRadius: el.borderRadius }}>
+                                <img
+                                    src={el.src}
+                                    alt="element"
+                                    className="w-full h-full object-cover pointer-events-none"
+                                    style={{
+                                        borderRadius: el.borderRadius,
+                                        transform: (el.cropX !== undefined && el.cropY !== undefined) ? `translate(${-el.cropX}px, ${-el.cropY}px)` : undefined,
+                                        transformOrigin: 'top left'
+                                    }}
+                                />
+                            </div>
                         )}
 
                         {/* Selection UI */}
@@ -349,6 +437,44 @@ const Canvas: React.FC<CanvasProps> = ({
                     </div>
                 );
             })}
+
+            {/* Cropping Overlay */}
+            {cropMode && cropRect && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        left: cropRect.x,
+                        top: cropRect.y,
+                        width: cropRect.width,
+                        height: cropRect.height,
+                        border: '2px solid #3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        pointerEvents: 'none',
+                        zIndex: 1000
+                    }}
+                />
+            )}
+
+            {/* Crop Mode Instructions */}
+            {cropMode && selectedId && !isCropping && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: 10,
+                        left: 10,
+                        zIndex: 1000,
+                        backgroundColor: 'rgba(59, 130, 246, 0.9)',
+                        color: 'white',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        pointerEvents: 'none'
+                    }}
+                >
+                    Click and drag on the selected image to crop
+                </div>
+            )}
 
         </div>
 
