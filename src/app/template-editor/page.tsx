@@ -165,17 +165,17 @@ const TemplateEditorPage: React.FC = () => {
         throw new Error('Unable to create canvas context');
       }
 
-      // Set canvas size to Facebook optimal dimensions (higher resolution for better quality)
+      // Set canvas size to Instagram optimal dimensions (higher resolution for better quality)
       const scale = 2; // 2x scale for high quality
-      exportCanvas.width = 1200 * scale;
-      exportCanvas.height = 630 * scale;
+      exportCanvas.width = 1080 * scale;
+      exportCanvas.height = 1080 * scale;
 
       // Scale context for high DPI
       ctx.scale(scale, scale);
 
       // Fill white background
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 1200, 630);
+      ctx.fillRect(0, 0, 1080, 1080);
 
       // Sort elements by z-index for proper layering
       const sortedElements = [...elements].sort((a, b) => a.zIndex - b.zIndex);
