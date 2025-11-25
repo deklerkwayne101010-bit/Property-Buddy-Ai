@@ -162,23 +162,45 @@ const TemplateEditorPage: React.FC = () => {
         border-radius: 8px;
         z-index: 9999;
         font-family: Arial, sans-serif;
+        pointer-events: none;
       `;
       document.body.appendChild(loadingMsg);
+
+      // Temporarily reset zoom for capture
+      const originalTransform = canvasContainer.style.transform;
+      canvasContainer.style.transform = 'scale(1)';
+
+      // Wait for the transform to apply
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Configure html2canvas options for better quality
       const canvas = await html2canvas(canvasContainer, {
         backgroundColor: '#ffffff',
         scale: 2, // Higher resolution
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false, // More secure
         width: 800,
         height: 600,
         x: 0,
-        y: 0
+        y: 0,
+        logging: false, // Disable console logging
+        ignoreElements: (element) => {
+          // Ignore UI elements that shouldn't be in the export
+          return element.classList.contains('absolute') &&
+                 (element.classList.contains('bottom-4') ||
+                  element.classList.contains('z-10') ||
+                  element.classList.contains('border-2') ||
+                  element.classList.contains('border-purple-500'));
+        }
       });
 
+      // Restore original transform
+      canvasContainer.style.transform = originalTransform;
+
       // Remove loading message
-      document.body.removeChild(loadingMsg);
+      if (document.body.contains(loadingMsg)) {
+        document.body.removeChild(loadingMsg);
+      }
 
       // Convert to blob and download
       canvas.toBlob((blob) => {
@@ -191,6 +213,29 @@ const TemplateEditorPage: React.FC = () => {
           link.click();
           document.body.removeChild(link);
           URL.revokeObjectURL(url);
+
+          // Show success message
+          const successMsg = document.createElement('div');
+          successMsg.textContent = 'Image exported successfully!';
+          successMsg.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            z-index: 9999;
+            font-family: Arial, sans-serif;
+            pointer-events: none;
+            animation: fadeOut 3s ease-in-out forwards;
+          `;
+          document.body.appendChild(successMsg);
+          setTimeout(() => {
+            if (document.body.contains(successMsg)) {
+              document.body.removeChild(successMsg);
+            }
+          }, 3000);
         } else {
           alert('Failed to generate image. Please try again.');
         }
@@ -198,7 +243,14 @@ const TemplateEditorPage: React.FC = () => {
 
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Failed to export image. Please try again.');
+
+      // Remove loading message if it exists
+      const loadingMsg = document.querySelector('div[style*="Generating image"]');
+      if (loadingMsg && document.body.contains(loadingMsg)) {
+        document.body.removeChild(loadingMsg);
+      }
+
+      alert(`Failed to export image: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
