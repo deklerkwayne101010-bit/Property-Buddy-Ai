@@ -59,12 +59,26 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({
       try {
           console.log("Starting Magic Grab Text process...");
 
-          // 1. Extract Text Data (Parallel)
-          const textPromise = extractTextFromImage(selectedElement.src);
-          // 2. Remove Text from Image (Parallel)
-          const imagePromise = removeTextFromImage(selectedElement.src);
+          // 1. Extract Text Data via API route
+          const ocrResponse = await fetch('/api/ocr', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                  imageUrl: selectedElement.src,
+              }),
+          });
 
-          const [textData, cleanImage] = await Promise.all([textPromise, imagePromise]);
+          if (!ocrResponse.ok) {
+              const errorData = await ocrResponse.json();
+              throw new Error(errorData.error || `HTTP ${ocrResponse.status}`);
+          }
+
+          const { textData } = await ocrResponse.json();
+
+          // 2. Remove Text from Image (Parallel)
+          const cleanImage = await removeTextFromImage(selectedElement.src);
 
           console.log("Magic Grab results:", { textData, cleanImage });
 
@@ -75,8 +89,9 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({
 
           // 4. Create new Text Elements
           if (textData && textData.length > 0) {
-              textData.forEach(item => {
-                  const [ymin, xmin, ymax, xmax] = item.box_2d;
+              textData.forEach((item: any) => {
+                  // Convert from API format [x1,y1,x2,y2] to our format [ymin,xmin,ymax,xmax]
+                  const [xmin, ymin, xmax, ymax] = [item.box[0], item.box[1], item.box[2], item.box[3]];
 
                   // Convert 0-1000 scale to pixel coordinates relative to the image
                   const relX = (xmin / 1000) * selectedElement.width;
@@ -92,7 +107,7 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({
                   const estimatedFontSize = Math.max(12, relH * 0.8);
 
                   onAddElement(ElementType.TEXT, {
-                      content: item.content,
+                      content: item.text,
                       x: absX,
                       y: absY,
                       width: Math.max(relW, 50), // Min width
@@ -111,7 +126,7 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({
       } catch (e) {
           console.error("Magic Grab Failed", e);
           const errorMessage = e instanceof Error ? e.message : "Unknown error occurred";
-          alert(`Could not grab text from image: ${errorMessage}\n\nMake sure REPLICATE_API_TOKEN is configured in your .env.local file.`);
+          alert(`Could not grab text from image: ${errorMessage}`);
       } finally {
           setIsProcessing(false);
       }
@@ -128,18 +143,34 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({
       try {
           console.log("Starting Interactive Magic Grab Text process...");
 
-          // Extract text with bounding boxes
-          const textData = await extractTextFromImage(selectedElement.src);
+          // Call the OCR API route instead of direct Replicate API
+          const response = await fetch('/api/ocr', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                  imageUrl: selectedElement.src,
+              }),
+          });
+
+          if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || `HTTP ${response.status}`);
+          }
+
+          const { textData } = await response.json();
 
           if (textData && textData.length > 0) {
               // Prepare detected texts with canvas coordinates
-              const processedTextData = textData.map(item => ({
-                  ...item,
+              const processedTextData = textData.map((item: any) => ({
+                  content: item.text,
+                  box_2d: [item.box[1], item.box[0], item.box[3], item.box[2]], // Convert from [x1,y1,x2,y2] to [ymin,xmin,ymax,xmax]
                   // Convert coordinates to canvas-relative positions
-                  x: selectedElement.x + (item.box_2d[1] / 1000) * selectedElement.width,
-                  y: selectedElement.y + (item.box_2d[0] / 1000) * selectedElement.height,
-                  width: ((item.box_2d[3] - item.box_2d[1]) / 1000) * selectedElement.width,
-                  height: ((item.box_2d[2] - item.box_2d[0]) / 1000) * selectedElement.height,
+                  x: selectedElement.x + (item.box[0] / 1000) * selectedElement.width,
+                  y: selectedElement.y + (item.box[1] / 1000) * selectedElement.height,
+                  width: ((item.box[2] - item.box[0]) / 1000) * selectedElement.width,
+                  height: ((item.box[3] - item.box[1]) / 1000) * selectedElement.height,
                   isEditing: false
               }));
 
@@ -153,7 +184,7 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({
       } catch (e) {
           console.error("Interactive Magic Grab Failed", e);
           const errorMessage = e instanceof Error ? e.message : "Unknown error occurred";
-          alert(`Could not detect text in image: ${errorMessage}\n\nMake sure REPLICATE_API_TOKEN is configured in your .env.local file.`);
+          alert(`Could not detect text in image: ${errorMessage}`);
       } finally {
           setIsProcessing(false);
       }
