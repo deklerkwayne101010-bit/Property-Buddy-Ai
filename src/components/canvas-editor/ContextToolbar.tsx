@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { CanvasElement, ElementType } from '../../lib/canvas-types';
-import { 
-  IconBold, IconItalic, IconUnderline, 
-  IconAlignLeft, IconAlignCenter, IconAlignRight, 
+import {
+  IconBold, IconItalic, IconUnderline,
+  IconAlignLeft, IconAlignCenter, IconAlignRight,
   IconType, IconTextGrab, IconSparkles,
-  IconLayerFront, IconLayerBack, IconLayerForward, IconLayerBackward
+  IconLayerFront, IconLayerBack, IconLayerForward, IconLayerBackward,
+  IconCrop
 } from './Icons';
 import { extractTextFromImage, removeTextFromImage } from '../../lib/canvas-services/geminiService';
 
@@ -17,13 +18,19 @@ interface ContextToolbarProps {
 
 const ContextToolbar: React.FC<ContextToolbarProps> = ({ selectedElement, elements, onUpdateElement, onAddElement }) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isCropping, setIsCropping] = useState(false);
 
   // Magic Grab Logic
   const handleMagicGrab = async () => {
-      if (!selectedElement || selectedElement.type !== ElementType.IMAGE || !selectedElement.src) return;
-      
+      if (!selectedElement || selectedElement.type !== ElementType.IMAGE || !selectedElement.src) {
+          alert("Please select an image element first.");
+          return;
+      }
+
       setIsProcessing(true);
       try {
+          console.log("Starting Magic Grab Text process...");
+
           // 1. Extract Text Data (Parallel)
           const textPromise = extractTextFromImage(selectedElement.src);
           // 2. Remove Text from Image (Parallel)
@@ -31,41 +38,52 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({ selectedElement, elemen
 
           const [textData, cleanImage] = await Promise.all([textPromise, imagePromise]);
 
-          // 3. Update Image to Clean Version
-          onUpdateElement(selectedElement.id, { src: cleanImage });
+          console.log("Magic Grab results:", { textData, cleanImage });
+
+          // 3. Update Image to Clean Version (if different)
+          if (cleanImage !== selectedElement.src) {
+              onUpdateElement(selectedElement.id, { src: cleanImage });
+          }
 
           // 4. Create new Text Elements
-          textData.forEach(item => {
-              const [ymin, xmin, ymax, xmax] = item.box_2d;
-              
-              // Convert 0-1000 scale to pixel coordinates relative to the image
-              const relX = (xmin / 1000) * selectedElement.width;
-              const relY = (ymin / 1000) * selectedElement.height;
-              const relW = ((xmax - xmin) / 1000) * selectedElement.width;
-              const relH = ((ymax - ymin) / 1000) * selectedElement.height;
+          if (textData && textData.length > 0) {
+              textData.forEach(item => {
+                  const [ymin, xmin, ymax, xmax] = item.box_2d;
 
-              // Absolute Canvas Position
-              const absX = selectedElement.x + relX;
-              const absY = selectedElement.y + relY;
-              
-              // Estimate Font Size based on height (rough approximation)
-              const estimatedFontSize = Math.max(12, relH * 0.8);
+                  // Convert 0-1000 scale to pixel coordinates relative to the image
+                  const relX = (xmin / 1000) * selectedElement.width;
+                  const relY = (ymin / 1000) * selectedElement.height;
+                  const relW = ((xmax - xmin) / 1000) * selectedElement.width;
+                  const relH = ((ymax - ymin) / 1000) * selectedElement.height;
 
-              onAddElement(ElementType.TEXT, {
-                  content: item.content,
-                  x: absX,
-                  y: absY,
-                  width: Math.max(relW, 50), // Min width
-                  height: Math.max(relH, 20),
-                  fontSize: estimatedFontSize,
-                  zIndex: selectedElement.zIndex + 1, // Place on top
-                  color: '#000000' // Default color, picking color from image is harder
+                  // Absolute Canvas Position
+                  const absX = selectedElement.x + relX;
+                  const absY = selectedElement.y + relY;
+
+                  // Estimate Font Size based on height (rough approximation)
+                  const estimatedFontSize = Math.max(12, relH * 0.8);
+
+                  onAddElement(ElementType.TEXT, {
+                      content: item.content,
+                      x: absX,
+                      y: absY,
+                      width: Math.max(relW, 50), // Min width
+                      height: Math.max(relH, 20),
+                      fontSize: estimatedFontSize,
+                      zIndex: selectedElement.zIndex + 1, // Place on top
+                      color: '#000000' // Default color, picking color from image is harder
+                  });
               });
-          });
+
+              alert(`Successfully extracted ${textData.length} text elements from the image!`);
+          } else {
+              alert("No text was found in the image. Try selecting a different image with visible text.");
+          }
 
       } catch (e) {
           console.error("Magic Grab Failed", e);
-          alert("Could not grab text from image.");
+          const errorMessage = e instanceof Error ? e.message : "Unknown error occurred";
+          alert(`Could not grab text from image: ${errorMessage}\n\nMake sure REPLICATE_API_TOKEN is configured in your .env.local file.`);
       } finally {
           setIsProcessing(false);
       }
@@ -206,21 +224,35 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({ selectedElement, elemen
   }
 
   // Image Controls
-  if (selectedElement.type === ElementType.IMAGE) {
-      return (
-          <div className="h-12 bg-white border-b flex items-center px-4 gap-4 shadow-sm z-10">
-               <button 
-                 onClick={handleMagicGrab}
-                 disabled={isProcessing}
-                 className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-3 py-1.5 rounded text-sm hover:shadow-md transition disabled:opacity-50"
-               >
-                   {isProcessing ? (
-                       <IconSparkles className="w-4 h-4 animate-spin" />
-                   ) : (
-                       <IconTextGrab className="w-4 h-4" />
-                   )}
-                   <span>{isProcessing ? 'Processing...' : 'Magic Grab Text'}</span>
-               </button>
+   if (selectedElement.type === ElementType.IMAGE) {
+       return (
+           <div className="h-12 bg-white border-b flex items-center px-4 gap-4 shadow-sm z-10">
+                <button
+                  onClick={handleMagicGrab}
+                  disabled={isProcessing}
+                  className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-3 py-1.5 rounded text-sm hover:shadow-md transition disabled:opacity-50"
+                >
+                    {isProcessing ? (
+                        <IconSparkles className="w-4 h-4 animate-spin" />
+                    ) : (
+                        <IconTextGrab className="w-4 h-4" />
+                    )}
+                    <span>{isProcessing ? 'Processing...' : 'Magic Grab Text'}</span>
+                </button>
+
+                <div className="h-6 w-px bg-gray-300"></div>
+
+                <button
+                  onClick={() => setIsCropping(!isCropping)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition ${
+                    isCropping
+                      ? 'bg-green-500 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                    <IconCrop className="w-4 h-4" />
+                    <span>{isCropping ? 'Exit Crop' : 'Crop'}</span>
+                </button>
                
                <div className="h-6 w-px bg-gray-300"></div>
                
@@ -244,6 +276,45 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({ selectedElement, elemen
                     <button onClick={() => handleLayer('forward')} title="Bring Forward" className="p-1.5 rounded hover:bg-gray-200 text-gray-600"> <IconLayerForward className="w-4 h-4"/> </button>
                     <button onClick={() => handleLayer('front')} title="Bring to Front" className="p-1.5 rounded hover:bg-gray-200 text-gray-600"> <IconLayerFront className="w-4 h-4"/> </button>
                </div>
+
+               {isCropping && (
+                 <>
+                   <div className="h-6 w-px bg-gray-300"></div>
+                   <div className="flex items-center gap-2">
+                     <span className="text-sm text-gray-600">Crop:</span>
+                     <input
+                       type="number"
+                       placeholder="X"
+                       className="w-12 border rounded px-2 py-1 text-xs text-center focus:ring-2 focus:ring-purple-500 outline-none"
+                       title="Crop X position"
+                     />
+                     <input
+                       type="number"
+                       placeholder="Y"
+                       className="w-12 border rounded px-2 py-1 text-xs text-center focus:ring-2 focus:ring-purple-500 outline-none"
+                       title="Crop Y position"
+                     />
+                     <input
+                       type="number"
+                       placeholder="W"
+                       className="w-12 border rounded px-2 py-1 text-xs text-center focus:ring-2 focus:ring-purple-500 outline-none"
+                       title="Crop width"
+                     />
+                     <input
+                       type="number"
+                       placeholder="H"
+                       className="w-12 border rounded px-2 py-1 text-xs text-center focus:ring-2 focus:ring-purple-500 outline-none"
+                       title="Crop height"
+                     />
+                     <button
+                       className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600 transition"
+                       title="Apply crop"
+                     >
+                       Apply
+                     </button>
+                   </div>
+                 </>
+               )}
           </div>
       );
   }
