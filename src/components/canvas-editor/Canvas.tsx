@@ -315,7 +315,7 @@ const Canvas: React.FC<CanvasProps> = ({
     <>
         <div
             ref={canvasRef}
-            className={`relative bg-white shadow-lg overflow-hidden transition-transform transform origin-center ${manualTextMode ? 'cursor-crosshair' : ''}`}
+            className={`canvas-container relative bg-white shadow-lg overflow-hidden transition-transform transform origin-center ${manualTextMode ? 'cursor-crosshair' : ''}`}
             style={{
                 width: 800,
                 height: 600,

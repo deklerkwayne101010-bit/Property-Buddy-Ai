@@ -149,7 +149,69 @@ const TemplateEditorPage: React.FC = () => {
   }, [selectedId, deleteElement, handleUndo, handleRedo]);
 
   const handleDownload = async () => {
-    alert(`Downloading "${fileName}.png"...\n(In a real app, this would use html2canvas to screenshot the .canvas-container div)`);
+    try {
+      // Import html2canvas dynamically
+      const html2canvas = (await import('html2canvas')).default;
+
+      // Find the canvas container
+      const canvasContainer = document.querySelector('.canvas-container') as HTMLElement;
+      if (!canvasContainer) {
+        alert('Canvas container not found. Please try again.');
+        return;
+      }
+
+      // Show loading message
+      const loadingMsg = document.createElement('div');
+      loadingMsg.textContent = 'Generating image...';
+      loadingMsg.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        z-index: 9999;
+        font-family: Arial, sans-serif;
+      `;
+      document.body.appendChild(loadingMsg);
+
+      // Configure html2canvas options for better quality
+      const canvas = await html2canvas(canvasContainer, {
+        backgroundColor: '#ffffff',
+        scale: 2, // Higher resolution
+        useCORS: true,
+        allowTaint: true,
+        width: 800,
+        height: 600,
+        x: 0,
+        y: 0
+      });
+
+      // Remove loading message
+      document.body.removeChild(loadingMsg);
+
+      // Convert to blob and download
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${fileName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        } else {
+          alert('Failed to generate image. Please try again.');
+        }
+      }, 'image/png');
+
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export image. Please try again.');
+    }
   };
 
   const selectedElement = elements.find(el => el.id === selectedId) || null;
