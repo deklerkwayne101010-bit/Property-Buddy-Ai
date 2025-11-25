@@ -217,6 +217,7 @@ const TemplateEditorPage: React.FC = () => {
           // Show success message
           const successMsg = document.createElement('div');
           successMsg.textContent = 'Image exported successfully!';
+          successMsg.className = 'fade-out';
           successMsg.style.cssText = `
             position: fixed;
             top: 20px;
@@ -228,7 +229,6 @@ const TemplateEditorPage: React.FC = () => {
             z-index: 9999;
             font-family: Arial, sans-serif;
             pointer-events: none;
-            animation: fadeOut 3s ease-in-out forwards;
           `;
           document.body.appendChild(successMsg);
           setTimeout(() => {

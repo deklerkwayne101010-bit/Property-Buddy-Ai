@@ -94,3 +94,23 @@ input[type="text"], input[type="email"], input[type="password"], input[type="num
 input[type="text"]::placeholder, input[type="email"]::placeholder, input[type="password"]::placeholder, input[type="number"]::placeholder {
   color: #6b7280 !important;
 }
+
+/* Export success notification animation */
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+.fade-out {
+  animation: fadeOut 3s ease-in-out forwards;
+}
