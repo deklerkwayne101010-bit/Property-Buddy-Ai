@@ -30,7 +30,7 @@ interface ContextToolbarProps {
   onTextEdit?: (textIndex: number, newContent: string) => void;
   onApplyEditedText?: () => void;
   onCancelMagicGrab?: () => void;
-  onStartInteractiveMagicGrab?: (textData: any[]) => void;
+  onStartInteractiveMagicGrab?: (textData: DetectedText[]) => void;
 }
 
 const ContextToolbar: React.FC<ContextToolbarProps> = ({
@@ -39,9 +39,6 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({
   onUpdateElement,
   onAddElement,
   magicGrabMode = false,
-  detectedTexts = [],
-  onTextAreaClick,
-  onTextEdit,
   onApplyEditedText,
   onCancelMagicGrab,
   onStartInteractiveMagicGrab
