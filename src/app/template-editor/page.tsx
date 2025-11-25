@@ -174,25 +174,65 @@ const TemplateEditorPage: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Configure html2canvas options for better quality
-      const canvas = await html2canvas(canvasContainer, {
-        backgroundColor: '#ffffff',
-        scale: 2, // Higher resolution
-        useCORS: true,
-        allowTaint: false, // More secure
-        width: 800,
-        height: 600,
-        x: 0,
-        y: 0,
-        logging: false, // Disable console logging
-        ignoreElements: (element) => {
-          // Ignore UI elements that shouldn't be in the export
-          return element.classList.contains('absolute') &&
-                 (element.classList.contains('bottom-4') ||
-                  element.classList.contains('z-10') ||
-                  element.classList.contains('border-2') ||
-                  element.classList.contains('border-purple-500'));
+      let canvas;
+      try {
+        canvas = await html2canvas(canvasContainer, {
+          backgroundColor: '#ffffff',
+          scale: 2, // Higher resolution
+          useCORS: true,
+          allowTaint: false, // More secure
+          width: 800,
+          height: 600,
+          x: 0,
+          y: 0,
+          logging: false, // Disable console logging
+          ignoreElements: (element) => {
+            // Ignore UI elements that shouldn't be in the export
+            return element.classList.contains('absolute') &&
+                   (element.classList.contains('bottom-4') ||
+                    element.classList.contains('z-10') ||
+                    element.classList.contains('border-2') ||
+                    element.classList.contains('border-purple-500'));
+          }
+        });
+      } catch (html2canvasError) {
+        // If html2canvas fails due to unsupported CSS (like lab() colors), try a simpler approach
+        console.warn('html2canvas failed, trying fallback method:', html2canvasError);
+
+        // Temporarily remove potentially problematic styles
+        const originalStyles = canvasContainer.style.cssText;
+        canvasContainer.style.cssText = `
+          width: 800px !important;
+          height: 600px !important;
+          background: white !important;
+          position: relative !important;
+          transform: none !important;
+        `;
+
+        // Wait for style changes to apply
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        try {
+          canvas = await html2canvas(canvasContainer, {
+            backgroundColor: '#ffffff',
+            scale: 1.5, // Lower scale for compatibility
+            useCORS: true,
+            allowTaint: false,
+            width: 800,
+            height: 600,
+            x: 0,
+            y: 0,
+            logging: false,
+            ignoreElements: () => true, // Ignore all problematic elements
+          });
+        } catch (fallbackError) {
+          console.error('Fallback html2canvas also failed:', fallbackError);
+          throw new Error('Unable to capture canvas due to browser compatibility issues. Try using a different browser or simplifying your design.');
+        } finally {
+          // Restore original styles
+          canvasContainer.style.cssText = originalStyles;
         }
-      });
+      }
 
       // Restore original transform
       canvasContainer.style.transform = originalTransform;
@@ -250,7 +290,21 @@ const TemplateEditorPage: React.FC = () => {
         document.body.removeChild(loadingMsg);
       }
 
-      alert(`Failed to export image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Provide specific error messages for known issues
+      let errorMessage = 'Unknown error occurred';
+      if (error instanceof Error) {
+        if (error.message.includes('lab')) {
+          errorMessage = 'Export failed due to browser compatibility issue with modern CSS colors. Try using Chrome or Firefox, or simplify your design by removing complex color effects.';
+        } else if (error.message.includes('CORS')) {
+          errorMessage = 'Export failed due to image loading restrictions. Make sure all images are from trusted sources.';
+        } else if (error.message.includes('canvas')) {
+          errorMessage = 'Export failed due to canvas rendering issues. Try refreshing the page or using a different browser.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
+      alert(`Failed to export image: ${errorMessage}`);
     }
   };
 
