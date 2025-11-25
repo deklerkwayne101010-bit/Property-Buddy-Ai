@@ -10,6 +10,11 @@ interface DetectedText {
   height: number;
   isEditing: boolean;
 }
+
+interface OCRTextItem {
+  text: string;
+  box: [number, number, number, number]; // [x1, y1, x2, y2]
+}
 import {
   IconBold, IconItalic, IconUnderline,
   IconAlignLeft, IconAlignCenter, IconAlignRight,
@@ -17,7 +22,7 @@ import {
   IconLayerFront, IconLayerBack, IconLayerForward, IconLayerBackward,
   IconCrop
 } from './Icons';
-import { extractTextFromImage, removeTextFromImage } from '../../lib/canvas-services/geminiService';
+import { removeTextFromImage } from '../../lib/canvas-services/geminiService';
 
 interface ContextToolbarProps {
   selectedElement: CanvasElement | null;
@@ -89,7 +94,7 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({
 
           // 4. Create new Text Elements
           if (textData && textData.length > 0) {
-              textData.forEach((item: any) => {
+              textData.forEach((item: OCRTextItem) => {
                   // Convert from API format [x1,y1,x2,y2] to our format [ymin,xmin,ymax,xmax]
                   const [xmin, ymin, xmax, ymax] = [item.box[0], item.box[1], item.box[2], item.box[3]];
 
@@ -163,7 +168,7 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({
 
           if (textData && textData.length > 0) {
               // Prepare detected texts with canvas coordinates
-              const processedTextData = textData.map((item: any) => ({
+              const processedTextData = textData.map((item: OCRTextItem) => ({
                   content: item.text,
                   box_2d: [item.box[1], item.box[0], item.box[3], item.box[2]], // Convert from [x1,y1,x2,y2] to [ymin,xmin,ymax,xmax]
                   // Convert coordinates to canvas-relative positions
