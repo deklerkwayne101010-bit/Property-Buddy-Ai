@@ -313,12 +313,13 @@ const Canvas: React.FC<CanvasProps> = ({
                                     }}
                                 />
                             ) : (
-                                <div 
-                                    style={{ 
-                                        fontSize: el.fontSize, 
+                                <div
+                                    style={{
+                                        fontSize: el.fontSize,
                                         fontWeight: el.fontWeight,
                                         fontStyle: el.fontStyle,
                                         textDecoration: el.textDecoration,
+                                        fontFamily: el.fontFamily,
                                         color: el.color,
                                         textAlign: el.textAlign,
                                         width: '100%',
