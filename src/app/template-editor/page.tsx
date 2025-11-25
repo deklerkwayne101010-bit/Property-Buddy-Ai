@@ -138,16 +138,6 @@ const TemplateEditorPage: React.FC = () => {
 
   const handleDownload = async () => {
     try {
-      // Import html2canvas dynamically
-      const html2canvas = (await import('html2canvas')).default;
-
-      // Find the canvas container
-      const canvasContainer = document.querySelector('.canvas-container') as HTMLElement;
-      if (!canvasContainer) {
-        alert('Canvas container not found. Please try again.');
-        return;
-      }
-
       // Show loading message
       const loadingMsg = document.createElement('div');
       loadingMsg.textContent = 'Generating image...';
@@ -166,76 +156,128 @@ const TemplateEditorPage: React.FC = () => {
       `;
       document.body.appendChild(loadingMsg);
 
-      // Temporarily reset zoom for capture
-      const originalTransform = canvasContainer.style.transform;
-      canvasContainer.style.transform = 'scale(1)';
+      // Create a new canvas element for manual rendering
+      const exportCanvas = document.createElement('canvas');
+      const ctx = exportCanvas.getContext('2d');
 
-      // Wait for the transform to apply
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Configure html2canvas options for better quality
-      let canvas;
-      try {
-        canvas = await html2canvas(canvasContainer, {
-          backgroundColor: '#ffffff',
-          scale: 2, // Higher resolution
-          useCORS: true,
-          allowTaint: false, // More secure
-          width: 800,
-          height: 600,
-          x: 0,
-          y: 0,
-          logging: false, // Disable console logging
-          ignoreElements: (element) => {
-            // Ignore UI elements that shouldn't be in the export
-            return element.classList.contains('absolute') &&
-                   (element.classList.contains('bottom-4') ||
-                    element.classList.contains('z-10') ||
-                    element.classList.contains('border-2') ||
-                    element.classList.contains('border-purple-500'));
-          }
-        });
-      } catch (html2canvasError) {
-        // If html2canvas fails due to unsupported CSS (like lab() colors), try a simpler approach
-        console.warn('html2canvas failed, trying fallback method:', html2canvasError);
-
-        // Temporarily remove potentially problematic styles
-        const originalStyles = canvasContainer.style.cssText;
-        canvasContainer.style.cssText = `
-          width: 800px !important;
-          height: 600px !important;
-          background: white !important;
-          position: relative !important;
-          transform: none !important;
-        `;
-
-        // Wait for style changes to apply
-        await new Promise(resolve => setTimeout(resolve, 50));
-
-        try {
-          canvas = await html2canvas(canvasContainer, {
-            backgroundColor: '#ffffff',
-            scale: 1.5, // Lower scale for compatibility
-            useCORS: true,
-            allowTaint: false,
-            width: 800,
-            height: 600,
-            x: 0,
-            y: 0,
-            logging: false,
-            ignoreElements: () => true, // Ignore all problematic elements
-          });
-        } catch (fallbackError) {
-          console.error('Fallback html2canvas also failed:', fallbackError);
-          throw new Error('Unable to capture canvas due to browser compatibility issues. Try using a different browser or simplifying your design.');
-        } finally {
-          // Restore original styles
-          canvasContainer.style.cssText = originalStyles;
-        }
+      if (!ctx) {
+        throw new Error('Unable to create canvas context');
       }
 
-      // Restore original transform
-      canvasContainer.style.transform = originalTransform;
+      // Set canvas size (higher resolution for better quality)
+      const scale = 2; // 2x scale for high quality
+      exportCanvas.width = 800 * scale;
+      exportCanvas.height = 600 * scale;
+
+      // Scale context for high DPI
+      ctx.scale(scale, scale);
+
+      // Fill white background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 800, 600);
+
+      // Sort elements by z-index for proper layering
+      const sortedElements = [...elements].sort((a, b) => a.zIndex - b.zIndex);
+
+      // Render each element manually
+      for (const element of sortedElements) {
+        ctx.save();
+
+        // Apply transformations
+        ctx.translate(element.x, element.y);
+        if (element.rotation) {
+          ctx.rotate((element.rotation * Math.PI) / 180);
+        }
+        if (element.opacity !== undefined && element.opacity !== 1) {
+          ctx.globalAlpha = element.opacity;
+        }
+
+        if (element.type === ElementType.TEXT) {
+          // Render text element
+          if (!element.content) continue;
+
+          ctx.font = `${element.fontStyle || 'normal'} ${element.fontWeight || 'normal'} ${element.fontSize || 16}px ${element.fontFamily || 'Arial, sans-serif'}`;
+          ctx.fillStyle = element.color || '#000000';
+          ctx.textAlign = (element.textAlign as CanvasTextAlign) || 'left';
+
+          // Handle text wrapping and positioning
+          const lines = element.content.split('\n');
+          const lineHeight = element.fontSize || 16;
+          let y = 0;
+
+          for (const line of lines) {
+            if (element.textAlign === 'center') {
+              ctx.fillText(line, element.width / 2, y);
+            } else if (element.textAlign === 'right') {
+              ctx.fillText(line, element.width, y);
+            } else {
+              ctx.fillText(line, 0, y);
+            }
+            y += lineHeight;
+          }
+
+        } else if (element.type === ElementType.IMAGE && element.src) {
+          // Render image element
+          try {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+
+            // Wait for image to load
+            await new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = reject;
+              img.src = element.src!;
+            });
+
+            // Apply border radius if specified
+            if (element.borderRadius && element.borderRadius > 0) {
+              ctx.save();
+              ctx.beginPath();
+              ctx.roundRect(0, 0, element.width, element.height, element.borderRadius);
+              ctx.clip();
+            }
+
+            // Draw the image
+            ctx.drawImage(img, 0, 0, element.width, element.height);
+
+            if (element.borderRadius && element.borderRadius > 0) {
+              ctx.restore();
+            }
+
+          } catch (imageError) {
+            console.warn('Failed to load image for export:', element.src, imageError);
+            // Draw a placeholder rectangle for failed images
+            ctx.fillStyle = '#f3f4f6';
+            ctx.fillRect(0, 0, element.width, element.height);
+            ctx.strokeStyle = '#d1d5db';
+            ctx.strokeRect(0, 0, element.width, element.height);
+          }
+
+        } else if (element.type === ElementType.SHAPE) {
+          // Render shape element
+          ctx.fillStyle = element.backgroundColor || '#94a3b8';
+
+          if (element.shapeType === ShapeType.TRIANGLE) {
+            ctx.beginPath();
+            ctx.moveTo(element.width / 2, 0);
+            ctx.lineTo(0, element.height);
+            ctx.lineTo(element.width, element.height);
+            ctx.closePath();
+            ctx.fill();
+          } else {
+            // Rectangle (default)
+            if (element.borderRadius && element.borderRadius > 0) {
+              ctx.beginPath();
+              ctx.roundRect(0, 0, element.width, element.height, element.borderRadius);
+              ctx.fill();
+            } else {
+              ctx.fillRect(0, 0, element.width, element.height);
+            }
+          }
+        }
+
+        ctx.restore();
+      }
 
       // Remove loading message
       if (document.body.contains(loadingMsg)) {
@@ -243,7 +285,7 @@ const TemplateEditorPage: React.FC = () => {
       }
 
       // Convert to blob and download
-      canvas.toBlob((blob) => {
+      exportCanvas.toBlob((blob) => {
         if (blob) {
           const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
@@ -293,10 +335,8 @@ const TemplateEditorPage: React.FC = () => {
       // Provide specific error messages for known issues
       let errorMessage = 'Unknown error occurred';
       if (error instanceof Error) {
-        if (error.message.includes('lab')) {
-          errorMessage = 'Export failed due to browser compatibility issue with modern CSS colors. Try using Chrome or Firefox, or simplify your design by removing complex color effects.';
-        } else if (error.message.includes('CORS')) {
-          errorMessage = 'Export failed due to image loading restrictions. Make sure all images are from trusted sources.';
+        if (error.message.includes('CORS') || error.message.includes('cross-origin')) {
+          errorMessage = 'Export failed due to image loading restrictions. Make sure all images are from trusted sources or try using images from the same domain.';
         } else if (error.message.includes('canvas')) {
           errorMessage = 'Export failed due to canvas rendering issues. Try refreshing the page or using a different browser.';
         } else {
