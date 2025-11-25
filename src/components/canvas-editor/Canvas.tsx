@@ -19,31 +19,35 @@ interface DetectedText {
 }
 
 interface CanvasProps {
-  elements: CanvasElement[];
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
-  onUpdateElement: (id: string, updates: Partial<CanvasElement>) => void;
-  onDelete: (id: string) => void;
-  onDuplicate?: (id: string) => void;
-  zoom: number;
-  magicGrabMode?: boolean;
-  detectedTexts?: DetectedText[];
-  onTextAreaClick?: (textIndex: number) => void;
-  onTextEdit?: (textIndex: number, newContent: string) => void;
+   elements: CanvasElement[];
+   selectedId: string | null;
+   onSelect: (id: string | null) => void;
+   onUpdateElement: (id: string, updates: Partial<CanvasElement>) => void;
+   onDelete: (id: string) => void;
+   onDuplicate?: (id: string) => void;
+   zoom: number;
+   magicGrabMode?: boolean;
+   manualTextMode?: boolean;
+   detectedTexts?: DetectedText[];
+   onTextAreaClick?: (textIndex: number) => void;
+   onTextEdit?: (textIndex: number, newContent: string) => void;
+   onAddElement?: (type: ElementType, payload?: Partial<CanvasElement>) => void;
 }
 
 const Canvas: React.FC<CanvasProps> = ({
-  elements,
-  selectedId,
-  onSelect,
-  onUpdateElement,
-  onDelete,
-  onDuplicate,
-  zoom,
-  magicGrabMode = false,
-  detectedTexts = [],
-  onTextAreaClick,
-  onTextEdit
+   elements,
+   selectedId,
+   onSelect,
+   onUpdateElement,
+   onDelete,
+   onDuplicate,
+   zoom,
+   magicGrabMode = false,
+   manualTextMode = false,
+   detectedTexts = [],
+   onTextAreaClick,
+   onTextEdit,
+   onAddElement
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   
@@ -52,6 +56,11 @@ const Canvas: React.FC<CanvasProps> = ({
   const [resizeState, setResizeState] = useState<ResizeState | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, id: string } | null>(null);
+
+  // Manual Text Selection State
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawStart, setDrawStart] = useState<{ x: number, y: number } | null>(null);
+  const [drawEnd, setDrawEnd] = useState<{ x: number, y: number } | null>(null);
 
   // Close context menu on global click
   useEffect(() => {
@@ -245,22 +254,85 @@ const Canvas: React.FC<CanvasProps> = ({
       }
   };
 
+  // Manual Text Selection Handlers
+  const handleCanvasMouseDown = (e: React.MouseEvent) => {
+      if (!manualTextMode) return;
+
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const x = (e.clientX - rect.left) / zoom;
+      const y = (e.clientY - rect.top) / zoom;
+
+      setIsDrawing(true);
+      setDrawStart({ x, y });
+      setDrawEnd({ x, y });
+      onSelect(null); // Deselect any selected element
+  };
+
+  const handleCanvasMouseMove = (e: React.MouseEvent) => {
+      if (!isDrawing || !drawStart) return;
+
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const x = (e.clientX - rect.left) / zoom;
+      const y = (e.clientY - rect.top) / zoom;
+
+      setDrawEnd({ x, y });
+  };
+
+  const handleCanvasMouseUp = () => {
+      if (!isDrawing || !drawStart || !drawEnd) return;
+
+      // Calculate rectangle dimensions
+      const x = Math.min(drawStart.x, drawEnd.x);
+      const y = Math.min(drawStart.y, drawEnd.y);
+      const width = Math.abs(drawEnd.x - drawStart.x);
+      const height = Math.abs(drawEnd.y - drawStart.y);
+
+      // Only create text element if rectangle is large enough
+      if (width > 20 && height > 15 && onAddElement) {
+          onAddElement(ElementType.TEXT, {
+              content: 'Your Text Here',
+              x,
+              y,
+              width,
+              height,
+              fontSize: Math.max(12, height * 0.7),
+              color: '#000000',
+              zIndex: Math.max(...elements.map(el => el.zIndex), 0) + 1
+          });
+      }
+
+      // Reset drawing state
+      setIsDrawing(false);
+      setDrawStart(null);
+      setDrawEnd(null);
+  };
+
   return (
     <>
-        <div 
+        <div
             ref={canvasRef}
-            className="relative bg-white shadow-lg overflow-hidden transition-transform transform origin-center"
-            style={{ 
-                width: 800, 
-                height: 600, 
+            className={`relative bg-white shadow-lg overflow-hidden transition-transform transform origin-center ${manualTextMode ? 'cursor-crosshair' : ''}`}
+            style={{
+                width: 800,
+                height: 600,
                 transform: `scale(${zoom})`,
                 backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
                 backgroundSize: '20px 20px'
             }}
-            onMouseDown={() => {
-                onSelect(null);
-                setEditingId(null);
+            onMouseDown={(e) => {
+                if (manualTextMode) {
+                    handleCanvasMouseDown(e);
+                } else {
+                    onSelect(null);
+                    setEditingId(null);
+                }
             }}
+            onMouseMove={handleCanvasMouseMove}
+            onMouseUp={handleCanvasMouseUp}
             onDragOver={(e) => e.preventDefault()}
             onContextMenu={(e) => e.preventDefault()} // Disable default context menu on canvas bg
         >
@@ -404,6 +476,44 @@ const Canvas: React.FC<CanvasProps> = ({
                     )}
                 </div>
             ))}
+
+            {/* Manual Text Selection Drawing Overlay */}
+            {manualTextMode && isDrawing && drawStart && drawEnd && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        left: Math.min(drawStart.x, drawEnd.x),
+                        top: Math.min(drawStart.y, drawEnd.y),
+                        width: Math.abs(drawEnd.x - drawStart.x),
+                        height: Math.abs(drawEnd.y - drawStart.y),
+                        zIndex: 1000,
+                        border: '2px dashed #f97316',
+                        backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                        pointerEvents: 'none'
+                    }}
+                />
+            )}
+
+            {/* Manual Text Mode Instructions */}
+            {manualTextMode && !isDrawing && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: 10,
+                        left: 10,
+                        zIndex: 1000,
+                        backgroundColor: 'rgba(249, 115, 22, 0.9)',
+                        color: 'white',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        pointerEvents: 'none'
+                    }}
+                >
+                    Click and drag to select text areas
+                </div>
+            )}
         </div>
 
         {/* Custom Context Menu */}

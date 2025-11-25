@@ -31,6 +31,7 @@ const TemplateEditorPage: React.FC = () => {
   const [fileName, setFileName] = useState('Untitled Design');
   const [zoom, setZoom] = useState(1);
   const [magicGrabMode, setMagicGrabMode] = useState(false);
+  const [manualTextMode, setManualTextMode] = useState(false);
   const [detectedTexts, setDetectedTexts] = useState<DetectedText[]>([]);
 
   // Undo/Redo Logic
@@ -202,6 +203,15 @@ const TemplateEditorPage: React.FC = () => {
     setMagicGrabMode(true);
   };
 
+  const handleToggleManualTextMode = () => {
+    setManualTextMode(prev => !prev);
+    // Exit magic grab mode if entering manual text mode
+    if (!manualTextMode) {
+      setMagicGrabMode(false);
+      setDetectedTexts([]);
+    }
+  };
+
   return (
     <ProtectedRoute>
       <DashboardLayout>
@@ -224,12 +234,14 @@ const TemplateEditorPage: React.FC = () => {
             onUpdateElement={updateElement}
             onAddElement={addElement}
             magicGrabMode={magicGrabMode}
+            manualTextMode={manualTextMode}
             detectedTexts={detectedTexts}
             onTextAreaClick={handleTextAreaClick}
             onTextEdit={handleTextEdit}
             onApplyEditedText={handleApplyEditedText}
             onCancelMagicGrab={handleCancelMagicGrab}
             onStartInteractiveMagicGrab={handleStartInteractiveMagicGrab}
+            onToggleManualTextMode={handleToggleManualTextMode}
           />
 
           <div className="flex flex-1 overflow-hidden relative">
@@ -253,9 +265,11 @@ const TemplateEditorPage: React.FC = () => {
                 onDuplicate={duplicateElement}
                 zoom={zoom}
                 magicGrabMode={magicGrabMode}
+                manualTextMode={manualTextMode}
                 detectedTexts={detectedTexts}
                 onTextAreaClick={handleTextAreaClick}
                 onTextEdit={handleTextEdit}
+                onAddElement={addElement}
               />
             </div>
 

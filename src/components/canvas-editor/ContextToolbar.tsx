@@ -25,28 +25,32 @@ import {
 import { removeTextFromImage } from '../../lib/canvas-services/geminiService';
 
 interface ContextToolbarProps {
-  selectedElement: CanvasElement | null;
-  elements: CanvasElement[];
-  onUpdateElement: (id: string, updates: Partial<CanvasElement>) => void;
-  onAddElement: (type: ElementType, payload?: Partial<CanvasElement>) => void;
-  magicGrabMode?: boolean;
-  detectedTexts?: DetectedText[];
-  onTextAreaClick?: (textIndex: number) => void;
-  onTextEdit?: (textIndex: number, newContent: string) => void;
-  onApplyEditedText?: () => void;
-  onCancelMagicGrab?: () => void;
-  onStartInteractiveMagicGrab?: (textData: DetectedText[]) => void;
+   selectedElement: CanvasElement | null;
+   elements: CanvasElement[];
+   onUpdateElement: (id: string, updates: Partial<CanvasElement>) => void;
+   onAddElement: (type: ElementType, payload?: Partial<CanvasElement>) => void;
+   magicGrabMode?: boolean;
+   manualTextMode?: boolean;
+   detectedTexts?: DetectedText[];
+   onTextAreaClick?: (textIndex: number) => void;
+   onTextEdit?: (textIndex: number, newContent: string) => void;
+   onApplyEditedText?: () => void;
+   onCancelMagicGrab?: () => void;
+   onStartInteractiveMagicGrab?: (textData: DetectedText[]) => void;
+   onToggleManualTextMode?: () => void;
 }
 
 const ContextToolbar: React.FC<ContextToolbarProps> = ({
-  selectedElement,
-  elements,
-  onUpdateElement,
-  onAddElement,
-  magicGrabMode = false,
-  onApplyEditedText,
-  onCancelMagicGrab,
-  onStartInteractiveMagicGrab
+   selectedElement,
+   elements,
+   onUpdateElement,
+   onAddElement,
+   magicGrabMode = false,
+   manualTextMode = false,
+   onApplyEditedText,
+   onCancelMagicGrab,
+   onStartInteractiveMagicGrab,
+   onToggleManualTextMode
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCropping, setIsCropping] = useState(false);
@@ -389,6 +393,24 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                     </svg>
                     <span>{isProcessing ? 'Processing...' : 'Edit Text'}</span>
+                </button>
+
+                <div className="h-6 w-px bg-gray-300"></div>
+
+                <button
+                  onClick={onToggleManualTextMode}
+                  disabled={isProcessing || magicGrabMode}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition ${
+                    manualTextMode
+                      ? 'bg-orange-500 text-white shadow-md'
+                      : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                  } disabled:opacity-50`}
+                  title="Manually select text areas by drawing rectangles"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                    <span>{manualTextMode ? 'Exit Manual Text' : 'Manual Text'}</span>
                 </button>
 
                 <div className="h-6 w-px bg-gray-300"></div>
