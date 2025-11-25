@@ -1,203 +1,25 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { CanvasElement, ElementType } from '../../lib/canvas-types';
-
-interface DetectedText {
-  content: string;
-  box_2d: [number, number, number, number];
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  isEditing: boolean;
-}
-
-interface OCRTextItem {
-  text: string;
-  box: [number, number, number, number]; // [x1, y1, x2, y2]
-}
 import {
-  IconBold, IconItalic, IconUnderline,
-  IconAlignLeft, IconAlignCenter, IconAlignRight,
-  IconType, IconTextGrab, IconSparkles,
-  IconLayerFront, IconLayerBack, IconLayerForward, IconLayerBackward,
-  IconCrop
+   IconBold, IconItalic, IconUnderline,
+   IconAlignLeft, IconAlignCenter, IconAlignRight,
+   IconType,
+   IconLayerFront, IconLayerBack, IconLayerForward, IconLayerBackward
 } from './Icons';
-import { removeTextFromImage } from '../../lib/canvas-services/geminiService';
 
 interface ContextToolbarProps {
    selectedElement: CanvasElement | null;
    elements: CanvasElement[];
    onUpdateElement: (id: string, updates: Partial<CanvasElement>) => void;
    onAddElement: (type: ElementType, payload?: Partial<CanvasElement>) => void;
-   magicGrabMode?: boolean;
-   manualTextMode?: boolean;
-   detectedTexts?: DetectedText[];
-   onTextAreaClick?: (textIndex: number) => void;
-   onTextEdit?: (textIndex: number, newContent: string) => void;
-   onApplyEditedText?: () => void;
-   onCancelMagicGrab?: () => void;
-   onStartInteractiveMagicGrab?: (textData: DetectedText[]) => void;
-   onToggleManualTextMode?: () => void;
 }
 
 const ContextToolbar: React.FC<ContextToolbarProps> = ({
    selectedElement,
    elements,
    onUpdateElement,
-   onAddElement,
-   magicGrabMode = false,
-   manualTextMode = false,
-   onApplyEditedText,
-   onCancelMagicGrab,
-   onStartInteractiveMagicGrab,
-   onToggleManualTextMode
+   onAddElement
 }) => {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isCropping, setIsCropping] = useState(false);
-
-  // Remove unused local state variables that are now managed by parent
-
-  // Magic Grab Logic - Extract text and create new elements
-  const handleMagicGrab = async () => {
-      if (!selectedElement || selectedElement.type !== ElementType.IMAGE || !selectedElement.src) {
-          alert("Please select an image element first.");
-          return;
-      }
-
-      setIsProcessing(true);
-      try {
-          console.log("Starting Magic Grab Text process...");
-
-          // 1. Extract Text Data via API route
-          const ocrResponse = await fetch('/api/ocr', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                  imageUrl: selectedElement.src,
-              }),
-          });
-
-          if (!ocrResponse.ok) {
-              const errorData = await ocrResponse.json();
-              throw new Error(errorData.error || `HTTP ${ocrResponse.status}`);
-          }
-
-          const { textData } = await ocrResponse.json();
-
-          // 2. Remove Text from Image (Parallel)
-          const cleanImage = await removeTextFromImage(selectedElement.src);
-
-          console.log("Magic Grab results:", { textData, cleanImage });
-
-          // 3. Update Image to Clean Version (if different)
-          if (cleanImage !== selectedElement.src) {
-              onUpdateElement(selectedElement.id, { src: cleanImage });
-          }
-
-          // 4. Create new Text Elements
-          if (textData && textData.length > 0) {
-              textData.forEach((item: OCRTextItem) => {
-                  // Convert from API format [x1,y1,x2,y2] to our format [ymin,xmin,ymax,xmax]
-                  const [xmin, ymin, xmax, ymax] = [item.box[0], item.box[1], item.box[2], item.box[3]];
-
-                  // Convert 0-1000 scale to pixel coordinates relative to the image
-                  const relX = (xmin / 1000) * selectedElement.width;
-                  const relY = (ymin / 1000) * selectedElement.height;
-                  const relW = ((xmax - xmin) / 1000) * selectedElement.width;
-                  const relH = ((ymax - ymin) / 1000) * selectedElement.height;
-
-                  // Absolute Canvas Position
-                  const absX = selectedElement.x + relX;
-                  const absY = selectedElement.y + relY;
-
-                  // Estimate Font Size based on height (rough approximation)
-                  const estimatedFontSize = Math.max(12, relH * 0.8);
-
-                  onAddElement(ElementType.TEXT, {
-                      content: item.text,
-                      x: absX,
-                      y: absY,
-                      width: Math.max(relW, 50), // Min width
-                      height: Math.max(relH, 20),
-                      fontSize: estimatedFontSize,
-                      zIndex: selectedElement.zIndex + 1, // Place on top
-                      color: '#000000' // Default color, picking color from image is harder
-                  });
-              });
-
-              alert(`Successfully extracted ${textData.length} text elements from the image!`);
-          } else {
-              alert("No text was found in the image. Try selecting a different image with visible text.");
-          }
-
-      } catch (e) {
-          console.error("Magic Grab Failed", e);
-          const errorMessage = e instanceof Error ? e.message : "Unknown error occurred";
-          alert(`Could not grab text from image: ${errorMessage}`);
-      } finally {
-          setIsProcessing(false);
-      }
-  };
-
-  // Interactive Magic Grab - Select and edit text directly
-  const handleInteractiveMagicGrab = async () => {
-      if (!selectedElement || selectedElement.type !== ElementType.IMAGE || !selectedElement.src) {
-          alert("Please select an image element first.");
-          return;
-      }
-
-      setIsProcessing(true);
-      try {
-          console.log("Starting Interactive Magic Grab Text process...");
-
-          // Call the OCR API route instead of direct Replicate API
-          const response = await fetch('/api/ocr', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                  imageUrl: selectedElement.src,
-              }),
-          });
-
-          if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.error || `HTTP ${response.status}`);
-          }
-
-          const { textData } = await response.json();
-
-          if (textData && textData.length > 0) {
-              // Prepare detected texts with canvas coordinates
-              const processedTextData = textData.map((item: OCRTextItem) => ({
-                  content: item.text,
-                  box_2d: [item.box[1], item.box[0], item.box[3], item.box[2]], // Convert from [x1,y1,x2,y2] to [ymin,xmin,ymax,xmax]
-                  // Convert coordinates to canvas-relative positions
-                  x: selectedElement.x + (item.box[0] / 1000) * selectedElement.width,
-                  y: selectedElement.y + (item.box[1] / 1000) * selectedElement.height,
-                  width: ((item.box[2] - item.box[0]) / 1000) * selectedElement.width,
-                  height: ((item.box[3] - item.box[1]) / 1000) * selectedElement.height,
-                  isEditing: false
-              }));
-
-              // Call parent callback to start interactive mode
-              onStartInteractiveMagicGrab?.(processedTextData);
-              alert(`Found ${textData.length} text areas! Click on the highlighted areas to edit them.`);
-          } else {
-              alert("No text was found in the image. Try selecting a different image with visible text.");
-          }
-
-      } catch (e) {
-          console.error("Interactive Magic Grab Failed", e);
-          const errorMessage = e instanceof Error ? e.message : "Unknown error occurred";
-          alert(`Could not detect text in image: ${errorMessage}`);
-      } finally {
-          setIsProcessing(false);
-      }
-  };
 
 
   const handleLayer = (action: 'front' | 'back' | 'forward' | 'backward') => {
@@ -368,100 +190,9 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({
    if (selectedElement.type === ElementType.IMAGE) {
        return (
            <div className="h-12 bg-white border-b flex items-center px-4 gap-4 shadow-sm z-10">
-                <button
-                  onClick={handleMagicGrab}
-                  disabled={isProcessing}
-                  className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-3 py-1.5 rounded text-sm hover:shadow-md transition disabled:opacity-50"
-                >
-                    {isProcessing ? (
-                        <IconSparkles className="w-4 h-4 animate-spin" />
-                    ) : (
-                        <IconTextGrab className="w-4 h-4" />
-                    )}
-                    <span>{isProcessing ? 'Processing...' : 'Magic Grab Text'}</span>
-                </button>
-
-                <div className="h-6 w-px bg-gray-300"></div>
-
-                <button
-                  onClick={handleInteractiveMagicGrab}
-                  disabled={isProcessing || magicGrabMode}
-                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white px-3 py-1.5 rounded text-sm hover:shadow-md transition disabled:opacity-50"
-                  title="Select and edit text directly in the image (like Canva)"
-                >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                    <span>{isProcessing ? 'Processing...' : 'Edit Text'}</span>
-                </button>
-
-                <div className="h-6 w-px bg-gray-300"></div>
-
-                <button
-                  onClick={onToggleManualTextMode}
-                  disabled={isProcessing || magicGrabMode}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition ${
-                    manualTextMode
-                      ? 'bg-orange-500 text-white shadow-md'
-                      : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                  } disabled:opacity-50`}
-                  title="Manually select text areas by drawing rectangles"
-                >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                    </svg>
-                    <span>{manualTextMode ? 'Exit Manual Text' : 'Manual Text'}</span>
-                </button>
-
-                <div className="h-6 w-px bg-gray-300"></div>
-
-                {magicGrabMode && (
-                  <>
-                    <button
-                      onClick={onApplyEditedText}
-                      className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded text-sm transition"
-                      title="Apply edited text to canvas"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span>Apply Changes</span>
-                    </button>
-
-                    <div className="h-6 w-px bg-gray-300"></div>
-
-                    <button
-                      onClick={onCancelMagicGrab}
-                      className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded text-sm transition"
-                      title="Cancel text editing"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        <span>Cancel</span>
-                    </button>
-
-                    <div className="h-6 w-px bg-gray-300"></div>
-                  </>
-                )}
-
-                <button
-                  onClick={() => setIsCropping(!isCropping)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition ${
-                    isCropping
-                      ? 'bg-green-500 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                    <IconCrop className="w-4 h-4" />
-                    <span>{isCropping ? 'Exit Crop' : 'Crop'}</span>
-                </button>
-               
-               <div className="h-6 w-px bg-gray-300"></div>
-               
                <div className="flex items-center gap-2">
                  <span className="text-sm text-gray-600">Radius:</span>
-                 <input 
+                 <input
                     type="range"
                     min="0"
                     max="100"
@@ -479,45 +210,6 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({
                     <button onClick={() => handleLayer('forward')} title="Bring Forward" className="p-1.5 rounded hover:bg-gray-200 text-gray-600"> <IconLayerForward className="w-4 h-4"/> </button>
                     <button onClick={() => handleLayer('front')} title="Bring to Front" className="p-1.5 rounded hover:bg-gray-200 text-gray-600"> <IconLayerFront className="w-4 h-4"/> </button>
                </div>
-
-               {isCropping && (
-                 <>
-                   <div className="h-6 w-px bg-gray-300"></div>
-                   <div className="flex items-center gap-2">
-                     <span className="text-sm text-gray-600">Crop:</span>
-                     <input
-                       type="number"
-                       placeholder="X"
-                       className="w-12 border rounded px-2 py-1 text-xs text-center focus:ring-2 focus:ring-purple-500 outline-none"
-                       title="Crop X position"
-                     />
-                     <input
-                       type="number"
-                       placeholder="Y"
-                       className="w-12 border rounded px-2 py-1 text-xs text-center focus:ring-2 focus:ring-purple-500 outline-none"
-                       title="Crop Y position"
-                     />
-                     <input
-                       type="number"
-                       placeholder="W"
-                       className="w-12 border rounded px-2 py-1 text-xs text-center focus:ring-2 focus:ring-purple-500 outline-none"
-                       title="Crop width"
-                     />
-                     <input
-                       type="number"
-                       placeholder="H"
-                       className="w-12 border rounded px-2 py-1 text-xs text-center focus:ring-2 focus:ring-purple-500 outline-none"
-                       title="Crop height"
-                     />
-                     <button
-                       className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600 transition"
-                       title="Apply crop"
-                     >
-                       Apply
-                     </button>
-                   </div>
-                 </>
-               )}
           </div>
       );
   }

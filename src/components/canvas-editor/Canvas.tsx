@@ -8,16 +8,6 @@ import {
     IconLayerBackward
 } from './Icons';
 
-interface DetectedText {
-   content: string;
-   box_2d: [number, number, number, number];
-   x: number;
-   y: number;
-   width: number;
-   height: number;
-   isEditing: boolean;
-   id?: string; // For manual text areas
-}
 
 interface CanvasProps {
    elements: CanvasElement[];
@@ -27,12 +17,6 @@ interface CanvasProps {
    onDelete: (id: string) => void;
    onDuplicate?: (id: string) => void;
    zoom: number;
-   magicGrabMode?: boolean;
-   manualTextMode?: boolean;
-   detectedTexts?: DetectedText[];
-   onTextAreaClick?: (textIndex: number) => void;
-   onTextEdit?: (textIndex: number, newContent: string) => void;
-   onAddElement?: (type: ElementType, payload?: Partial<CanvasElement>) => void;
 }
 
 const Canvas: React.FC<CanvasProps> = ({
@@ -42,13 +26,7 @@ const Canvas: React.FC<CanvasProps> = ({
    onUpdateElement,
    onDelete,
    onDuplicate,
-   zoom,
-   magicGrabMode = false,
-   manualTextMode = false,
-   detectedTexts = [],
-   onTextAreaClick,
-   onTextEdit,
-   onAddElement
+   zoom
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   
@@ -58,11 +36,6 @@ const Canvas: React.FC<CanvasProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, id: string } | null>(null);
 
-  // Manual Text Selection State
-  const [manualTextAreas, setManualTextAreas] = useState<DetectedText[]>([]);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [drawStart, setDrawStart] = useState<{ x: number, y: number } | null>(null);
-  const [drawEnd, setDrawEnd] = useState<{ x: number, y: number } | null>(null);
 
   // Close context menu on global click
   useEffect(() => {
@@ -256,200 +229,12 @@ const Canvas: React.FC<CanvasProps> = ({
       }
   };
 
-   // Manual Text Selection Handlers
-   const handleCanvasMouseDown = (e: React.MouseEvent) => {
-       if (!manualTextMode) return;
-
-       const rect = canvasRef.current?.getBoundingClientRect();
-       if (!rect) return;
-
-       const x = (e.clientX - rect.left) / zoom;
-       const y = (e.clientY - rect.top) / zoom;
-
-       // Check if clicking on existing text area
-       const clickedTextArea = manualTextAreas.find(area =>
-           x >= area.x && x <= area.x + area.width &&
-           y >= area.y && y <= area.y + area.height
-       );
-
-       if (clickedTextArea) {
-           // Edit existing text area
-           setManualTextAreas(prev => prev.map(area =>
-               area.id === clickedTextArea.id
-                   ? { ...area, isEditing: true }
-                   : { ...area, isEditing: false }
-           ));
-           onSelect(null); // Deselect any selected element
-           return;
-       }
-
-       // Start drawing new text area
-       setIsDrawing(true);
-       setDrawStart({ x, y });
-       setDrawEnd({ x, y });
-       onSelect(null); // Deselect any selected element
-   };
-
-   const handleCanvasMouseMove = (e: React.MouseEvent) => {
-       if (!isDrawing || !drawStart) return;
-
-       const rect = canvasRef.current?.getBoundingClientRect();
-       if (!rect) return;
-
-       const x = (e.clientX - rect.left) / zoom;
-       const y = (e.clientY - rect.top) / zoom;
-
-       setDrawEnd({ x, y });
-   };
-
-   const handleCanvasMouseUp = async () => {
-       if (!isDrawing || !drawStart || !drawEnd) return;
-
-       // Calculate rectangle dimensions
-       const x = Math.min(drawStart.x, drawEnd.x);
-       const y = Math.min(drawStart.y, drawEnd.y);
-       const width = Math.abs(drawEnd.x - drawStart.x);
-       const height = Math.abs(drawEnd.y - drawStart.y);
-
-       // Only create text area if rectangle is large enough
-       if (width > 20 && height > 15) {
-           // Find the image element under this area
-           const imageElement = elements.find(el =>
-               el.type === ElementType.IMAGE &&
-               x >= el.x && x <= el.x + el.width &&
-               y >= el.y && y <= el.y + el.height
-           );
-
-           let detectedText = 'Click to edit text';
-
-           // If there's an image under the selection, try to extract text from that region
-   if (imageElement && imageElement.src && typeof imageElement.src === 'string') {
-               try {
-                   // Show loading indicator
-                   const loadingMsg = document.createElement('div');
-                   loadingMsg.textContent = 'Extracting text...';
-                   loadingMsg.style.cssText = `
-                       position: fixed;
-                       top: 50%;
-                       left: 50%;
-                       transform: translate(-50%, -50%);
-                       background: rgba(0,0,0,0.8);
-                       color: white;
-                       padding: 10px 20px;
-                       border-radius: 8px;
-                       z-index: 9999;
-                       font-family: Arial, sans-serif;
-                       font-size: 14px;
-                   `;
-                   document.body.appendChild(loadingMsg);
-
-                   // Calculate pixel coordinates within the image
-                   const imgRelX = (x - imageElement.x) / imageElement.width;
-                   const imgRelY = (y - imageElement.y) / imageElement.height;
-                   const imgRelWidth = width / imageElement.width;
-                   const imgRelHeight = height / imageElement.height;
-
-                   // Load Tesseract.js dynamically
-                   const { createWorker } = await import('tesseract.js');
-
-                   // Create Tesseract worker
-                   const worker = await createWorker('eng');
-
-                   // Create a canvas to crop the image region
-                   const img = new Image();
-                   img.crossOrigin = 'anonymous';
-
-                   await new Promise((resolve, reject) => {
-                       img.onload = resolve;
-                       img.onerror = reject;
-                       img.src = imageElement.src!;
-                   });
-
-                   const canvas = document.createElement('canvas');
-                   const ctx = canvas.getContext('2d');
-                   if (!ctx) throw new Error('Could not get canvas context');
-
-                   // Set canvas size to the selected region
-                   const sourceX = imgRelX * img.naturalWidth;
-                   const sourceY = imgRelY * img.naturalHeight;
-                   const sourceWidth = imgRelWidth * img.naturalWidth;
-                   const sourceHeight = imgRelHeight * img.naturalHeight;
-
-                   canvas.width = sourceWidth;
-                   canvas.height = sourceHeight;
-
-                   // Draw the cropped region
-                   ctx.drawImage(
-                       img,
-                       sourceX, sourceY, sourceWidth, sourceHeight,
-                       0, 0, sourceWidth, sourceHeight
-                   );
-
-                   // Convert to blob for Tesseract
-                   const blob = await new Promise<Blob>((resolve) => {
-                       canvas.toBlob((b) => resolve(b!), 'image/png');
-                   });
-
-                   // Run OCR on the cropped region
-                   const { data: { text } } = await worker.recognize(blob);
-                   detectedText = text.trim() || 'Click to edit text';
-
-                   // Clean up
-                   await worker.terminate();
-                   document.body.removeChild(loadingMsg);
-
-               } catch (error) {
-                   console.error('Failed to extract text with Tesseract.js:', error);
-                   // Remove loading message if it exists
-                   const loadingMsg = document.querySelector('div[style*="Extracting text"]');
-                   if (loadingMsg) document.body.removeChild(loadingMsg);
-                   // Fall back to default text
-               }
-           }
-
-           const newTextArea: DetectedText = {
-               id: `manual-${Date.now()}`,
-               content: detectedText,
-               box_2d: [x, y, x + width, y + height],
-               x,
-               y,
-               width,
-               height,
-               isEditing: true
-           };
-
-           setManualTextAreas(prev => [...prev, newTextArea]);
-       }
-
-       // Reset drawing state
-       setIsDrawing(false);
-       setDrawStart(null);
-       setDrawEnd(null);
-   };
-
-   // Handle manual text editing
-   const handleManualTextEdit = (textId: string, newContent: string) => {
-       setManualTextAreas(prev => prev.map(area =>
-           area.id === textId
-               ? { ...area, content: newContent, isEditing: false }
-               : area
-       ));
-   };
-
-   // Handle clicking on manual text area
-   const handleManualTextAreaClick = (textId: string) => {
-       setManualTextAreas(prev => prev.map(area =>
-           area.id === textId
-               ? { ...area, isEditing: true }
-               : { ...area, isEditing: false }
-       ));
-   };
 
   return (
     <>
         <div
             ref={canvasRef}
-            className={`canvas-container relative bg-white shadow-lg overflow-hidden transition-transform transform origin-center ${manualTextMode ? 'cursor-crosshair' : ''}`}
+            className="canvas-container relative bg-white shadow-lg overflow-hidden transition-transform transform origin-center"
             style={{
                 width: 800,
                 height: 600,
@@ -457,16 +242,10 @@ const Canvas: React.FC<CanvasProps> = ({
                 backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
                 backgroundSize: '20px 20px'
             }}
-            onMouseDown={(e) => {
-                if (manualTextMode) {
-                    handleCanvasMouseDown(e);
-                } else {
-                    onSelect(null);
-                    setEditingId(null);
-                }
+            onMouseDown={() => {
+                onSelect(null);
+                setEditingId(null);
             }}
-            onMouseMove={handleCanvasMouseMove}
-            onMouseUp={handleCanvasMouseUp}
             onDragOver={(e) => e.preventDefault()}
             onContextMenu={(e) => e.preventDefault()} // Disable default context menu on canvas bg
         >
@@ -571,126 +350,6 @@ const Canvas: React.FC<CanvasProps> = ({
                 );
             })}
 
-            {/* Magic Grab Text Overlays */}
-            {magicGrabMode && detectedTexts.map((textItem, index) => (
-                <div
-                    key={`text-overlay-${index}`}
-                    style={{
-                        position: 'absolute',
-                        left: textItem.x,
-                        top: textItem.y,
-                        width: textItem.width,
-                        height: textItem.height,
-                        zIndex: 1000,
-                        cursor: 'pointer',
-                        backgroundColor: textItem.isEditing ? 'rgba(59, 130, 246, 0.3)' : 'rgba(34, 197, 94, 0.2)',
-                        border: textItem.isEditing ? '2px solid #3b82f6' : '2px solid #22c55e',
-                        borderRadius: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                    }}
-                    onClick={() => onTextAreaClick?.(index)}
-                    title="Click to edit this text"
-                >
-                    {textItem.isEditing ? (
-                        <input
-                            type="text"
-                            value={textItem.content}
-                            onChange={(e) => onTextEdit?.(index, e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="bg-white border border-blue-500 rounded px-2 py-1 text-sm w-full max-w-full"
-                            autoFocus
-                            placeholder="Edit text..."
-                        />
-                    ) : (
-                        <div className="text-green-700 font-medium text-sm text-center px-2">
-                            {textItem.content || 'Click to edit'}
-                        </div>
-                    )}
-                </div>
-            ))}
-
-            {/* Manual Text Areas */}
-            {manualTextMode && manualTextAreas.map((textArea, index) => (
-                <div
-                    key={`manual-text-${textArea.id || index}`}
-                    style={{
-                        position: 'absolute',
-                        left: textArea.x,
-                        top: textArea.y,
-                        width: textArea.width,
-                        height: textArea.height,
-                        zIndex: 1000,
-                        cursor: 'pointer',
-                        backgroundColor: textArea.isEditing ? 'rgba(249, 115, 22, 0.2)' : 'rgba(249, 115, 22, 0.1)',
-                        border: textArea.isEditing ? '2px solid #f97316' : '2px solid #fb923c',
-                        borderRadius: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                    }}
-                    onClick={() => handleManualTextAreaClick(textArea.id || `manual-${index}`)}
-                    title="Click to edit this text"
-                >
-                    {textArea.isEditing ? (
-                        <input
-                            type="text"
-                            value={textArea.content}
-                            onChange={(e) => handleManualTextEdit(textArea.id || `manual-${index}`, e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            onBlur={() => setManualTextAreas(prev => prev.map(area =>
-                                area.id === textArea.id ? { ...area, isEditing: false } : area
-                            ))}
-                            className="bg-white border border-orange-500 rounded px-2 py-1 text-sm w-full max-w-full text-center"
-                            autoFocus
-                            placeholder="Enter text..."
-                        />
-                    ) : (
-                        <div className="text-orange-800 font-medium text-sm text-center px-2 break-words">
-                            {textArea.content || 'Click to edit'}
-                        </div>
-                    )}
-                </div>
-            ))}
-
-            {/* Manual Text Selection Drawing Overlay */}
-            {manualTextMode && isDrawing && drawStart && drawEnd && (
-                <div
-                    style={{
-                        position: 'absolute',
-                        left: Math.min(drawStart.x, drawEnd.x),
-                        top: Math.min(drawStart.y, drawEnd.y),
-                        width: Math.abs(drawEnd.x - drawStart.x),
-                        height: Math.abs(drawEnd.y - drawStart.y),
-                        zIndex: 1000,
-                        border: '2px dashed #f97316',
-                        backgroundColor: 'rgba(249, 115, 22, 0.1)',
-                        pointerEvents: 'none'
-                    }}
-                />
-            )}
-
-            {/* Manual Text Mode Instructions */}
-            {manualTextMode && !isDrawing && manualTextAreas.length === 0 && (
-                <div
-                    style={{
-                        position: 'absolute',
-                        top: 10,
-                        left: 10,
-                        zIndex: 1000,
-                        backgroundColor: 'rgba(249, 115, 22, 0.9)',
-                        color: 'white',
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        pointerEvents: 'none'
-                    }}
-                >
-                    Click and drag to create text areas
-                </div>
-            )}
         </div>
 
         {/* Custom Context Menu */}

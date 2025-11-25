@@ -10,15 +10,6 @@ import ContextToolbar from '../../components/canvas-editor/ContextToolbar';
 import Sidebar from '../../components/canvas-editor/Sidebar';
 import { CanvasElement, ElementType, ShapeType } from '../../lib/canvas-types';
 
-interface DetectedText {
-  content: string;
-  box_2d: [number, number, number, number];
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  isEditing: boolean;
-}
 
 // Simple UUID generator fallback
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -30,9 +21,6 @@ const TemplateEditorPage: React.FC = () => {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [fileName, setFileName] = useState('Untitled Design');
   const [zoom, setZoom] = useState(1);
-  const [magicGrabMode, setMagicGrabMode] = useState(false);
-  const [manualTextMode, setManualTextMode] = useState(false);
-  const [detectedTexts, setDetectedTexts] = useState<DetectedText[]>([]);
 
   // Undo/Redo Logic
   const addToHistory = useCallback((newElements: CanvasElement[]) => {
@@ -216,66 +204,6 @@ const TemplateEditorPage: React.FC = () => {
 
   const selectedElement = elements.find(el => el.id === selectedId) || null;
 
-  // Magic Grab Text handlers
-  const handleTextAreaClick = (textIndex: number) => {
-    setDetectedTexts(prev => prev.map((text, index) =>
-      index === textIndex
-        ? { ...text, isEditing: true }
-        : { ...text, isEditing: false }
-    ));
-  };
-
-  const handleTextEdit = (textIndex: number, newContent: string) => {
-    setDetectedTexts(prev => prev.map((text, index) =>
-      index === textIndex
-        ? { ...text, content: newContent }
-        : text
-    ));
-  };
-
-  const handleApplyEditedText = () => {
-    detectedTexts.forEach(textItem => {
-      if (textItem.content.trim()) {
-        addElement(ElementType.TEXT, {
-          content: textItem.content,
-          x: textItem.x,
-          y: textItem.y,
-          width: Math.max(textItem.width, 50),
-          height: Math.max(textItem.height, 20),
-          fontSize: Math.max(12, textItem.height * 0.8),
-          zIndex: selectedElement!.zIndex + 1,
-          color: '#000000'
-        });
-      }
-    });
-
-    // Exit magic grab mode
-    setMagicGrabMode(false);
-    setDetectedTexts([]);
-    alert("Text elements added to canvas!");
-  };
-
-  const handleCancelMagicGrab = () => {
-    setMagicGrabMode(false);
-    setDetectedTexts([]);
-  };
-
-  const handleStartInteractiveMagicGrab = (textData: DetectedText[]) => {
-    setDetectedTexts(textData);
-    setMagicGrabMode(true);
-  };
-
-  const handleToggleManualTextMode = () => {
-    setManualTextMode(prev => {
-      const newMode = !prev;
-      // Exit magic grab mode if entering manual text mode
-      if (newMode) {
-        setMagicGrabMode(false);
-        setDetectedTexts([]);
-      }
-      return newMode;
-    });
-  };
 
   return (
     <ProtectedRoute>
@@ -298,15 +226,6 @@ const TemplateEditorPage: React.FC = () => {
             elements={elements}
             onUpdateElement={updateElement}
             onAddElement={addElement}
-            magicGrabMode={magicGrabMode}
-            manualTextMode={manualTextMode}
-            detectedTexts={detectedTexts}
-            onTextAreaClick={handleTextAreaClick}
-            onTextEdit={handleTextEdit}
-            onApplyEditedText={handleApplyEditedText}
-            onCancelMagicGrab={handleCancelMagicGrab}
-            onStartInteractiveMagicGrab={handleStartInteractiveMagicGrab}
-            onToggleManualTextMode={handleToggleManualTextMode}
           />
 
           <div className="flex flex-1 overflow-hidden relative">
@@ -329,12 +248,6 @@ const TemplateEditorPage: React.FC = () => {
                 onDelete={deleteElement}
                 onDuplicate={duplicateElement}
                 zoom={zoom}
-                magicGrabMode={magicGrabMode}
-                manualTextMode={manualTextMode}
-                detectedTexts={detectedTexts}
-                onTextAreaClick={handleTextAreaClick}
-                onTextEdit={handleTextEdit}
-                onAddElement={addElement}
               />
             </div>
 
