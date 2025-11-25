@@ -437,7 +437,7 @@ const TemplateEditorPage: React.FC = () => {
             <Sidebar onAddElement={addElement} />
 
             {/* Canvas Area */}
-            <div className="flex-1 bg-gray-200 overflow-auto flex items-center justify-center p-8 relative">
+            <div className="flex-1 bg-gray-200 overflow-auto flex items-center justify-center p-4 relative">
               {/* Zoom Controls Overlay */}
               <div className="absolute bottom-4 left-8 z-10 bg-white rounded-full shadow px-3 py-1 flex items-center gap-2 text-sm">
                 <button onClick={() => setZoom(z => Math.max(0.2, z - 0.1))} className="hover:bg-gray-100 px-2 rounded">-</button>
@@ -454,6 +454,7 @@ const TemplateEditorPage: React.FC = () => {
                 onDuplicate={duplicateElement}
                 zoom={zoom}
                 cropMode={cropMode}
+                onToggleCropMode={handleToggleCropMode}
               />
             </div>
 

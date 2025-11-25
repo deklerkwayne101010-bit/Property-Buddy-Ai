@@ -18,6 +18,7 @@ interface CanvasProps {
    onDuplicate?: (id: string) => void;
    zoom: number;
    cropMode?: boolean;
+   onToggleCropMode?: () => void;
 }
 
 const Canvas: React.FC<CanvasProps> = ({
@@ -28,7 +29,8 @@ const Canvas: React.FC<CanvasProps> = ({
    onDelete,
    onDuplicate,
    zoom,
-   cropMode = false
+   cropMode = false,
+   onToggleCropMode
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   
@@ -480,11 +482,37 @@ const Canvas: React.FC<CanvasProps> = ({
 
         {/* Custom Context Menu */}
         {contextMenu && (
-            <div 
+            <div
                 className="fixed bg-white rounded-lg shadow-xl border border-gray-200 py-1 w-48 z-50 flex flex-col"
                 style={{ left: contextMenu.x, top: contextMenu.y }}
-                onClick={(e) => e.stopPropagation()} 
+                onClick={(e) => e.stopPropagation()}
             >
+                {/* Crop Options - Only show for images */}
+                {(() => {
+                    const element = elements.find(el => el.id === contextMenu.id);
+                    if (element?.type === ElementType.IMAGE) {
+                        return (
+                            <>
+                                <button
+                                    className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 w-full text-left"
+                                    onClick={() => {
+                                        if (onToggleCropMode) onToggleCropMode();
+                                        setContextMenu(null);
+                                    }}
+                                >
+                                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    </svg>
+                                    {cropMode ? 'Exit Crop Mode' : 'Enter Crop Mode'}
+                                </button>
+                                <div className="h-px bg-gray-100 my-1"></div>
+                            </>
+                        );
+                    }
+                    return null;
+                })()}
+
                 {/* Layer Options */}
                 <button className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 w-full text-left" onClick={() => handleLayer(contextMenu.id, 'front')}>
                     <IconLayerFront className="w-4 h-4 text-gray-500" /> Bring to Front
@@ -501,7 +529,7 @@ const Canvas: React.FC<CanvasProps> = ({
 
                 <div className="h-px bg-gray-100 my-1"></div>
 
-                <button 
+                <button
                     className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 w-full text-left"
                     onClick={() => {
                         if (onDuplicate) onDuplicate(contextMenu.id);
@@ -512,7 +540,7 @@ const Canvas: React.FC<CanvasProps> = ({
                     Duplicate
                 </button>
                 <div className="h-px bg-gray-100 my-1"></div>
-                <button 
+                <button
                     className="flex items-center gap-2 px-4 py-2 hover:bg-red-50 text-sm text-red-600 w-full text-left"
                     onClick={() => {
                         onDelete(contextMenu.id);
