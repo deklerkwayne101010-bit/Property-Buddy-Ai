@@ -9,13 +9,14 @@ import {
 } from './Icons';
 
 interface DetectedText {
-  content: string;
-  box_2d: [number, number, number, number];
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  isEditing: boolean;
+   content: string;
+   box_2d: [number, number, number, number];
+   x: number;
+   y: number;
+   width: number;
+   height: number;
+   isEditing: boolean;
+   id?: string; // For manual text areas
 }
 
 interface CanvasProps {
@@ -58,6 +59,7 @@ const Canvas: React.FC<CanvasProps> = ({
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, id: string } | null>(null);
 
   // Manual Text Selection State
+  const [manualTextAreas, setManualTextAreas] = useState<DetectedText[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawStart, setDrawStart] = useState<{ x: number, y: number } | null>(null);
   const [drawEnd, setDrawEnd] = useState<{ x: number, y: number } | null>(null);
@@ -254,62 +256,100 @@ const Canvas: React.FC<CanvasProps> = ({
       }
   };
 
-  // Manual Text Selection Handlers
-  const handleCanvasMouseDown = (e: React.MouseEvent) => {
-      if (!manualTextMode) return;
+   // Manual Text Selection Handlers
+   const handleCanvasMouseDown = (e: React.MouseEvent) => {
+       if (!manualTextMode) return;
 
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (!rect) return;
+       const rect = canvasRef.current?.getBoundingClientRect();
+       if (!rect) return;
 
-      const x = (e.clientX - rect.left) / zoom;
-      const y = (e.clientY - rect.top) / zoom;
+       const x = (e.clientX - rect.left) / zoom;
+       const y = (e.clientY - rect.top) / zoom;
 
-      setIsDrawing(true);
-      setDrawStart({ x, y });
-      setDrawEnd({ x, y });
-      onSelect(null); // Deselect any selected element
-  };
+       // Check if clicking on existing text area
+       const clickedTextArea = manualTextAreas.find(area =>
+           x >= area.x && x <= area.x + area.width &&
+           y >= area.y && y <= area.y + area.height
+       );
 
-  const handleCanvasMouseMove = (e: React.MouseEvent) => {
-      if (!isDrawing || !drawStart) return;
+       if (clickedTextArea) {
+           // Edit existing text area
+           setManualTextAreas(prev => prev.map(area =>
+               area.id === clickedTextArea.id
+                   ? { ...area, isEditing: true }
+                   : { ...area, isEditing: false }
+           ));
+           onSelect(null); // Deselect any selected element
+           return;
+       }
 
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (!rect) return;
+       // Start drawing new text area
+       setIsDrawing(true);
+       setDrawStart({ x, y });
+       setDrawEnd({ x, y });
+       onSelect(null); // Deselect any selected element
+   };
 
-      const x = (e.clientX - rect.left) / zoom;
-      const y = (e.clientY - rect.top) / zoom;
+   const handleCanvasMouseMove = (e: React.MouseEvent) => {
+       if (!isDrawing || !drawStart) return;
 
-      setDrawEnd({ x, y });
-  };
+       const rect = canvasRef.current?.getBoundingClientRect();
+       if (!rect) return;
 
-  const handleCanvasMouseUp = () => {
-      if (!isDrawing || !drawStart || !drawEnd) return;
+       const x = (e.clientX - rect.left) / zoom;
+       const y = (e.clientY - rect.top) / zoom;
 
-      // Calculate rectangle dimensions
-      const x = Math.min(drawStart.x, drawEnd.x);
-      const y = Math.min(drawStart.y, drawEnd.y);
-      const width = Math.abs(drawEnd.x - drawStart.x);
-      const height = Math.abs(drawEnd.y - drawStart.y);
+       setDrawEnd({ x, y });
+   };
 
-      // Only create text element if rectangle is large enough
-      if (width > 20 && height > 15 && onAddElement) {
-          onAddElement(ElementType.TEXT, {
-              content: 'Your Text Here',
-              x,
-              y,
-              width,
-              height,
-              fontSize: Math.max(12, height * 0.7),
-              color: '#000000',
-              zIndex: Math.max(...elements.map(el => el.zIndex), 0) + 1
-          });
-      }
+   const handleCanvasMouseUp = () => {
+       if (!isDrawing || !drawStart || !drawEnd) return;
 
-      // Reset drawing state
-      setIsDrawing(false);
-      setDrawStart(null);
-      setDrawEnd(null);
-  };
+       // Calculate rectangle dimensions
+       const x = Math.min(drawStart.x, drawEnd.x);
+       const y = Math.min(drawStart.y, drawEnd.y);
+       const width = Math.abs(drawEnd.x - drawStart.x);
+       const height = Math.abs(drawEnd.y - drawStart.y);
+
+       // Only create text area if rectangle is large enough
+       if (width > 20 && height > 15) {
+           const newTextArea: DetectedText = {
+               id: `manual-${Date.now()}`,
+               content: 'Click to edit text',
+               box_2d: [x, y, x + width, y + height],
+               x,
+               y,
+               width,
+               height,
+               isEditing: true
+           };
+
+           setManualTextAreas(prev => [...prev, newTextArea]);
+       }
+
+       // Reset drawing state
+       setIsDrawing(false);
+       setDrawStart(null);
+       setDrawEnd(null);
+   };
+
+   // Handle manual text editing
+   const handleManualTextEdit = (textId: string, newContent: string) => {
+       setManualTextAreas(prev => prev.map(area =>
+           area.id === textId
+               ? { ...area, content: newContent, isEditing: false }
+               : area
+       ));
+   };
+
+   // Handle clicking on manual text area
+   const handleManualTextAreaClick = (textId: string) => {
+       setManualTextAreas(prev => prev.map(area =>
+           area.id === textId
+               ? { ...area, isEditing: true }
+               : { ...area, isEditing: false }
+       ));
+   };
 
   return (
     <>
@@ -477,6 +517,49 @@ const Canvas: React.FC<CanvasProps> = ({
                 </div>
             ))}
 
+            {/* Manual Text Areas */}
+            {manualTextMode && manualTextAreas.map((textArea, index) => (
+                <div
+                    key={`manual-text-${textArea.id || index}`}
+                    style={{
+                        position: 'absolute',
+                        left: textArea.x,
+                        top: textArea.y,
+                        width: textArea.width,
+                        height: textArea.height,
+                        zIndex: 1000,
+                        cursor: 'pointer',
+                        backgroundColor: textArea.isEditing ? 'rgba(249, 115, 22, 0.2)' : 'rgba(249, 115, 22, 0.1)',
+                        border: textArea.isEditing ? '2px solid #f97316' : '2px solid #fb923c',
+                        borderRadius: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                    onClick={() => handleManualTextAreaClick(textArea.id || `manual-${index}`)}
+                    title="Click to edit this text"
+                >
+                    {textArea.isEditing ? (
+                        <input
+                            type="text"
+                            value={textArea.content}
+                            onChange={(e) => handleManualTextEdit(textArea.id || `manual-${index}`, e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            onBlur={() => setManualTextAreas(prev => prev.map(area =>
+                                area.id === textArea.id ? { ...area, isEditing: false } : area
+                            ))}
+                            className="bg-white border border-orange-500 rounded px-2 py-1 text-sm w-full max-w-full text-center"
+                            autoFocus
+                            placeholder="Enter text..."
+                        />
+                    ) : (
+                        <div className="text-orange-800 font-medium text-sm text-center px-2 break-words">
+                            {textArea.content || 'Click to edit'}
+                        </div>
+                    )}
+                </div>
+            ))}
+
             {/* Manual Text Selection Drawing Overlay */}
             {manualTextMode && isDrawing && drawStart && drawEnd && (
                 <div
@@ -495,7 +578,7 @@ const Canvas: React.FC<CanvasProps> = ({
             )}
 
             {/* Manual Text Mode Instructions */}
-            {manualTextMode && !isDrawing && (
+            {manualTextMode && !isDrawing && manualTextAreas.length === 0 && (
                 <div
                     style={{
                         position: 'absolute',
@@ -511,7 +594,7 @@ const Canvas: React.FC<CanvasProps> = ({
                         pointerEvents: 'none'
                     }}
                 >
-                    Click and drag to select text areas
+                    Click and drag to create text areas
                 </div>
             )}
         </div>

@@ -266,12 +266,15 @@ const TemplateEditorPage: React.FC = () => {
   };
 
   const handleToggleManualTextMode = () => {
-    setManualTextMode(prev => !prev);
-    // Exit magic grab mode if entering manual text mode
-    if (!manualTextMode) {
-      setMagicGrabMode(false);
-      setDetectedTexts([]);
-    }
+    setManualTextMode(prev => {
+      const newMode = !prev;
+      // Exit magic grab mode if entering manual text mode
+      if (newMode) {
+        setMagicGrabMode(false);
+        setDetectedTexts([]);
+      }
+      return newMode;
+    });
   };
 
   return (
