@@ -18,7 +18,6 @@ const getClient = () => {
 
 // Replicate API configuration for OCR
 const REPLICATE_API_URL = 'https://api.replicate.com/v1/predictions';
-const OCR_MODEL = 'datalab-to/ocr';
 
 const getReplicateClient = () => {
   const apiKey = process.env.REPLICATE_API_TOKEN;
@@ -29,7 +28,7 @@ const getReplicateClient = () => {
   return apiKey;
 };
 
-export const generateMagicText = async (prompt: string, currentText?: string): Promise<string> => {
+export const generateMagicText = async (_prompt: string, currentText?: string): Promise<string> => {
   const client = getClient();
   if (!client) return "API Key missing";
 
@@ -94,6 +93,17 @@ interface ExtractedText {
     box_2d: [number, number, number, number]; // ymin, xmin, ymax, xmax
 }
 
+interface OCRResultItem {
+    text: string;
+    box: [number, number, number, number]; // [x1, y1, x2, y2]
+}
+
+interface ReplicatePrediction {
+    status: string;
+    output?: OCRResultItem[];
+    error?: string;
+}
+
 export const extractTextFromImage = async (base64Image: string): Promise<ExtractedText[]> => {
     const replicateApiKey = getReplicateClient();
     if (!replicateApiKey) {
@@ -144,7 +154,7 @@ export const extractTextFromImage = async (base64Image: string): Promise<Extract
 
         // The datalab-to/ocr model returns OCR results in a specific format
         if (result.output && Array.isArray(result.output)) {
-            result.output.forEach((item: any) => {
+            result.output.forEach((item: OCRResultItem) => {
                 if (item.text && item.box) {
                     // Convert box coordinates to the expected format [ymin, xmin, ymax, xmax]
                     const box = item.box;
@@ -166,7 +176,7 @@ export const extractTextFromImage = async (base64Image: string): Promise<Extract
 };
 
 // Helper function to poll Replicate prediction status
-async function pollReplicatePrediction(predictionUrl: string, apiKey: string, maxAttempts: number = 30): Promise<any> {
+async function pollReplicatePrediction(predictionUrl: string, apiKey: string, maxAttempts: number = 30): Promise<ReplicatePrediction> {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
             const response = await fetch(predictionUrl, {
