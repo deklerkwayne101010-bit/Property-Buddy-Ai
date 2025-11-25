@@ -521,8 +521,8 @@ export default function BuyerPackMakerPage() {
           /* Header */
           .header {
             text-align: center;
-            margin-bottom: 40px;
-            padding-bottom: 30px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
             border-bottom: 3px solid var(--remax-red);
           }
 
@@ -586,8 +586,8 @@ export default function BuyerPackMakerPage() {
           /* Property Section */
           .property-section {
             background: white;
-            padding: 30px;
-            margin: 40px 0;
+            padding: 25px;
+            margin: 20px 0;
             border-radius: var(--radius);
             border: 1px solid var(--gray-200);
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
