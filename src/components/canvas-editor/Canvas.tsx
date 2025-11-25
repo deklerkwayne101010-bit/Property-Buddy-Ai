@@ -323,37 +323,86 @@ const Canvas: React.FC<CanvasProps> = ({
            let detectedText = 'Click to edit text';
 
            // If there's an image under the selection, try to extract text from that region
-           if (imageElement && imageElement.src) {
+   if (imageElement && imageElement.src && typeof imageElement.src === 'string') {
                try {
-                   // Calculate relative coordinates within the image
-                   const relX = (x - imageElement.x) / imageElement.width;
-                   const relY = (y - imageElement.y) / imageElement.height;
-                   const relWidth = width / imageElement.width;
-                   const relHeight = height / imageElement.height;
+                   // Show loading indicator
+                   const loadingMsg = document.createElement('div');
+                   loadingMsg.textContent = 'Extracting text...';
+                   loadingMsg.style.cssText = `
+                       position: fixed;
+                       top: 50%;
+                       left: 50%;
+                       transform: translate(-50%, -50%);
+                       background: rgba(0,0,0,0.8);
+                       color: white;
+                       padding: 10px 20px;
+                       border-radius: 8px;
+                       z-index: 9999;
+                       font-family: Arial, sans-serif;
+                       font-size: 14px;
+                   `;
+                   document.body.appendChild(loadingMsg);
 
-                   // Call OCR API for the specific region
-                   const response = await fetch('/api/ocr-region', {
-                       method: 'POST',
-                       headers: {
-                           'Content-Type': 'application/json',
-                       },
-                       body: JSON.stringify({
-                           imageUrl: imageElement.src,
-                           region: {
-                               x: relX,
-                               y: relY,
-                               width: relWidth,
-                               height: relHeight
-                           }
-                       }),
+                   // Calculate pixel coordinates within the image
+                   const imgRelX = (x - imageElement.x) / imageElement.width;
+                   const imgRelY = (y - imageElement.y) / imageElement.height;
+                   const imgRelWidth = width / imageElement.width;
+                   const imgRelHeight = height / imageElement.height;
+
+                   // Load Tesseract.js dynamically
+                   const { createWorker } = await import('tesseract.js');
+
+                   // Create Tesseract worker
+                   const worker = await createWorker('eng');
+
+                   // Create a canvas to crop the image region
+                   const img = new Image();
+                   img.crossOrigin = 'anonymous';
+
+                   await new Promise((resolve, reject) => {
+                       img.onload = resolve;
+                       img.onerror = reject;
+                       img.src = imageElement.src!;
                    });
 
-                   if (response.ok) {
-                       const { text } = await response.json();
-                       detectedText = text || 'Click to edit text';
-                   }
+                   const canvas = document.createElement('canvas');
+                   const ctx = canvas.getContext('2d');
+                   if (!ctx) throw new Error('Could not get canvas context');
+
+                   // Set canvas size to the selected region
+                   const sourceX = imgRelX * img.naturalWidth;
+                   const sourceY = imgRelY * img.naturalHeight;
+                   const sourceWidth = imgRelWidth * img.naturalWidth;
+                   const sourceHeight = imgRelHeight * img.naturalHeight;
+
+                   canvas.width = sourceWidth;
+                   canvas.height = sourceHeight;
+
+                   // Draw the cropped region
+                   ctx.drawImage(
+                       img,
+                       sourceX, sourceY, sourceWidth, sourceHeight,
+                       0, 0, sourceWidth, sourceHeight
+                   );
+
+                   // Convert to blob for Tesseract
+                   const blob = await new Promise<Blob>((resolve) => {
+                       canvas.toBlob((b) => resolve(b!), 'image/png');
+                   });
+
+                   // Run OCR on the cropped region
+                   const { data: { text } } = await worker.recognize(blob);
+                   detectedText = text.trim() || 'Click to edit text';
+
+                   // Clean up
+                   await worker.terminate();
+                   document.body.removeChild(loadingMsg);
+
                } catch (error) {
-                   console.error('Failed to extract text from region:', error);
+                   console.error('Failed to extract text with Tesseract.js:', error);
+                   // Remove loading message if it exists
+                   const loadingMsg = document.querySelector('div[style*="Extracting text"]');
+                   if (loadingMsg) document.body.removeChild(loadingMsg);
                    // Fall back to default text
                }
            }
