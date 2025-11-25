@@ -822,15 +822,15 @@ export default function BuyerPackMakerPage() {
               <div className="flex gap-3">
                 <input
                   type="url"
-                  value={singleUrl}
-                  onChange={(e) => setSingleUrl(e.target.value)}
+                  value={currentUrl}
+                  onChange={(e) => setCurrentUrl(e.target.value)}
                   placeholder="Paste Property24 URL here..."
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  onKeyPress={(e) => e.key === 'Enter' && addUrl()}
+                  onKeyPress={(e) => e.key === 'Enter' && handleScrapeProperty()}
                 />
                 <button
-                  onClick={addUrl}
-                  disabled={!singleUrl.trim()}
+                  onClick={handleScrapeProperty}
+                  disabled={!currentUrl.trim()}
                   className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 flex items-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -844,108 +844,17 @@ export default function BuyerPackMakerPage() {
               </p>
             </div>
 
-            {/* Bulk Add Section */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Bulk Add Properties</h3>
-              <div>
-                <label htmlFor="property-urls" className="block text-sm font-medium text-gray-700 mb-2">
-                  Or paste multiple Property24 URLs (one per line)
-                </label>
-                <textarea
-                  id="property-urls"
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="https://www.property24.com/for-sale/durban/kwazulu-natal/123
-https://www.property24.com/for-sale/cape-town/western-cape/456
-https://www.property24.com/for-sale/johannesburg/gauteng/789"
-                  value={propertyUrls}
-                  onChange={(e) => setPropertyUrls(e.target.value)}
-                />
-              </div>
-            </div>
 
-            {/* URL List Preview */}
-            {getUrlCount() > 0 && (
-              <div className="mb-6">
-                <h4 className="text-md font-semibold text-gray-900 mb-3">Properties to Process:</h4>
-                <div className="bg-gray-50 rounded-lg p-4 max-h-40 overflow-y-auto">
-                  {propertyUrls.split('\n').filter(url => url.trim()).map((url, index) => (
-                    <div key={index} className="flex items-center justify-between py-1">
-                      <span className="text-sm text-gray-700 truncate flex-1 mr-3">{url}</span>
-                      <button
-                        onClick={() => removeUrl(index)}
-                        className="text-red-500 hover:text-red-700 p-1"
-                        title="Remove this property"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {error && (
               <div className="text-red-600 text-sm mb-4 p-3 bg-red-50 border border-red-200 rounded-md">{error}</div>
             )}
 
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={handleScrapeProperties}
-                disabled={isProcessing || getUrlCount() === 0}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-3 px-6 rounded-md transition-colors duration-200 flex items-center gap-2"
-              >
-                {isProcessing ? (
-                  <>
-                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Scraping {getUrlCount()} Properties...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    Scrape {getUrlCount()} {getUrlCount() === 1 ? 'Property' : 'Properties'}
-                  </>
-                )}
-              </button>
-
-              {scrapedData.length > 0 && (
-                <>
-                  <button
-                    onClick={handleGeneratePDF}
-                    disabled={isProcessing}
-                    className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-3 px-6 rounded-md transition-colors duration-200 flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    {isProcessing ? 'Generating PDF...' : 'Generate PDF Pack'}
-                  </button>
-
-                  <button
-                    onClick={handleGenerateEditableHTML}
-                    disabled={isProcessing}
-                    className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-medium py-3 px-6 rounded-md transition-colors duration-200 flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    {isProcessing ? 'Generating Editable Pack...' : 'Generate Editable Pack'}
-                  </button>
-                </>
-              )}
-            </div>
 
 
             {/* Help Text */}
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="text-sm font-semibold text-blue-900 mb-2">How to add properties:</h4>
+              <h4 className="text-sm font-semibold text-blue-900 mb-2">How it works:</h4>
               <ul className="text-sm text-blue-800 space-y-1">
                 <li>• Use the &quot;Quick Add&quot; field to add one property at a time</li>
                 <li>• Or paste multiple URLs in the bulk textarea (one per line)</li>
