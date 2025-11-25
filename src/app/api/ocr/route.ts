@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
         'Prefer': 'wait',
       },
       body: JSON.stringify({
-        version: "9a74a245842759e2c7b0c569db5cca4f916d74557bc4e07e0be7391d2d64d1f0", // datalab-to/ocr model version
+        version: "datalab-to/ocr", // Using datalab-to/ocr model
         input: {
           image: imageUrl,
           format: "json"
