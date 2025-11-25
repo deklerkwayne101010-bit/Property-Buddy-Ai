@@ -30,6 +30,8 @@ export default function BuyerPackMakerPage() {
   const [error, setError] = useState('');
   const [creditsRemaining, setCreditsRemaining] = useState<number | null>(null);
   const [showAddForm, setShowAddForm] = useState(true);
+  const [scrapingProgress, setScrapingProgress] = useState(0);
+  const [scrapingStatus, setScrapingStatus] = useState('');
 
   // Load credits on component mount
   useEffect(() => {
@@ -77,6 +79,8 @@ export default function BuyerPackMakerPage() {
     setError('');
     setCurrentJobId(null);
     setShowAddForm(false); // Hide form immediately when starting
+    setScrapingProgress(0);
+    setScrapingStatus('Initializing scraping process...');
 
     try {
       console.log(`Starting scrape job for property: ${currentUrl.trim()}`);
@@ -106,6 +110,23 @@ export default function BuyerPackMakerPage() {
       while (!jobComplete && attempts < maxAttempts) {
         attempts++;
 
+        // Update progress based on attempts
+        const progressPercent = Math.min(90, (attempts / maxAttempts) * 100);
+        setScrapingProgress(progressPercent);
+
+        // Update status messages based on progress
+        if (attempts <= 6) {
+          setScrapingStatus('Bypassing anti-bot detection...');
+        } else if (attempts <= 12) {
+          setScrapingStatus('Fetching property data...');
+        } else if (attempts <= 24) {
+          setScrapingStatus('Extracting property details...');
+        } else if (attempts <= 36) {
+          setScrapingStatus('Processing images and features...');
+        } else {
+          setScrapingStatus('Finalizing property data...');
+        }
+
         // Wait 5 seconds before checking status
         await new Promise(resolve => setTimeout(resolve, 5000));
 
@@ -121,11 +142,15 @@ export default function BuyerPackMakerPage() {
 
           if (jobStatus.status === 'completed') {
             console.log(`Job ${jobId} completed successfully`);
+            setScrapingProgress(100);
+            setScrapingStatus('Property data extracted successfully!');
             setScrapedData(prev => [...prev, jobStatus.data]);
             setShowAddForm(true);
             jobComplete = true;
           } else if (jobStatus.status === 'failed') {
             console.error(`Job ${jobId} failed: ${jobStatus.error}`);
+            setScrapingProgress(0);
+            setScrapingStatus('');
             // Add fallback entry for failed jobs
             const fallbackData: PropertyData = {
               title: `Property ${scrapedData.length + 1} (Scraping failed)`,
@@ -151,6 +176,8 @@ export default function BuyerPackMakerPage() {
 
       if (!jobComplete) {
         console.error(`Job ${jobId} timed out after ${maxAttempts} attempts`);
+        setScrapingProgress(0);
+        setScrapingStatus('');
         const timeoutData: PropertyData = {
           title: `Property ${scrapedData.length + 1} (Timeout)`,
           price: "Price not available",
@@ -172,6 +199,8 @@ export default function BuyerPackMakerPage() {
     } catch (error) {
       console.error(`Error starting scrape job:`, error);
       setError(`Failed to start scraping: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setScrapingProgress(0);
+      setScrapingStatus('');
       setShowAddForm(true);
     } finally {
       setIsProcessing(false);
@@ -874,18 +903,52 @@ export default function BuyerPackMakerPage() {
               </div>
             )}
 
-            {/* Processing Status */}
+            {/* Processing Status with Progress Bar */}
             {isProcessing && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <div className="flex items-center gap-3">
-                  <svg className="animate-spin w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <div>
-                    <h3 className="text-lg font-semibold text-blue-900">Scraping Property Data...</h3>
-                    <p className="text-blue-700">Please wait while we extract property information. This may take up to 5 minutes.</p>
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 mb-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="relative">
+                    <svg className="animate-spin w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                    </div>
                   </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-blue-900 mb-1">Extracting Property Data</h3>
+                    <p className="text-blue-700 text-sm">{scrapingStatus}</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-blue-600">{Math.round(scrapingProgress)}%</div>
+                    <div className="text-xs text-blue-500">Complete</div>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="w-full bg-blue-100 rounded-full h-3 mb-3 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-500 ease-out relative"
+                    style={{ width: `${scrapingProgress}%` }}
+                  >
+                    <div className="absolute inset-0 bg-white opacity-30 animate-pulse"></div>
+                  </div>
+                </div>
+
+                {/* Progress Steps */}
+                <div className="flex justify-between text-xs text-blue-600 mb-2">
+                  <span className={scrapingProgress >= 10 ? 'font-semibold' : 'opacity-50'}>Initializing</span>
+                  <span className={scrapingProgress >= 30 ? 'font-semibold' : 'opacity-50'}>Bypassing Detection</span>
+                  <span className={scrapingProgress >= 50 ? 'font-semibold' : 'opacity-50'}>Extracting Data</span>
+                  <span className={scrapingProgress >= 80 ? 'font-semibold' : 'opacity-50'}>Processing Images</span>
+                  <span className={scrapingProgress >= 95 ? 'font-semibold' : 'opacity-50'}>Finalizing</span>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-xs text-blue-500 mt-2">
+                    This process may take 2-5 minutes depending on Property24's response time
+                  </p>
                 </div>
               </div>
             )}
