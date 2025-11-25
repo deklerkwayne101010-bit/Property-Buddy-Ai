@@ -1,13 +1,22 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { CanvasElement, ElementType, ShapeType, DragState, ResizeState } from '../../lib/canvas-types';
-import { 
-    IconTrash, 
-    IconUndo as IconCopy, 
-    IconLayerFront, 
-    IconLayerBack, 
-    IconLayerForward, 
-    IconLayerBackward 
+import {
+    IconTrash,
+    IconLayerFront,
+    IconLayerBack,
+    IconLayerForward,
+    IconLayerBackward
 } from './Icons';
+
+interface DetectedText {
+  content: string;
+  box_2d: [number, number, number, number];
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  isEditing: boolean;
+}
 
 interface CanvasProps {
   elements: CanvasElement[];
@@ -18,7 +27,7 @@ interface CanvasProps {
   onDuplicate?: (id: string) => void;
   zoom: number;
   magicGrabMode?: boolean;
-  detectedTexts?: any[];
+  detectedTexts?: DetectedText[];
   onTextAreaClick?: (textIndex: number) => void;
   onTextEdit?: (textIndex: number, newContent: string) => void;
 }

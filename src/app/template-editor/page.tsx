@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '../../components/DashboardLayout';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import Canvas from '../../components/canvas-editor/Canvas';
@@ -9,6 +9,16 @@ import Toolbar from '../../components/canvas-editor/Toolbar';
 import ContextToolbar from '../../components/canvas-editor/ContextToolbar';
 import Sidebar from '../../components/canvas-editor/Sidebar';
 import { CanvasElement, ElementType, ShapeType } from '../../lib/canvas-types';
+
+interface DetectedText {
+  content: string;
+  box_2d: [number, number, number, number];
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  isEditing: boolean;
+}
 
 // Simple UUID generator fallback
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -21,7 +31,7 @@ const TemplateEditorPage: React.FC = () => {
   const [fileName, setFileName] = useState('Untitled Design');
   const [zoom, setZoom] = useState(1);
   const [magicGrabMode, setMagicGrabMode] = useState(false);
-  const [detectedTexts, setDetectedTexts] = useState<any[]>([]);
+  const [detectedTexts, setDetectedTexts] = useState<DetectedText[]>([]);
 
   // Undo/Redo Logic
   const addToHistory = useCallback((newElements: CanvasElement[]) => {
@@ -187,7 +197,7 @@ const TemplateEditorPage: React.FC = () => {
     setDetectedTexts([]);
   };
 
-  const handleStartInteractiveMagicGrab = (textData: any[]) => {
+  const handleStartInteractiveMagicGrab = (textData: DetectedText[]) => {
     setDetectedTexts(textData);
     setMagicGrabMode(true);
   };

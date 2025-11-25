@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
 import { CanvasElement, ElementType } from '../../lib/canvas-types';
+
+interface DetectedText {
+  content: string;
+  box_2d: [number, number, number, number];
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  isEditing: boolean;
+}
 import {
   IconBold, IconItalic, IconUnderline,
   IconAlignLeft, IconAlignCenter, IconAlignRight,
@@ -15,7 +25,7 @@ interface ContextToolbarProps {
   onUpdateElement: (id: string, updates: Partial<CanvasElement>) => void;
   onAddElement: (type: ElementType, payload?: Partial<CanvasElement>) => void;
   magicGrabMode?: boolean;
-  detectedTexts?: any[];
+  detectedTexts?: DetectedText[];
   onTextAreaClick?: (textIndex: number) => void;
   onTextEdit?: (textIndex: number, newContent: string) => void;
   onApplyEditedText?: () => void;
@@ -38,6 +48,8 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCropping, setIsCropping] = useState(false);
+
+  // Remove unused local state variables that are now managed by parent
 
   // Magic Grab Logic - Extract text and create new elements
   const handleMagicGrab = async () => {
