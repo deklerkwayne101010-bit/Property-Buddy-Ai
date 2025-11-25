@@ -138,33 +138,63 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({ selectedElement, elemen
 
   // Text Controls
   if (selectedElement.type === ElementType.TEXT) {
+      const fontOptions = [
+          { value: 'Arial, sans-serif', label: 'Arial' },
+          { value: 'Helvetica, sans-serif', label: 'Helvetica' },
+          { value: 'Times New Roman, serif', label: 'Times New Roman' },
+          { value: 'Georgia, serif', label: 'Georgia' },
+          { value: 'Verdana, sans-serif', label: 'Verdana' },
+          { value: 'Courier New, monospace', label: 'Courier New' },
+          { value: 'Impact, sans-serif', label: 'Impact' },
+          { value: 'Comic Sans MS, cursive', label: 'Comic Sans' },
+      ];
+
       return (
          <div className="h-12 bg-white border-b flex items-center px-4 gap-3 shadow-sm z-10 overflow-x-auto">
-             {/* Font Size */}
-             <div className="flex items-center gap-2">
-                 <span className="text-xs text-gray-500">Size</span>
-                 <input 
-                    type="number" 
-                    value={selectedElement.fontSize || 16}
-                    onChange={(e) => onUpdateElement(selectedElement.id, { fontSize: Number(e.target.value) })}
-                    className="w-16 border rounded px-2 py-1 text-sm text-center focus:ring-2 focus:ring-purple-500 outline-none"
-                 />
-             </div>
+              {/* Font Family */}
+              <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Font</span>
+                  <select
+                     value={selectedElement.fontFamily || 'Arial, sans-serif'}
+                     onChange={(e) => onUpdateElement(selectedElement.id, { fontFamily: e.target.value })}
+                     className="border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-purple-500 outline-none min-w-[120px]"
+                     title="Font Family"
+                  >
+                     {fontOptions.map(font => (
+                        <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
+                           {font.label}
+                        </option>
+                     ))}
+                  </select>
+              </div>
 
-             <div className="h-6 w-px bg-gray-300"></div>
+              <div className="h-6 w-px bg-gray-300"></div>
 
-             {/* Color */}
-             <div className="flex items-center gap-2 group relative">
-                 <div className="w-6 h-6 rounded border border-gray-300 overflow-hidden cursor-pointer shadow-sm">
-                    <input 
-                        type="color" 
-                        value={selectedElement.color || '#000000'}
-                        onChange={(e) => onUpdateElement(selectedElement.id, { color: e.target.value })}
-                        className="w-[150%] h-[150%] -translate-x-1/4 -translate-y-1/4 p-0 border-0 cursor-pointer"
-                        title="Text Color"
-                    />
-                 </div>
-             </div>
+              {/* Font Size */}
+              <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Size</span>
+                  <input
+                     type="number"
+                     value={selectedElement.fontSize || 16}
+                     onChange={(e) => onUpdateElement(selectedElement.id, { fontSize: Number(e.target.value) })}
+                     className="w-16 border rounded px-2 py-1 text-sm text-center focus:ring-2 focus:ring-purple-500 outline-none"
+                  />
+              </div>
+
+              <div className="h-6 w-px bg-gray-300"></div>
+
+              {/* Color */}
+              <div className="flex items-center gap-2 group relative">
+                  <div className="w-6 h-6 rounded border border-gray-300 overflow-hidden cursor-pointer shadow-sm">
+                     <input
+                         type="color"
+                         value={selectedElement.color || '#000000'}
+                         onChange={(e) => onUpdateElement(selectedElement.id, { color: e.target.value })}
+                         className="w-[150%] h-[150%] -translate-x-1/4 -translate-y-1/4 p-0 border-0 cursor-pointer"
+                         title="Text Color"
+                     />
+                  </div>
+              </div>
 
              <div className="h-6 w-px bg-gray-300"></div>
 
