@@ -94,14 +94,15 @@ export default function BuyerPackMakerPage() {
     try {
       const results: PropertyData[] = [];
 
-      // Process URLs sequentially to avoid rate limiting and improve reliability
+      // Process URLs sequentially to avoid rate limiting
       for (let i = 0; i < urls.length; i++) {
         setProgress(Math.round(((i + 1) / urls.length) * 100));
 
         try {
-          console.log(`Scraping property ${i + 1}/${urls.length}: ${urls[i].trim()}`);
+          console.log(`Starting scrape job for property ${i + 1}/${urls.length}: ${urls[i].trim()}`);
 
-          const response = await fetch('/api/buyer-pack/scrape', {
+          // Start scraping job
+          const startResponse = await fetch('/api/buyer-pack/scrape', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -109,48 +110,97 @@ export default function BuyerPackMakerPage() {
             body: JSON.stringify({ url: urls[i].trim() }),
           });
 
-          if (response.ok) {
-            const data = await response.json();
-            console.log(`Successfully scraped property ${i + 1}:`, data.title);
-            results.push(data);
-          } else {
-            const errorText = await response.text();
-            console.error(`Failed to scrape ${urls[i]}: ${response.status} - ${errorText}`);
+          if (!startResponse.ok) {
+            throw new Error(`Failed to start scraping job: ${startResponse.status}`);
+          }
 
-            // Add a fallback entry for failed scrapes
+          const { jobId } = await startResponse.json();
+          console.log(`Started scraping job ${jobId} for property ${i + 1}`);
+
+          // Poll for completion
+          let jobComplete = false;
+          let attempts = 0;
+          const maxAttempts = 60; // 5 minutes max (60 * 5 seconds)
+
+          while (!jobComplete && attempts < maxAttempts) {
+            attempts++;
+
+            // Wait 5 seconds before checking status
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
+            try {
+              const statusResponse = await fetch(`/api/buyer-pack/scrape?jobId=${jobId}`);
+
+              if (!statusResponse.ok) {
+                console.error(`Failed to check job status: ${statusResponse.status}`);
+                continue;
+              }
+
+              const jobStatus = await statusResponse.json();
+
+              if (jobStatus.status === 'completed') {
+                console.log(`Job ${jobId} completed successfully`);
+                results.push(jobStatus.data);
+                jobComplete = true;
+              } else if (jobStatus.status === 'failed') {
+                console.error(`Job ${jobId} failed: ${jobStatus.error}`);
+                // Add fallback entry for failed jobs
+                results.push({
+                  title: `Property ${i + 1} (Scraping failed)`,
+                  price: "Price not available",
+                  address: urls[i].trim(),
+                  bedrooms: 0,
+                  bathrooms: 0,
+                  parking: 0,
+                  size: "Size not available",
+                  description: `Scraping failed: ${jobStatus.error}. Please check the URL and try again, or manually add the property details.`,
+                  images: []
+                });
+                jobComplete = true;
+              } else {
+                console.log(`Job ${jobId} status: ${jobStatus.status} (attempt ${attempts}/${maxAttempts})`);
+              }
+            } catch (statusError) {
+              console.error(`Error checking job status for ${jobId}:`, statusError);
+            }
+          }
+
+          if (!jobComplete) {
+            console.error(`Job ${jobId} timed out after ${maxAttempts} attempts`);
             results.push({
-              title: `Property ${i + 1} (Failed to scrape)`,
+              title: `Property ${i + 1} (Timeout)`,
               price: "Price not available",
               address: urls[i].trim(),
               bedrooms: 0,
               bathrooms: 0,
               parking: 0,
               size: "Size not available",
-              description: "This property could not be automatically scraped. Please check the URL and try again, or manually add the property details.",
+              description: "Scraping timed out. Property24 may be blocking requests. Please try again later or manually add the property details.",
               images: []
             });
           }
-        } catch (error) {
-          console.error(`Error scraping ${urls[i]}:`, error);
 
-          // Add a fallback entry for network errors
+        } catch (error) {
+          console.error(`Error starting scrape job for ${urls[i]}:`, error);
+
+          // Add fallback entry for job start errors
           results.push({
-            title: `Property ${i + 1} (Network error)`,
+            title: `Property ${i + 1} (Job start failed)`,
             price: "Price not available",
             address: urls[i].trim(),
             bedrooms: 0,
             bathrooms: 0,
             parking: 0,
             size: "Size not available",
-            description: "Network error occurred while scraping this property. Please check your connection and try again.",
+            description: `Failed to start scraping job: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
             images: []
           });
         }
 
-        // Add a very long random delay between requests to avoid detection (12-20 seconds)
+        // Add a delay between jobs to avoid overwhelming the server
         if (i < urls.length - 1) {
-          const delay = Math.random() * 8000 + 12000; // 12-20 seconds
-          console.log(`Waiting ${Math.round(delay/1000)} seconds before next property to avoid anti-bot detection...`);
+          const delay = 2000; // 2 seconds between jobs
+          console.log(`Waiting ${delay/1000} seconds before starting next job...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }

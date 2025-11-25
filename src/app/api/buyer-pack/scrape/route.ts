@@ -12,12 +12,23 @@ interface ScrapedPropertyData {
   images: string[];
 }
 
-export async function POST(request: NextRequest) {
-  let url = '';
+interface ScrapingJob {
+  id: string;
+  url: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  data?: ScrapedPropertyData;
+  error?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
+// In-memory job storage (in production, use Redis or database)
+const scrapingJobs = new Map<string, ScrapingJob>();
+
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    url = body.url;
+    const url = body.url;
 
     if (!url) {
       return NextResponse.json(
@@ -44,7 +55,91 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Starting AI-powered property data extraction for:', url);
+    // Create a unique job ID
+    const jobId = `scrape_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create job record
+    const job: ScrapingJob = {
+      id: jobId,
+      url,
+      status: 'pending',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    scrapingJobs.set(jobId, job);
+
+    console.log(`Created scraping job ${jobId} for URL: ${url}`);
+
+    // Start processing asynchronously (don't await)
+    processScrapingJob(jobId);
+
+    // Return job ID immediately
+    return NextResponse.json({
+      jobId,
+      status: 'pending',
+      message: 'Scraping job started. Check status using the job ID.'
+    });
+
+  } catch (error) {
+    console.error('Error creating scraping job:', error);
+    return NextResponse.json(
+      { error: 'Failed to start scraping job' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const jobId = searchParams.get('jobId');
+
+    if (!jobId) {
+      return NextResponse.json(
+        { error: 'jobId parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    const job = scrapingJobs.get(jobId);
+
+    if (!job) {
+      return NextResponse.json(
+        { error: 'Job not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      jobId: job.id,
+      status: job.status,
+      data: job.data,
+      error: job.error,
+      createdAt: job.createdAt,
+      updatedAt: job.updatedAt
+    });
+
+  } catch (error) {
+    console.error('Error checking job status:', error);
+    return NextResponse.json(
+      { error: 'Failed to check job status' },
+      { status: 500 }
+    );
+  }
+}
+
+// Async function to process scraping job
+async function processScrapingJob(jobId: string) {
+  const job = scrapingJobs.get(jobId);
+  if (!job) return;
+
+  try {
+    // Update status to processing
+    job.status = 'processing';
+    job.updatedAt = new Date();
+
+    console.log('Starting AI-powered property data extraction for:', job.url);
 
     // Advanced anti-detection system
     console.log('🔒 Initializing advanced anti-detection system...');
@@ -137,7 +232,7 @@ export async function POST(request: NextRequest) {
           attemptHeaders['Pragma'] = 'no-cache';
         }
 
-        const response = await fetch(url, {
+        const response = await fetch(job.url, {
           method: 'GET',
           headers: attemptHeaders,
           signal: AbortSignal.timeout(45000), // 45 second timeout
@@ -209,7 +304,12 @@ export async function POST(request: NextRequest) {
     if (!replicateApiKey) {
       console.warn('Replicate API token not found, falling back to mock data. Please add REPLICATE_API_TOKEN to your .env.local file.');
       console.warn('Get your API token from: https://replicate.com/account/api-tokens');
-      return getMockData();
+
+      // Update job with mock data
+      job.status = 'completed';
+      job.data = getMockScrapedData();
+      job.updatedAt = new Date();
+      return;
     }
 
     console.log('Replicate API token found, proceeding with AI extraction...');
@@ -218,21 +318,24 @@ export async function POST(request: NextRequest) {
 
     console.log('Successfully extracted property data with Replicate AI');
 
-    return NextResponse.json(extractedData);
+    // Update job with success
+    job.status = 'completed';
+    job.data = extractedData;
+    job.updatedAt = new Date();
 
   } catch (error) {
     console.error('Error in property data extraction:', error);
-    console.error('Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      url: url,
-      timestamp: new Date().toISOString()
-    });
+
+    // Update job with error
+    job.status = 'failed';
+    job.error = error instanceof Error ? error.message : 'Unknown error';
+    job.updatedAt = new Date();
 
     // Return fallback data with error indication
     const mockData: ScrapedPropertyData = {
-      title: `Failed to scrape: ${url.split('/').pop() || 'Property'}`,
+      title: `Failed to scrape: ${job.url.split('/').pop() || 'Property'}`,
       price: "Price not available",
-      address: url,
+      address: job.url,
       bedrooms: 0,
       bathrooms: 0,
       parking: 0,
@@ -241,13 +344,19 @@ export async function POST(request: NextRequest) {
       images: []
     };
 
-    return NextResponse.json(mockData);
+    job.data = mockData;
   }
 }
 
 // Helper function to get mock data as fallback
 function getMockData(): NextResponse {
-  const mockData: ScrapedPropertyData = {
+  const mockData: ScrapedPropertyData = getMockScrapedData();
+  return NextResponse.json(mockData);
+}
+
+// Helper function to get mock scraped data object
+function getMockScrapedData(): ScrapedPropertyData {
+  return {
     title: "Beautiful Modern Home",
     price: "R 3,500,000",
     address: "123 Example Street, Suburb, City",
@@ -263,8 +372,6 @@ function getMockData(): NextResponse {
       "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800"
     ]
   };
-
-  return NextResponse.json(mockData);
 }
 
 // Function to extract property data using Replicate GPT-4o mini
