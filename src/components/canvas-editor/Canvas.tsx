@@ -302,7 +302,7 @@ const Canvas: React.FC<CanvasProps> = ({
        setDrawEnd({ x, y });
    };
 
-   const handleCanvasMouseUp = () => {
+   const handleCanvasMouseUp = async () => {
        if (!isDrawing || !drawStart || !drawEnd) return;
 
        // Calculate rectangle dimensions
@@ -313,9 +313,54 @@ const Canvas: React.FC<CanvasProps> = ({
 
        // Only create text area if rectangle is large enough
        if (width > 20 && height > 15) {
+           // Find the image element under this area
+           const imageElement = elements.find(el =>
+               el.type === ElementType.IMAGE &&
+               x >= el.x && x <= el.x + el.width &&
+               y >= el.y && y <= el.y + el.height
+           );
+
+           let detectedText = 'Click to edit text';
+
+           // If there's an image under the selection, try to extract text from that region
+           if (imageElement && imageElement.src) {
+               try {
+                   // Calculate relative coordinates within the image
+                   const relX = (x - imageElement.x) / imageElement.width;
+                   const relY = (y - imageElement.y) / imageElement.height;
+                   const relWidth = width / imageElement.width;
+                   const relHeight = height / imageElement.height;
+
+                   // Call OCR API for the specific region
+                   const response = await fetch('/api/ocr-region', {
+                       method: 'POST',
+                       headers: {
+                           'Content-Type': 'application/json',
+                       },
+                       body: JSON.stringify({
+                           imageUrl: imageElement.src,
+                           region: {
+                               x: relX,
+                               y: relY,
+                               width: relWidth,
+                               height: relHeight
+                           }
+                       }),
+                   });
+
+                   if (response.ok) {
+                       const { text } = await response.json();
+                       detectedText = text || 'Click to edit text';
+                   }
+               } catch (error) {
+                   console.error('Failed to extract text from region:', error);
+                   // Fall back to default text
+               }
+           }
+
            const newTextArea: DetectedText = {
                id: `manual-${Date.now()}`,
-               content: 'Click to edit text',
+               content: detectedText,
                box_2d: [x, y, x + width, y + height],
                x,
                y,
