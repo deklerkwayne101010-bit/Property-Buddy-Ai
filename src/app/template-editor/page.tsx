@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import DashboardLayout from '../../components/DashboardLayout';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import Canvas from '../../components/canvas-editor/Canvas';
@@ -15,7 +14,6 @@ import { CanvasElement, ElementType, ShapeType } from '../../lib/canvas-types';
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const TemplateEditorPage: React.FC = () => {
-  const router = useRouter();
   const [elements, setElements] = useState<CanvasElement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [history, setHistory] = useState<CanvasElement[][]>([]);
@@ -36,24 +34,24 @@ const TemplateEditorPage: React.FC = () => {
     if (history.length === 0) {
       addToHistory([]);
     }
-  }, []);
+  }, [addToHistory, history.length]);
 
-  const handleUndo = () => {
+  const handleUndo = useCallback(() => {
     if (historyIndex > 0) {
       setHistoryIndex(historyIndex - 1);
       setElements(history[historyIndex - 1]);
     }
-  };
+  }, [historyIndex, history]);
 
-  const handleRedo = () => {
+  const handleRedo = useCallback(() => {
     if (historyIndex < history.length - 1) {
       setHistoryIndex(historyIndex + 1);
       setElements(history[historyIndex + 1]);
     }
-  };
+  }, [historyIndex, history]);
 
   // Element Management
-  const addElement = (type: ElementType, payload: any = {}) => {
+  const addElement = (type: ElementType, payload: Partial<CanvasElement> = {}) => {
     const newElement: CanvasElement = {
       id: generateId(),
       type,
@@ -87,7 +85,7 @@ const TemplateEditorPage: React.FC = () => {
     setElements(newElements);
   };
 
-  const deleteElement = (id?: string) => {
+  const deleteElement = useCallback((id?: string) => {
     const targetId = typeof id === 'string' ? id : selectedId;
     if (targetId) {
       const newElements = elements.filter(el => el.id !== targetId);
@@ -95,7 +93,7 @@ const TemplateEditorPage: React.FC = () => {
       addToHistory(newElements);
       if (targetId === selectedId) setSelectedId(null);
     }
-  };
+  }, [elements, selectedId, addToHistory]);
 
   const duplicateElement = (id: string) => {
     const elementToCopy = elements.find(el => el.id === id);
@@ -135,7 +133,7 @@ const TemplateEditorPage: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedId, historyIndex, history]);
+  }, [selectedId, deleteElement, handleUndo, handleRedo]);
 
   const handleDownload = async () => {
     alert(`Downloading "${fileName}.png"...\n(In a real app, this would use html2canvas to screenshot the .canvas-container div)`);

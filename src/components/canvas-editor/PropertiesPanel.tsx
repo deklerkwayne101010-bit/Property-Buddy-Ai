@@ -19,7 +19,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ element, onUpdate }) 
      try {
          const newText = await generateMagicText("more professional and concise", element.content);
          onUpdate(element.id, { content: newText });
-     } catch (e) {
+     } catch {
          alert("Failed to rewrite text");
      } finally {
          setMagicLoading(false);

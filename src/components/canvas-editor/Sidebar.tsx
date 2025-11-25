@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { ElementType } from '../../lib/canvas-types';
+import Image from 'next/image';
+import { ElementType, CanvasElement } from '../../lib/canvas-types';
 import { IconType, IconImage } from './Icons';
 
 interface SidebarProps {
-  onAddElement: (type: ElementType, payload?: any) => void;
+  onAddElement: (type: ElementType, payload?: Partial<CanvasElement>) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ onAddElement }) => {
@@ -14,7 +15,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddElement }) => {
     { id: 'images', label: 'Images', icon: IconImage },
   ];
 
-  const handleDragStart = (e: React.DragEvent, type: ElementType, payload?: any) => {
+  const handleDragStart = (e: React.DragEvent, type: ElementType, payload?: Partial<CanvasElement>) => {
     e.dataTransfer.setData('type', type);
     if (payload) {
       e.dataTransfer.setData('payload', JSON.stringify(payload));
@@ -64,7 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddElement }) => {
                               if (file) {
                                   const reader = new FileReader();
                                   reader.onload = (ev) => {
-                                      onAddElement(ElementType.IMAGE, { src: ev.target?.result });
+                                      onAddElement(ElementType.IMAGE, { src: ev.target?.result as string });
                                   };
                                   reader.readAsDataURL(file);
                               }
@@ -73,13 +74,20 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddElement }) => {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                       {[1, 2, 3, 4].map(i => (
-                          <img 
+                          <div
                             key={i}
-                            src={`https://picsum.photos/200/200?random=${i}`} 
-                            alt="Random" 
-                            className="w-full h-24 object-cover rounded cursor-pointer hover:opacity-80"
+                            className="w-full h-24 rounded cursor-pointer hover:opacity-80 overflow-hidden"
                             onClick={() => onAddElement(ElementType.IMAGE, { src: `https://picsum.photos/400/400?random=${i}` })}
-                          />
+                          >
+                            <Image
+                              src={`https://picsum.photos/200/200?random=${i}`}
+                              alt={`Sample image ${i}`}
+                              width={200}
+                              height={200}
+                              className="w-full h-full object-cover"
+                              unoptimized
+                            />
+                          </div>
                       ))}
                   </div>
               </div>

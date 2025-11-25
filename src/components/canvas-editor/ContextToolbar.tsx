@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CanvasElement, ElementType, ShapeType } from '../../lib/canvas-types';
+import { CanvasElement, ElementType } from '../../lib/canvas-types';
 import { 
   IconBold, IconItalic, IconUnderline, 
   IconAlignLeft, IconAlignCenter, IconAlignRight, 
@@ -12,7 +12,7 @@ interface ContextToolbarProps {
   selectedElement: CanvasElement | null;
   elements: CanvasElement[];
   onUpdateElement: (id: string, updates: Partial<CanvasElement>) => void;
-  onAddElement: (type: ElementType, payload?: any) => void;
+  onAddElement: (type: ElementType, payload?: Partial<CanvasElement>) => void;
 }
 
 const ContextToolbar: React.FC<ContextToolbarProps> = ({ selectedElement, elements, onUpdateElement, onAddElement }) => {
