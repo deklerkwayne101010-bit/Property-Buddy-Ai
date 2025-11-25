@@ -947,7 +947,7 @@ export default function BuyerPackMakerPage() {
 
                 <div className="text-center">
                   <p className="text-xs text-blue-500 mt-2">
-                    This process may take 2-5 minutes depending on Property24's response time
+                    This process may take 2-5 minutes depending on Property24&apos;s response time
                   </p>
                 </div>
               </div>
