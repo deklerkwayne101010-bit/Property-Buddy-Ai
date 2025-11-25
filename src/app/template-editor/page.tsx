@@ -204,7 +204,7 @@ const TemplateEditorPage: React.FC = () => {
           const lines = text.split('\n');
 
           // Start with a reasonable font size and scale down if needed
-          let fontSize = Math.min(element.fontSize || 32, maxHeight / lines.length * 0.8);
+          const fontSize = Math.min(element.fontSize || 32, maxHeight / lines.length * 0.8);
 
           // Binary search for optimal font size
           let minSize = 8;
