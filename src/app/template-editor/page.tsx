@@ -20,6 +20,8 @@ const TemplateEditorPage: React.FC = () => {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [fileName, setFileName] = useState('Untitled Design');
   const [zoom, setZoom] = useState(1);
+  const [magicGrabMode, setMagicGrabMode] = useState(false);
+  const [detectedTexts, setDetectedTexts] = useState<any[]>([]);
 
   // Undo/Redo Logic
   const addToHistory = useCallback((newElements: CanvasElement[]) => {
@@ -141,6 +143,55 @@ const TemplateEditorPage: React.FC = () => {
 
   const selectedElement = elements.find(el => el.id === selectedId) || null;
 
+  // Magic Grab Text handlers
+  const handleTextAreaClick = (textIndex: number) => {
+    setDetectedTexts(prev => prev.map((text, index) =>
+      index === textIndex
+        ? { ...text, isEditing: true }
+        : { ...text, isEditing: false }
+    ));
+  };
+
+  const handleTextEdit = (textIndex: number, newContent: string) => {
+    setDetectedTexts(prev => prev.map((text, index) =>
+      index === textIndex
+        ? { ...text, content: newContent }
+        : text
+    ));
+  };
+
+  const handleApplyEditedText = () => {
+    detectedTexts.forEach(textItem => {
+      if (textItem.content.trim()) {
+        addElement(ElementType.TEXT, {
+          content: textItem.content,
+          x: textItem.x,
+          y: textItem.y,
+          width: Math.max(textItem.width, 50),
+          height: Math.max(textItem.height, 20),
+          fontSize: Math.max(12, textItem.height * 0.8),
+          zIndex: selectedElement!.zIndex + 1,
+          color: '#000000'
+        });
+      }
+    });
+
+    // Exit magic grab mode
+    setMagicGrabMode(false);
+    setDetectedTexts([]);
+    alert("Text elements added to canvas!");
+  };
+
+  const handleCancelMagicGrab = () => {
+    setMagicGrabMode(false);
+    setDetectedTexts([]);
+  };
+
+  const handleStartInteractiveMagicGrab = (textData: any[]) => {
+    setDetectedTexts(textData);
+    setMagicGrabMode(true);
+  };
+
   return (
     <ProtectedRoute>
       <DashboardLayout>
@@ -162,6 +213,13 @@ const TemplateEditorPage: React.FC = () => {
             elements={elements}
             onUpdateElement={updateElement}
             onAddElement={addElement}
+            magicGrabMode={magicGrabMode}
+            detectedTexts={detectedTexts}
+            onTextAreaClick={handleTextAreaClick}
+            onTextEdit={handleTextEdit}
+            onApplyEditedText={handleApplyEditedText}
+            onCancelMagicGrab={handleCancelMagicGrab}
+            onStartInteractiveMagicGrab={handleStartInteractiveMagicGrab}
           />
 
           <div className="flex flex-1 overflow-hidden relative">
@@ -184,6 +242,10 @@ const TemplateEditorPage: React.FC = () => {
                 onDelete={deleteElement}
                 onDuplicate={duplicateElement}
                 zoom={zoom}
+                magicGrabMode={magicGrabMode}
+                detectedTexts={detectedTexts}
+                onTextAreaClick={handleTextAreaClick}
+                onTextEdit={handleTextEdit}
               />
             </div>
 

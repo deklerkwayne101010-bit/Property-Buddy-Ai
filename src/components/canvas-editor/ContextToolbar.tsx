@@ -14,13 +14,32 @@ interface ContextToolbarProps {
   elements: CanvasElement[];
   onUpdateElement: (id: string, updates: Partial<CanvasElement>) => void;
   onAddElement: (type: ElementType, payload?: Partial<CanvasElement>) => void;
+  magicGrabMode?: boolean;
+  detectedTexts?: any[];
+  onTextAreaClick?: (textIndex: number) => void;
+  onTextEdit?: (textIndex: number, newContent: string) => void;
+  onApplyEditedText?: () => void;
+  onCancelMagicGrab?: () => void;
+  onStartInteractiveMagicGrab?: (textData: any[]) => void;
 }
 
-const ContextToolbar: React.FC<ContextToolbarProps> = ({ selectedElement, elements, onUpdateElement, onAddElement }) => {
+const ContextToolbar: React.FC<ContextToolbarProps> = ({
+  selectedElement,
+  elements,
+  onUpdateElement,
+  onAddElement,
+  magicGrabMode = false,
+  detectedTexts = [],
+  onTextAreaClick,
+  onTextEdit,
+  onApplyEditedText,
+  onCancelMagicGrab,
+  onStartInteractiveMagicGrab
+}) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCropping, setIsCropping] = useState(false);
 
-  // Magic Grab Logic
+  // Magic Grab Logic - Extract text and create new elements
   const handleMagicGrab = async () => {
       if (!selectedElement || selectedElement.type !== ElementType.IMAGE || !selectedElement.src) {
           alert("Please select an image element first.");
@@ -88,6 +107,49 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({ selectedElement, elemen
           setIsProcessing(false);
       }
   };
+
+  // Interactive Magic Grab - Select and edit text directly
+  const handleInteractiveMagicGrab = async () => {
+      if (!selectedElement || selectedElement.type !== ElementType.IMAGE || !selectedElement.src) {
+          alert("Please select an image element first.");
+          return;
+      }
+
+      setIsProcessing(true);
+      try {
+          console.log("Starting Interactive Magic Grab Text process...");
+
+          // Extract text with bounding boxes
+          const textData = await extractTextFromImage(selectedElement.src);
+
+          if (textData && textData.length > 0) {
+              // Prepare detected texts with canvas coordinates
+              const processedTextData = textData.map(item => ({
+                  ...item,
+                  // Convert coordinates to canvas-relative positions
+                  x: selectedElement.x + (item.box_2d[1] / 1000) * selectedElement.width,
+                  y: selectedElement.y + (item.box_2d[0] / 1000) * selectedElement.height,
+                  width: ((item.box_2d[3] - item.box_2d[1]) / 1000) * selectedElement.width,
+                  height: ((item.box_2d[2] - item.box_2d[0]) / 1000) * selectedElement.height,
+                  isEditing: false
+              }));
+
+              // Call parent callback to start interactive mode
+              onStartInteractiveMagicGrab?.(processedTextData);
+              alert(`Found ${textData.length} text areas! Click on the highlighted areas to edit them.`);
+          } else {
+              alert("No text was found in the image. Try selecting a different image with visible text.");
+          }
+
+      } catch (e) {
+          console.error("Interactive Magic Grab Failed", e);
+          const errorMessage = e instanceof Error ? e.message : "Unknown error occurred";
+          alert(`Could not detect text in image: ${errorMessage}\n\nMake sure REPLICATE_API_TOKEN is configured in your .env.local file.`);
+      } finally {
+          setIsProcessing(false);
+      }
+  };
+
 
   const handleLayer = (action: 'front' | 'back' | 'forward' | 'backward') => {
       if (!selectedElement) return;
@@ -271,6 +333,50 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({ selectedElement, elemen
                 </button>
 
                 <div className="h-6 w-px bg-gray-300"></div>
+
+                <button
+                  onClick={handleInteractiveMagicGrab}
+                  disabled={isProcessing || magicGrabMode}
+                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white px-3 py-1.5 rounded text-sm hover:shadow-md transition disabled:opacity-50"
+                  title="Select and edit text directly in the image (like Canva)"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                    <span>{isProcessing ? 'Processing...' : 'Edit Text'}</span>
+                </button>
+
+                <div className="h-6 w-px bg-gray-300"></div>
+
+                {magicGrabMode && (
+                  <>
+                    <button
+                      onClick={onApplyEditedText}
+                      className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded text-sm transition"
+                      title="Apply edited text to canvas"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Apply Changes</span>
+                    </button>
+
+                    <div className="h-6 w-px bg-gray-300"></div>
+
+                    <button
+                      onClick={onCancelMagicGrab}
+                      className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded text-sm transition"
+                      title="Cancel text editing"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        <span>Cancel</span>
+                    </button>
+
+                    <div className="h-6 w-px bg-gray-300"></div>
+                  </>
+                )}
 
                 <button
                   onClick={() => setIsCropping(!isCropping)}

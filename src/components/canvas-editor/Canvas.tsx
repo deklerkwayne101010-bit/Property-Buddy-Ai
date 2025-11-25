@@ -17,9 +17,25 @@ interface CanvasProps {
   onDelete: (id: string) => void;
   onDuplicate?: (id: string) => void;
   zoom: number;
+  magicGrabMode?: boolean;
+  detectedTexts?: any[];
+  onTextAreaClick?: (textIndex: number) => void;
+  onTextEdit?: (textIndex: number, newContent: string) => void;
 }
 
-const Canvas: React.FC<CanvasProps> = ({ elements, selectedId, onSelect, onUpdateElement, onDelete, onDuplicate, zoom }) => {
+const Canvas: React.FC<CanvasProps> = ({
+  elements,
+  selectedId,
+  onSelect,
+  onUpdateElement,
+  onDelete,
+  onDuplicate,
+  zoom,
+  magicGrabMode = false,
+  detectedTexts = [],
+  onTextAreaClick,
+  onTextEdit
+}) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   
   // Interaction State
@@ -338,6 +354,46 @@ const Canvas: React.FC<CanvasProps> = ({ elements, selectedId, onSelect, onUpdat
                     </div>
                 );
             })}
+
+            {/* Magic Grab Text Overlays */}
+            {magicGrabMode && detectedTexts.map((textItem, index) => (
+                <div
+                    key={`text-overlay-${index}`}
+                    style={{
+                        position: 'absolute',
+                        left: textItem.x,
+                        top: textItem.y,
+                        width: textItem.width,
+                        height: textItem.height,
+                        zIndex: 1000,
+                        cursor: 'pointer',
+                        backgroundColor: textItem.isEditing ? 'rgba(59, 130, 246, 0.3)' : 'rgba(34, 197, 94, 0.2)',
+                        border: textItem.isEditing ? '2px solid #3b82f6' : '2px solid #22c55e',
+                        borderRadius: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                    onClick={() => onTextAreaClick?.(index)}
+                    title="Click to edit this text"
+                >
+                    {textItem.isEditing ? (
+                        <input
+                            type="text"
+                            value={textItem.content}
+                            onChange={(e) => onTextEdit?.(index, e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-white border border-blue-500 rounded px-2 py-1 text-sm w-full max-w-full"
+                            autoFocus
+                            placeholder="Edit text..."
+                        />
+                    ) : (
+                        <div className="text-green-700 font-medium text-sm text-center px-2">
+                            {textItem.content || 'Click to edit'}
+                        </div>
+                    )}
+                </div>
+            ))}
         </div>
 
         {/* Custom Context Menu */}
