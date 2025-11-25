@@ -1,5 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Type definitions for OCR response
+interface OCRTextItem {
+  text: string;
+  box: [number, number, number, number]; // [x1, y1, x2, y2] in 0-1000 scale
+}
+
+interface Region {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { imageUrl, region } = await request.json();
@@ -114,7 +127,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Filter text results to only include text within the specified region
-function filterTextInRegion(ocrOutput: any, region: { x: number, y: number, width: number, height: number }): string {
+function filterTextInRegion(ocrOutput: OCRTextItem[], region: Region): string {
   if (!ocrOutput || !Array.isArray(ocrOutput)) {
     return '';
   }
@@ -127,7 +140,7 @@ function filterTextInRegion(ocrOutput: any, region: { x: number, y: number, widt
 
   // Filter text items that are within the region
   const textInRegion = ocrOutput
-    .filter((item: any) => {
+    .filter((item: OCRTextItem) => {
       if (!item.box) return false;
 
       // Convert box coordinates from 0-1000 scale to 0-1 scale
@@ -136,7 +149,7 @@ function filterTextInRegion(ocrOutput: any, region: { x: number, y: number, widt
       // Check if the text box overlaps with the region
       return !(x2 < regionLeft || x1 > regionRight || y2 < regionTop || y1 > regionBottom);
     })
-    .map((item: any) => item.text)
+    .map((item: OCRTextItem) => item.text)
     .join(' ')
     .trim();
 
