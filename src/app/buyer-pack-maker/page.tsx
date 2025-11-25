@@ -23,13 +23,13 @@ interface PropertyData {
 
 export default function BuyerPackMakerPage() {
   const { user } = useAuth();
-  const [propertyUrls, setPropertyUrls] = useState('');
+  const [currentUrl, setCurrentUrl] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [scrapedData, setScrapedData] = useState<PropertyData[]>([]);
   const [error, setError] = useState('');
   const [creditsRemaining, setCreditsRemaining] = useState<number | null>(null);
-  const [singleUrl, setSingleUrl] = useState('');
+  const [showAddForm, setShowAddForm] = useState(true);
 
   // Load credits on component mount
   useEffect(() => {
@@ -57,162 +57,126 @@ export default function BuyerPackMakerPage() {
     }
   };
 
-  // Helper function to get URL count
-  const getUrlCount = () => {
-    return propertyUrls.split('\n').filter(url => url.trim()).length;
+  // Helper function to check if we can add more properties
+  const canAddMoreProperties = () => {
+    return scrapedData.length < 10;
   };
 
-  // Helper function to add a single URL
-  const addUrl = () => {
-    if (!singleUrl.trim()) return;
-
-    const currentUrls = propertyUrls.trim();
-    const newUrls = currentUrls ? `${currentUrls}\n${singleUrl.trim()}` : singleUrl.trim();
-    setPropertyUrls(newUrls);
-    setSingleUrl('');
-  };
-
-  // Helper function to remove a URL by index
-  const removeUrl = (indexToRemove: number) => {
-    const urls = propertyUrls.split('\n').filter(url => url.trim());
-    urls.splice(indexToRemove, 1);
-    setPropertyUrls(urls.join('\n'));
-  };
-
-  const handleScrapeProperties = async () => {
-    if (!propertyUrls.trim()) {
-      setError('Please enter at least one Property24 URL');
+  const handleScrapeProperty = async () => {
+    if (!currentUrl.trim()) {
+      setError('Please enter a Property24 URL');
       return;
     }
 
     setIsProcessing(true);
     setError('');
-    setProgress(0);
-
-    const urls = propertyUrls.split('\n').filter(url => url.trim());
+    setCurrentJobId(null);
 
     try {
-      const results: PropertyData[] = [];
+      console.log(`Starting scrape job for property: ${currentUrl.trim()}`);
 
-      // Process URLs sequentially to avoid rate limiting
-      for (let i = 0; i < urls.length; i++) {
-        setProgress(Math.round(((i + 1) / urls.length) * 100));
+      // Start scraping job
+      const startResponse = await fetch('/api/buyer-pack/scrape', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: currentUrl.trim() }),
+      });
+
+      if (!startResponse.ok) {
+        throw new Error(`Failed to start scraping job: ${startResponse.status}`);
+      }
+
+      const { jobId } = await startResponse.json();
+      setCurrentJobId(jobId);
+      console.log(`Started scraping job ${jobId}`);
+
+      // Poll for completion
+      let jobComplete = false;
+      let attempts = 0;
+      const maxAttempts = 60; // 5 minutes max (60 * 5 seconds)
+
+      while (!jobComplete && attempts < maxAttempts) {
+        attempts++;
+
+        // Wait 5 seconds before checking status
+        await new Promise(resolve => setTimeout(resolve, 5000));
 
         try {
-          console.log(`Starting scrape job for property ${i + 1}/${urls.length}: ${urls[i].trim()}`);
+          const statusResponse = await fetch(`/api/buyer-pack/scrape?jobId=${jobId}`);
 
-          // Start scraping job
-          const startResponse = await fetch('/api/buyer-pack/scrape', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ url: urls[i].trim() }),
-          });
-
-          if (!startResponse.ok) {
-            throw new Error(`Failed to start scraping job: ${startResponse.status}`);
+          if (!statusResponse.ok) {
+            console.error(`Failed to check job status: ${statusResponse.status}`);
+            continue;
           }
 
-          const { jobId } = await startResponse.json();
-          console.log(`Started scraping job ${jobId} for property ${i + 1}`);
+          const jobStatus = await statusResponse.json();
 
-          // Poll for completion
-          let jobComplete = false;
-          let attempts = 0;
-          const maxAttempts = 60; // 5 minutes max (60 * 5 seconds)
-
-          while (!jobComplete && attempts < maxAttempts) {
-            attempts++;
-
-            // Wait 5 seconds before checking status
-            await new Promise(resolve => setTimeout(resolve, 5000));
-
-            try {
-              const statusResponse = await fetch(`/api/buyer-pack/scrape?jobId=${jobId}`);
-
-              if (!statusResponse.ok) {
-                console.error(`Failed to check job status: ${statusResponse.status}`);
-                continue;
-              }
-
-              const jobStatus = await statusResponse.json();
-
-              if (jobStatus.status === 'completed') {
-                console.log(`Job ${jobId} completed successfully`);
-                results.push(jobStatus.data);
-                jobComplete = true;
-              } else if (jobStatus.status === 'failed') {
-                console.error(`Job ${jobId} failed: ${jobStatus.error}`);
-                // Add fallback entry for failed jobs
-                results.push({
-                  title: `Property ${i + 1} (Scraping failed)`,
-                  price: "Price not available",
-                  address: urls[i].trim(),
-                  bedrooms: 0,
-                  bathrooms: 0,
-                  parking: 0,
-                  size: "Size not available",
-                  description: `Scraping failed: ${jobStatus.error}. Please check the URL and try again, or manually add the property details.`,
-                  images: []
-                });
-                jobComplete = true;
-              } else {
-                console.log(`Job ${jobId} status: ${jobStatus.status} (attempt ${attempts}/${maxAttempts})`);
-              }
-            } catch (statusError) {
-              console.error(`Error checking job status for ${jobId}:`, statusError);
-            }
-          }
-
-          if (!jobComplete) {
-            console.error(`Job ${jobId} timed out after ${maxAttempts} attempts`);
-            results.push({
-              title: `Property ${i + 1} (Timeout)`,
+          if (jobStatus.status === 'completed') {
+            console.log(`Job ${jobId} completed successfully`);
+            setScrapedData(prev => [...prev, jobStatus.data]);
+            setShowAddForm(true);
+            jobComplete = true;
+          } else if (jobStatus.status === 'failed') {
+            console.error(`Job ${jobId} failed: ${jobStatus.error}`);
+            // Add fallback entry for failed jobs
+            const fallbackData: PropertyData = {
+              title: `Property ${scrapedData.length + 1} (Scraping failed)`,
               price: "Price not available",
-              address: urls[i].trim(),
+              address: currentUrl.trim(),
               bedrooms: 0,
               bathrooms: 0,
               parking: 0,
               size: "Size not available",
-              description: "Scraping timed out. Property24 may be blocking requests. Please try again later or manually add the property details.",
+              description: `Scraping failed: ${jobStatus.error}. Please check the URL and try again, or manually add the property details.`,
               images: []
-            });
+            };
+            setScrapedData(prev => [...prev, fallbackData]);
+            setShowAddForm(true);
+            jobComplete = true;
+          } else {
+            console.log(`Job ${jobId} status: ${jobStatus.status} (attempt ${attempts}/${maxAttempts})`);
           }
-
-        } catch (error) {
-          console.error(`Error starting scrape job for ${urls[i]}:`, error);
-
-          // Add fallback entry for job start errors
-          results.push({
-            title: `Property ${i + 1} (Job start failed)`,
-            price: "Price not available",
-            address: urls[i].trim(),
-            bedrooms: 0,
-            bathrooms: 0,
-            parking: 0,
-            size: "Size not available",
-            description: `Failed to start scraping job: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
-            images: []
-          });
-        }
-
-        // Add a delay between jobs to avoid overwhelming the server
-        if (i < urls.length - 1) {
-          const delay = 2000; // 2 seconds between jobs
-          console.log(`Waiting ${delay/1000} seconds before starting next job...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+        } catch (statusError) {
+          console.error(`Error checking job status for ${jobId}:`, statusError);
         }
       }
 
-      setScrapedData(results);
-    } catch (err) {
-      setError('Failed to scrape properties. Please try again.');
-      console.error(err);
+      if (!jobComplete) {
+        console.error(`Job ${jobId} timed out after ${maxAttempts} attempts`);
+        const timeoutData: PropertyData = {
+          title: `Property ${scrapedData.length + 1} (Timeout)`,
+          price: "Price not available",
+          address: currentUrl.trim(),
+          bedrooms: 0,
+          bathrooms: 0,
+          parking: 0,
+          size: "Size not available",
+          description: "Scraping timed out. Property24 may be blocking requests. Please try again later or manually add the property details.",
+          images: []
+        };
+        setScrapedData(prev => [...prev, timeoutData]);
+        setShowAddForm(true);
+      }
+
+      // Clear the current URL after processing
+      setCurrentUrl('');
+
+    } catch (error) {
+      console.error(`Error starting scrape job:`, error);
+      setError(`Failed to start scraping: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setShowAddForm(true);
     } finally {
       setIsProcessing(false);
-      setProgress(0);
+      setCurrentJobId(null);
     }
+  };
+
+  const handleAddAnotherProperty = () => {
+    setShowAddForm(true);
+    setCurrentUrl('');
+    setError('');
   };
 
   const handleGeneratePDF = async () => {
@@ -833,13 +797,20 @@ export default function BuyerPackMakerPage() {
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Add Multiple Properties</h2>
-                <p className="text-gray-600">Create a professional buyer pack with multiple properties for your viewing</p>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  {scrapedData.length === 0 ? 'Add Your First Property' : `Add Property ${scrapedData.length + 1}`}
+                </h2>
+                <p className="text-gray-600">
+                  {scrapedData.length === 0
+                    ? 'Start building your buyer pack by adding the first property'
+                    : `You've added ${scrapedData.length} properties. Add another one to continue building your pack.`
+                  }
+                </p>
               </div>
-              {getUrlCount() > 0 && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
-                  <div className="text-sm text-blue-700 font-medium">
-                    {getUrlCount()} {getUrlCount() === 1 ? 'Property' : 'Properties'} Added
+              {scrapedData.length > 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2">
+                  <div className="text-sm text-green-700 font-medium">
+                    {scrapedData.length} {scrapedData.length === 1 ? 'Property' : 'Properties'} Added
                   </div>
                 </div>
               )}
@@ -971,20 +942,6 @@ https://www.property24.com/for-sale/johannesburg/gauteng/789"
               )}
             </div>
 
-            {isProcessing && (
-              <div className="mt-4">
-                <div className="flex justify-between text-sm text-gray-600 mb-2">
-                  <span>Processing properties...</span>
-                  <span>{Math.round(progress)}% complete</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  ></div>
-                </div>
-              </div>
-            )}
 
             {/* Help Text */}
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
