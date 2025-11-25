@@ -746,10 +746,10 @@ export default function AIPlayground() {
                       placeholder="e.g., A futuristic cityscape at sunset with flying cars, cyberpunk aesthetic, highly detailed, 8k resolution..."
                       className="w-full px-4 sm:px-6 py-4 border-2 border-slate-200 rounded-2xl focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 resize-none transition-all duration-300 text-slate-700 placeholder-slate-400 bg-slate-50/50 hover:bg-white hover:border-slate-300 text-sm sm:text-base"
                       rows={6}
-                      maxLength={1000}
+                      maxLength={2000}
                     />
                     <div className="absolute bottom-3 right-3 text-xs text-slate-400">
-                      {prompt.length}/1000
+                      {prompt.length}/2000
                     </div>
                   </div>
 
