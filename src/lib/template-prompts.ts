@@ -62,7 +62,7 @@ export const WACKY_TEMPLATE_PROMPT: string = [
   "Bedrooms / Bathrooms / Garages icons",
   "Agent photo",
   "Agent name & contact section",
-  "REMAX 2025 logo space (use the new modern REMAX logo design)",
+  "RE/MAX 2025 branding: Use the latest digital-first logo featuring a flatter, map-pin style balloon icon in red, white, and blue, positioned next to the bold, all-caps wordmark 'RE/MAX' with no slash. This is the modern 2025 RE/MAX branding - do not use the old logo or slash.",
   "",
   "You must RANDOMIZE placements using one of these systems (choose a different one each time):",
   "",
@@ -104,6 +104,7 @@ export const WACKY_TEMPLATE_PROMPT: string = [
   "CRITICAL: Do NOT include ANY text, numbers, or words in the generated image. No 'Bedrooms', 'Price', '3 beds', 'R 2,500,000', or any other text.",
   "The image should contain ONLY visual elements: shapes, icons, graphics, layouts, and color blocks.",
   "Agents will add their own text later using the template editor - the image should be blank spaces ready for text overlay.",
+  "RE/MAX BRANDING: Include the latest 2025 RE/MAX logo featuring a flatter, map-pin style balloon icon in red, white, and blue, positioned next to the bold, all-caps wordmark 'RE/MAX' with no slash.",
   "Do NOT repeat past layout patterns.",
   "Always produce something radically different."
 ].join('\n');
@@ -149,7 +150,7 @@ export const PROFESSIONAL_TEMPLATE_PROMPT: string = [
   "Property description text",
   "Agent photo",
   "Agent details (name, phone, email)",
-  "REMAX 2025 logo placement (use the new modern REMAX logo design)",
+  "RE/MAX 2025 branding: Use the latest digital-first logo featuring a flatter, map-pin style balloon icon in red, white, and blue, positioned next to the bold, all-caps wordmark 'RE/MAX' with no slash. This is the modern 2025 RE/MAX branding - do not use the old logo or slash.",
   "Optional \"tag badge\" (e.g., Just Listed / For Sale / Sold) placeholder zone",
   "",
   "🔁 STRUCTURE REQUIREMENTS",
@@ -220,7 +221,8 @@ export const PROFESSIONAL_TEMPLATE_PROMPT: string = [
   "ONLY shapes, spaces, divisions, blocks, frames, and placements.",
   "CRITICAL: Do NOT include ANY text, numbers, or words in the generated image. No '3 bedrooms', 'R 2,500,000', property addresses, or any other text.",
   "The image should contain ONLY visual elements: shapes, icons, graphics, layouts, and color blocks.",
-  "Agents will add their own text later using the template editor - the image should be blank spaces ready for text overlay."
+  "Agents will add their own text later using the template editor - the image should be blank spaces ready for text overlay.",
+  "RE/MAX BRANDING: Include the latest 2025 RE/MAX logo featuring a flatter, map-pin style balloon icon in red, white, and blue, positioned next to the bold, all-caps wordmark 'RE/MAX' with no slash."
 ].join('\n');
 
 export const MARKETING_TEMPLATE_PROMPT: string = [
@@ -242,7 +244,7 @@ export const MARKETING_TEMPLATE_PROMPT: string = [
   "Educational / Tip post",
   "Local spotlight / neighborhood post",
   "",
-  "All designs must include REMAX branding elements (Red #E31837, Blue #0054A4, White).",
+  "All designs must include the latest RE/MAX 2025 branding: Use the digital-first logo featuring a flatter, map-pin style balloon icon in red, white, and blue, positioned next to the bold, all-caps wordmark 'RE/MAX' with no slash. This is the modern 2025 RE/MAX branding - do not use the old logo or slash. Use colors: Red #E31837, Blue #0054A4, White.",
   "",
   "Each idea must be formatted as a Nano-Banana-ready prompt, describing layout, composition, and visual style.",
   "",
