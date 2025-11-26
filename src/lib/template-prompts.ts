@@ -101,7 +101,9 @@ export const WACKY_TEMPLATE_PROMPT: string = [
   "5. Creative Twist:",
   "6. Final Render Description:",
   "A single paragraph describing EXACTLY what the image generator must create, focusing ONLY on shapes, spaces, arrangement, composition, and color usage.",
-  "Do NOT include any actual text like \"Bedrooms\" or \"Price.\"",
+  "CRITICAL: Do NOT include ANY text, numbers, or words in the generated image. No 'Bedrooms', 'Price', '3 beds', 'R 2,500,000', or any other text.",
+  "The image should contain ONLY visual elements: shapes, icons, graphics, layouts, and color blocks.",
+  "Agents will add their own text later using the template editor - the image should be blank spaces ready for text overlay.",
   "Do NOT repeat past layout patterns.",
   "Always produce something radically different."
 ].join('\n');
@@ -216,7 +218,9 @@ export const PROFESSIONAL_TEMPLATE_PROMPT: string = [
   "5. Final Render Description:",
   "A crisp paragraph describing the exact blueprint for the image generator —",
   "ONLY shapes, spaces, divisions, blocks, frames, and placements.",
-  "No text like \"3 bedrooms.\""
+  "CRITICAL: Do NOT include ANY text, numbers, or words in the generated image. No '3 bedrooms', 'R 2,500,000', property addresses, or any other text.",
+  "The image should contain ONLY visual elements: shapes, icons, graphics, layouts, and color blocks.",
+  "Agents will add their own text later using the template editor - the image should be blank spaces ready for text overlay."
 ].join('\n');
 
 export const MARKETING_TEMPLATE_PROMPT: string = [

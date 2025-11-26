@@ -20,7 +20,16 @@ export async function POST(request: NextRequest) {
       .eq('id', userId)
       .single();
 
-    if (creditsError || !userCredits || userCredits.credits_balance < 5) {
+    if (creditsError || !userCredits) {
+      return NextResponse.json({ error: 'Unable to verify credits. Please try again.' }, { status: 400 });
+    }
+
+    // Ensure credits_balance is treated as a number
+    const creditsBalance = typeof userCredits.credits_balance === 'string'
+      ? parseInt(userCredits.credits_balance, 10)
+      : Number(userCredits.credits_balance);
+
+    if (isNaN(creditsBalance) || creditsBalance < 5) {
       return NextResponse.json({ error: 'Insufficient credits. AI Playground requires 5 credits per generation.' }, { status: 400 });
     }
 
