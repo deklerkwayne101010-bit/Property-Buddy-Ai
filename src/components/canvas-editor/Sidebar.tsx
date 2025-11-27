@@ -65,7 +65,35 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddElement }) => {
                               if (file) {
                                   const reader = new FileReader();
                                   reader.onload = (ev) => {
-                                      onAddElement(ElementType.IMAGE, { src: ev.target?.result as string });
+                                      const img = new window.Image();
+                                      img.onload = () => {
+                                          // Calculate dimensions to fit within reasonable canvas bounds
+                                          const maxWidth = 1200;
+                                          const maxHeight = 800;
+                                          const aspectRatio = img.width / img.height;
+
+                                          let width = img.width;
+                                          let height = img.height;
+
+                                          // Scale down if too large
+                                          if (width > maxWidth) {
+                                              width = maxWidth;
+                                              height = width / aspectRatio;
+                                          }
+                                          if (height > maxHeight) {
+                                              height = maxHeight;
+                                              width = height * aspectRatio;
+                                          }
+
+                                          onAddElement(ElementType.IMAGE, {
+                                              src: ev.target?.result as string,
+                                              width: Math.round(width),
+                                              height: Math.round(height),
+                                              originalWidth: img.width,
+                                              originalHeight: img.height
+                                          });
+                                      };
+                                      img.src = ev.target?.result as string;
                                   };
                                   reader.readAsDataURL(file);
                               }

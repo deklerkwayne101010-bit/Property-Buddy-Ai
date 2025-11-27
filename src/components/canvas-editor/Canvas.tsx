@@ -32,6 +32,39 @@ const Canvas: React.FC<CanvasProps> = ({
    cropMode = false,
    onToggleCropMode
 }) => {
+   // Calculate dynamic canvas dimensions based on content
+   const getCanvasDimensions = () => {
+     if (elements.length === 0) {
+       // Default dimensions for empty canvas
+       return { width: 800, height: 600 };
+     }
+
+     // Find the bounds of all elements
+     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+     elements.forEach(el => {
+       minX = Math.min(minX, el.x);
+       minY = Math.min(minY, el.y);
+       maxX = Math.max(maxX, el.x + el.width);
+       maxY = Math.max(maxY, el.y + el.height);
+     });
+
+     // Add padding
+     const padding = 100;
+     const width = Math.max(800, maxX - minX + padding * 2);
+     const height = Math.max(600, maxY - minY + padding * 2);
+
+     // Cap maximum dimensions for responsiveness
+     const maxWidth = typeof window !== 'undefined' && window.innerWidth < 1200 ? window.innerWidth - 400 : 1200;
+     const maxHeight = typeof window !== 'undefined' && window.innerHeight < 900 ? window.innerHeight - 200 : 900;
+
+     return {
+       width: Math.min(width, maxWidth),
+       height: Math.min(height, maxHeight)
+     };
+   };
+
+   const canvasDimensions = getCanvasDimensions();
   const canvasRef = useRef<HTMLDivElement>(null);
   
   // Interaction State
@@ -51,6 +84,22 @@ const Canvas: React.FC<CanvasProps> = ({
     const handleClick = () => setContextMenu(null);
     window.addEventListener('click', handleClick);
     return () => window.removeEventListener('click', handleClick);
+  }, []);
+
+  // Force re-render when elements change to recalculate canvas dimensions
+  const [, forceUpdate] = useState({});
+  useEffect(() => {
+    forceUpdate({});
+  }, [elements]);
+
+  // Handle window resize for responsive canvas
+  useEffect(() => {
+    const handleResize = () => {
+      forceUpdate({});
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Mouse Handlers
@@ -314,8 +363,8 @@ const Canvas: React.FC<CanvasProps> = ({
             ref={canvasRef}
             className="canvas-container relative bg-white shadow-lg overflow-hidden transition-transform transform origin-center"
             style={{
-                width: 1200,
-                height: 896,
+                width: canvasDimensions.width,
+                height: canvasDimensions.height,
                 transform: `scale(${zoom})`,
                 backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
                 backgroundSize: '20px 20px'
@@ -408,7 +457,7 @@ const Canvas: React.FC<CanvasProps> = ({
                                 <img
                                     src={el.src}
                                     alt="element"
-                                    className="w-full h-full object-cover pointer-events-none"
+                                    className="w-full h-full object-contain pointer-events-none"
                                     style={{
                                         borderRadius: el.borderRadius,
                                         transform: (el.cropX !== undefined && el.cropY !== undefined) ? `translate(${-el.cropX}px, ${-el.cropY}px)` : undefined,
