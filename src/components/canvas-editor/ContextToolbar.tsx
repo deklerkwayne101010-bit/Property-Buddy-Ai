@@ -13,7 +13,9 @@ interface ContextToolbarProps {
    onUpdateElement: (id: string, updates: Partial<CanvasElement>) => void;
    onAddElement: (type: ElementType, payload?: Partial<CanvasElement>) => void;
    cropMode?: boolean;
+   ocrMode?: boolean;
    onToggleCropMode?: () => void;
+   onToggleOcrMode?: () => void;
 }
 
 const ContextToolbar: React.FC<ContextToolbarProps> = ({
@@ -22,7 +24,9 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({
    onUpdateElement,
    onAddElement,
    cropMode = false,
-   onToggleCropMode
+   ocrMode = false,
+   onToggleCropMode,
+   onToggleOcrMode
 }) => {
 
 
@@ -222,6 +226,23 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({
                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" />
                  </svg>
                  <span>{cropMode ? 'Exit Crop' : 'Crop'}</span>
+               </button>
+
+               <div className="h-6 w-px bg-gray-300"></div>
+
+               <button
+                 onClick={onToggleOcrMode}
+                 className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition ${
+                   ocrMode
+                     ? 'bg-green-600 text-white shadow-md'
+                     : 'bg-green-500 hover:bg-green-600 text-white'
+                 }`}
+                 title="Extract and edit text from image"
+               >
+                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                 </svg>
+                 <span>{ocrMode ? 'Exit OCR' : 'OCR Text'}</span>
                </button>
 
                <div className="h-6 w-px bg-gray-300"></div>

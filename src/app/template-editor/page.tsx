@@ -22,6 +22,7 @@ const TemplateEditorPage: React.FC = () => {
   const [fileName, setFileName] = useState('Untitled Design');
   const [zoom, setZoom] = useState(1);
   const [cropMode, setCropMode] = useState(false);
+  const [ocrMode, setOcrMode] = useState(false);
 
   // Undo/Redo Logic
   const addToHistory = useCallback((newElements: CanvasElement[]) => {
@@ -408,6 +409,14 @@ const TemplateEditorPage: React.FC = () => {
     setCropMode(prev => !prev);
   };
 
+  const handleToggleOcrMode = () => {
+    setOcrMode(prev => !prev);
+    // Exit crop mode when entering OCR mode
+    if (!ocrMode) {
+      setCropMode(false);
+    }
+  };
+
   return (
     <ProtectedRoute>
       <DashboardLayout>
@@ -430,7 +439,9 @@ const TemplateEditorPage: React.FC = () => {
             onUpdateElement={updateElement}
             onAddElement={addElement}
             cropMode={cropMode}
+            ocrMode={ocrMode}
             onToggleCropMode={handleToggleCropMode}
+            onToggleOcrMode={handleToggleOcrMode}
           />
 
           <div className="flex flex-1 overflow-hidden relative">
@@ -454,7 +465,10 @@ const TemplateEditorPage: React.FC = () => {
                 onDuplicate={duplicateElement}
                 zoom={zoom}
                 cropMode={cropMode}
+                ocrMode={ocrMode}
                 onToggleCropMode={handleToggleCropMode}
+                onToggleOcrMode={handleToggleOcrMode}
+                onAddElement={addElement}
               />
             </div>
 

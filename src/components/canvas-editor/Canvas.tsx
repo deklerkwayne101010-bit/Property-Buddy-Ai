@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { createWorker } from 'tesseract.js';
 import { CanvasElement, ElementType, ShapeType, DragState, ResizeState } from '../../lib/canvas-types';
 import {
     IconTrash,
@@ -18,7 +19,10 @@ interface CanvasProps {
    onDuplicate?: (id: string) => void;
    zoom: number;
    cropMode?: boolean;
+   ocrMode?: boolean;
    onToggleCropMode?: () => void;
+   onToggleOcrMode?: () => void;
+   onAddElement?: (type: ElementType, payload?: Partial<CanvasElement>) => void;
 }
 
 const Canvas: React.FC<CanvasProps> = ({
@@ -30,7 +34,10 @@ const Canvas: React.FC<CanvasProps> = ({
    onDuplicate,
    zoom,
    cropMode = false,
-   onToggleCropMode
+   ocrMode = false,
+   onToggleCropMode,
+   onToggleOcrMode,
+   onAddElement
 }) => {
    // Calculate dynamic canvas dimensions based on content
    const getCanvasDimensions = () => {
@@ -77,6 +84,13 @@ const Canvas: React.FC<CanvasProps> = ({
   const [cropRect, setCropRect] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
   const [isCropping, setIsCropping] = useState(false);
   const [cropStart, setCropStart] = useState<{ x: number, y: number } | null>(null);
+
+  // OCR State
+  const [ocrRect, setOcrRect] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
+  const [isOcrSelecting, setIsOcrSelecting] = useState(false);
+  const [ocrStart, setOcrStart] = useState<{ x: number, y: number } | null>(null);
+  const [extractedTexts, setExtractedTexts] = useState<Array<{ id: string, content: string, x: number, y: number, width: number, height: number, isEditing: boolean }>>([]);
+  const [isProcessingOcr, setIsProcessingOcr] = useState(false);
 
 
   // Close context menu on global click
@@ -356,6 +370,168 @@ const Canvas: React.FC<CanvasProps> = ({
       setCropRect(null);
   };
 
+  // OCR Handlers
+  const handleOcrMouseDown = (e: React.MouseEvent) => {
+      if (!ocrMode) return;
+
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const x = (e.clientX - rect.left) / zoom;
+      const y = (e.clientY - rect.top) / zoom;
+
+      setIsOcrSelecting(true);
+      setOcrStart({ x, y });
+      setOcrRect({ x, y, width: 0, height: 0 });
+  };
+
+  const handleOcrMouseMove = (e: React.MouseEvent) => {
+      if (!isOcrSelecting || !ocrStart) return;
+
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const x = (e.clientX - rect.left) / zoom;
+      const y = (e.clientY - rect.top) / zoom;
+
+      const width = x - ocrStart.x;
+      const height = y - ocrStart.y;
+
+      setOcrRect({
+          x: Math.min(ocrStart.x, x),
+          y: Math.min(ocrStart.y, y),
+          width: Math.abs(width),
+          height: Math.abs(height)
+      });
+  };
+
+  const handleOcrMouseUp = async () => {
+      if (!isOcrSelecting || !ocrRect) return;
+
+      // Only process if rectangle is large enough
+      if (ocrRect.width < 20 || ocrRect.height < 15) {
+          setIsOcrSelecting(false);
+          setOcrStart(null);
+          setOcrRect(null);
+          return;
+      }
+
+      setIsProcessingOcr(true);
+
+      try {
+          // Find the image element that contains this rectangle
+          const imageElement = elements.find(el =>
+              el.type === ElementType.IMAGE &&
+              ocrRect.x >= el.x &&
+              ocrRect.y >= el.y &&
+              ocrRect.x + ocrRect.width <= el.x + el.width &&
+              ocrRect.y + ocrRect.height <= el.y + el.height
+          );
+
+          if (!imageElement || !imageElement.src) {
+              alert('Please select a text area within an image.');
+              return;
+          }
+
+          // Create a canvas to extract the selected region
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          const img = new Image();
+
+          await new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = reject;
+              img.src = imageElement.src!;
+          });
+
+          // Calculate the region coordinates relative to the image
+          const imageX = (ocrRect.x - imageElement.x) / imageElement.width * img.width;
+          const imageY = (ocrRect.y - imageElement.y) / imageElement.height * img.height;
+          const imageWidth = ocrRect.width / imageElement.width * img.width;
+          const imageHeight = ocrRect.height / imageElement.height * img.height;
+
+          canvas.width = imageWidth;
+          canvas.height = imageHeight;
+
+          ctx?.drawImage(
+              img,
+              imageX, imageY, imageWidth, imageHeight,
+              0, 0, imageWidth, imageHeight
+          );
+
+          // Extract text using Tesseract.js
+          const worker = await createWorker('eng');
+          const { data: { text } } = await worker.recognize(canvas.toDataURL());
+          await worker.terminate();
+
+          if (text.trim()) {
+              // Add extracted text as a new text element
+              const newTextId = `ocr-text-${Date.now()}`;
+              setExtractedTexts(prev => [...prev, {
+                  id: newTextId,
+                  content: text.trim(),
+                  x: ocrRect.x,
+                  y: ocrRect.y,
+                  width: ocrRect.width,
+                  height: ocrRect.height,
+                  isEditing: false
+              }]);
+
+              alert(`Text extracted: "${text.trim()}"\nClick on the text to edit it.`);
+          } else {
+              alert('No text found in the selected area. Try selecting a different region.');
+          }
+
+      } catch (error) {
+          console.error('OCR processing failed:', error);
+          alert('Failed to extract text. Please try again.');
+      } finally {
+          setIsProcessingOcr(false);
+          setIsOcrSelecting(false);
+          setOcrStart(null);
+          setOcrRect(null);
+      }
+  };
+
+  const handleTextClick = (textId: string) => {
+      setExtractedTexts(prev => prev.map(text =>
+          text.id === textId
+              ? { ...text, isEditing: true }
+              : { ...text, isEditing: false }
+      ));
+  };
+
+  const handleTextEdit = (textId: string, newContent: string) => {
+      setExtractedTexts(prev => prev.map(text =>
+          text.id === textId
+              ? { ...text, content: newContent }
+              : text
+      ));
+  };
+
+  const handleTextDelete = (textId: string) => {
+      setExtractedTexts(prev => prev.filter(text => text.id !== textId));
+  };
+
+  const applyOcrText = (textId: string) => {
+      const textItem = extractedTexts.find(t => t.id === textId);
+      if (textItem && textItem.content.trim() && onAddElement) {
+          onAddElement(ElementType.TEXT, {
+              content: textItem.content,
+              x: textItem.x,
+              y: textItem.y,
+              width: textItem.width,
+              height: textItem.height,
+              fontSize: Math.max(12, textItem.height * 0.7),
+              color: '#000000',
+              zIndex: Math.max(...elements.map(el => el.zIndex), 0) + 1
+          });
+
+          // Remove from extracted texts
+          setExtractedTexts(prev => prev.filter(t => t.id !== textId));
+      }
+  };
+
 
   return (
     <>
@@ -370,15 +546,29 @@ const Canvas: React.FC<CanvasProps> = ({
                 backgroundSize: '20px 20px'
             }}
             onMouseDown={(e) => {
-                if (cropMode) {
+                if (ocrMode) {
+                    handleOcrMouseDown(e);
+                } else if (cropMode) {
                     handleCanvasMouseDown(e);
                 } else {
                     onSelect(null);
                     setEditingId(null);
                 }
             }}
-            onMouseMove={handleCanvasMouseMove}
-            onMouseUp={handleCanvasMouseUp}
+            onMouseMove={(e) => {
+                if (ocrMode) {
+                    handleOcrMouseMove(e);
+                } else {
+                    handleCanvasMouseMove(e);
+                }
+            }}
+            onMouseUp={() => {
+                if (ocrMode) {
+                    handleOcrMouseUp();
+                } else {
+                    handleCanvasMouseUp();
+                }
+            }}
             onDragOver={(e) => e.preventDefault()}
             onContextMenu={(e) => e.preventDefault()} // Disable default context menu on canvas bg
         >
@@ -526,6 +716,159 @@ const Canvas: React.FC<CanvasProps> = ({
                     Click and drag on the selected image to crop
                 </div>
             )}
+
+            {/* OCR Selection Rectangle */}
+            {ocrMode && isOcrSelecting && ocrRect && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        left: ocrRect.x,
+                        top: ocrRect.y,
+                        width: ocrRect.width,
+                        height: ocrRect.height,
+                        border: '2px solid #10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        pointerEvents: 'none',
+                        zIndex: 1000
+                    }}
+                />
+            )}
+
+            {/* OCR Mode Instructions */}
+            {ocrMode && !isOcrSelecting && !isProcessingOcr && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: 10,
+                        left: 10,
+                        zIndex: 1000,
+                        backgroundColor: 'rgba(16, 185, 129, 0.9)',
+                        color: 'white',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        pointerEvents: 'none'
+                    }}
+                >
+                    Click and drag to select text areas for OCR
+                </div>
+            )}
+
+            {/* OCR Processing Indicator */}
+            {isProcessingOcr && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        zIndex: 1000,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        color: 'white',
+                        padding: '20px',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        pointerEvents: 'none'
+                    }}
+                >
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ marginBottom: '10px' }}>🔍 Extracting text...</div>
+                        <div style={{ fontSize: '12px', opacity: 0.8 }}>This may take a few seconds</div>
+                    </div>
+                </div>
+            )}
+
+            {/* Extracted Text Overlays */}
+            {extractedTexts.map((textItem) => (
+                <div
+                    key={textItem.id}
+                    style={{
+                        position: 'absolute',
+                        left: textItem.x,
+                        top: textItem.y,
+                        width: textItem.width,
+                        height: textItem.height,
+                        zIndex: 1000,
+                        cursor: 'pointer',
+                        backgroundColor: textItem.isEditing ? 'rgba(16, 185, 129, 0.3)' : 'rgba(16, 185, 129, 0.2)',
+                        border: textItem.isEditing ? '2px solid #10b981' : '2px solid #10b981',
+                        borderRadius: '4px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                    onClick={() => handleTextClick(textItem.id)}
+                >
+                    {textItem.isEditing ? (
+                        <div style={{ width: '100%', padding: '8px' }}>
+                            <textarea
+                                value={textItem.content}
+                                onChange={(e) => handleTextEdit(textItem.id, e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                    width: '100%',
+                                    minHeight: '40px',
+                                    border: '1px solid #10b981',
+                                    borderRadius: '4px',
+                                    padding: '4px',
+                                    fontSize: '12px',
+                                    resize: 'none'
+                                }}
+                                placeholder="Edit text..."
+                                autoFocus
+                            />
+                            <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        applyOcrText(textItem.id);
+                                    }}
+                                    style={{
+                                        backgroundColor: '#10b981',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        padding: '4px 8px',
+                                        fontSize: '10px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Apply
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleTextDelete(textItem.id);
+                                    }}
+                                    style={{
+                                        backgroundColor: '#ef4444',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        padding: '4px 8px',
+                                        fontSize: '10px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div style={{
+                            textAlign: 'center',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            color: '#065f46',
+                            padding: '4px'
+                        }}>
+                            {textItem.content || 'Click to edit'}
+                        </div>
+                    )}
+                </div>
+            ))}
 
         </div>
 
