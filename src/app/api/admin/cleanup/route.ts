@@ -1,6 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
+interface OldFile {
+  id: string;
+  file_name: string;
+  file_url: string;
+  created_at: string;
+  media_type: string;
+  table: string;
+}
+
+interface UserMediaItem {
+  id: string;
+  file_name?: string;
+  file_url?: string;
+  created_at: string;
+  media_type: string;
+}
+
+interface GeneratedImageItem {
+  id: string;
+  image_url?: string;
+  created_at: string;
+  tool_type?: string;
+}
+
+type DatabaseItem = UserMediaItem | GeneratedImageItem;
+
 export async function POST(request: NextRequest) {
   try {
     // Only allow admin access (you might want to add proper authentication)
@@ -33,7 +59,7 @@ export async function POST(request: NextRequest) {
     ];
 
     const results = await Promise.all(queries);
-    const oldFiles: any[] = [];
+    const oldFiles: OldFile[] = [];
 
     // Combine results from all tables
     results.forEach((result, index) => {
@@ -44,12 +70,12 @@ export async function POST(request: NextRequest) {
       if (result.data && Array.isArray(result.data)) {
         // Normalize the data structure
         const tableName = index === 0 ? 'user_media' : 'generated_images';
-        const normalizedData = result.data.map((item: any) => ({
+        const normalizedData = result.data.map((item: DatabaseItem) => ({
           id: item.id,
-          file_name: item.file_name || (item.image_url ? item.image_url.split('/').pop() : `file_${item.id}`),
-          file_url: item.file_url || item.image_url,
+          file_name: (item as UserMediaItem).file_name || ((item as GeneratedImageItem).image_url ? (item as GeneratedImageItem).image_url!.split('/').pop()! : `file_${item.id}`),
+          file_url: (item as UserMediaItem).file_url || (item as GeneratedImageItem).image_url || '',
           created_at: item.created_at,
-          media_type: item.media_type || item.tool_type || 'image',
+          media_type: (item as UserMediaItem).media_type || (item as GeneratedImageItem).tool_type || 'image',
           table: tableName
         }));
         oldFiles.push(...normalizedData);
