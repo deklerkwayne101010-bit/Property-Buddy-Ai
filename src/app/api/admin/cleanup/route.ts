@@ -9,27 +9,52 @@ export async function POST(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const dryRun = searchParams.get('dryRun') === 'true';
 
-    // Calculate the cutoff date (3 days ago)
+    // Calculate the cutoff date (30 days ago)
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 3);
+    cutoffDate.setDate(cutoffDate.getDate() - 30);
 
     console.log(`Starting cleanup job. Cutoff date: ${cutoffDate.toISOString()}`);
     console.log(`Dry run mode: ${dryRun}`);
 
-    // Find all user media files older than 3 days
-    const { data: oldFiles, error: fetchError } = await supabase
-      .from('user_media')
-      .select('id, file_name, file_url, created_at, media_type')
-      .eq('media_type', 'image') // Only clean up images for now
-      .lt('created_at', cutoffDate.toISOString());
+    // Find all user media files older than 30 days from multiple tables
+    const queries = [
+      // Query user_media table
+      supabase
+        .from('user_media')
+        .select('id, file_name, file_url, created_at, media_type')
+        .eq('media_type', 'image')
+        .lt('created_at', cutoffDate.toISOString()),
 
-    if (fetchError) {
-      console.error('Error fetching old files:', fetchError);
-      return NextResponse.json(
-        { error: 'Failed to fetch files for cleanup' },
-        { status: 500 }
-      );
-    }
+      // Query generated_images table
+      supabase
+        .from('generated_images')
+        .select('id, image_url, created_at, tool_type')
+        .lt('created_at', cutoffDate.toISOString())
+    ];
+
+    const results = await Promise.all(queries);
+    const oldFiles: any[] = [];
+
+    // Combine results from all tables
+    results.forEach((result, index) => {
+      if (result.error) {
+        console.error(`Error fetching from table ${index}:`, result.error);
+        return;
+      }
+      if (result.data && Array.isArray(result.data)) {
+        // Normalize the data structure
+        const tableName = index === 0 ? 'user_media' : 'generated_images';
+        const normalizedData = result.data.map((item: any) => ({
+          id: item.id,
+          file_name: item.file_name || (item.image_url ? item.image_url.split('/').pop() : `file_${item.id}`),
+          file_url: item.file_url || item.image_url,
+          created_at: item.created_at,
+          media_type: item.media_type || item.tool_type || 'image',
+          table: tableName
+        }));
+        oldFiles.push(...normalizedData);
+      }
+    });
 
     if (!oldFiles || oldFiles.length === 0) {
       console.log('No old files found for cleanup');
@@ -116,7 +141,7 @@ export async function GET() {
   try {
     // Get statistics about files that would be cleaned up
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 3);
+    cutoffDate.setDate(cutoffDate.getDate() - 30);
 
     const { data: oldFiles, error } = await supabase
       .from('user_media')
@@ -132,11 +157,19 @@ export async function GET() {
       );
     }
 
-    // Get total files count
-    const { count: totalFiles } = await supabase
-      .from('user_media')
-      .select('*', { count: 'exact', head: true })
-      .eq('media_type', 'image');
+    // Get total files count from multiple tables
+    const totalQueries = [
+      supabase
+        .from('user_media')
+        .select('*', { count: 'exact', head: true })
+        .eq('media_type', 'image'),
+      supabase
+        .from('generated_images')
+        .select('*', { count: 'exact', head: true })
+    ];
+
+    const totalResults = await Promise.all(totalQueries);
+    const totalFiles = (totalResults[0].count || 0) + (totalResults[1].count || 0);
 
     return NextResponse.json({
       totalImageFiles: totalFiles || 0,

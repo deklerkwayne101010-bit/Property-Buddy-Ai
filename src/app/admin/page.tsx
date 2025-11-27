@@ -296,7 +296,7 @@ export default function AdminDashboard() {
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-200">
                 <h2 className="text-xl font-semibold text-slate-900">File Cleanup Management</h2>
-                <p className="text-slate-600 text-sm">Automatically clean up uploaded files older than 3 days</p>
+                <p className="text-slate-600 text-sm">Automatically clean up uploaded files older than 30 days</p>
               </div>
               <div className="p-6">
                 <div className="text-center">

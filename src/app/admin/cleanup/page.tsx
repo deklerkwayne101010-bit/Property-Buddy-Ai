@@ -123,7 +123,7 @@ export default function CleanupPage() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-slate-900 mb-2">File Cleanup Management</h1>
-            <p className="text-slate-600">Manage automatic cleanup of uploaded files older than 3 days</p>
+            <p className="text-slate-600">Manage automatic cleanup of uploaded files older than 30 days</p>
           </div>
 
           {/* Error Message */}
@@ -157,7 +157,7 @@ export default function CleanupPage() {
                   <div className="text-2xl font-bold text-slate-900 mb-2">
                     {new Date(stats.cutoffDate).toLocaleDateString()}
                   </div>
-                  <div className="text-sm text-slate-600">Cutoff Date (3 days ago)</div>
+                  <div className="text-sm text-slate-600">Cutoff Date (30 days ago)</div>
                 </div>
               </div>
             </div>
@@ -266,7 +266,7 @@ export default function CleanupPage() {
                 <strong>Automatic Cleanup:</strong> Files uploaded by agents are automatically tracked in the database with timestamps.
               </p>
               <p>
-                <strong>3-Day Retention:</strong> Image files older than 3 days are identified for cleanup to save storage space.
+                <strong>30-Day Retention:</strong> Image files older than 30 days are identified for cleanup to save storage space.
               </p>
               <p>
                 <strong>Safe Deletion:</strong> Both the file from Supabase storage and the database record are removed simultaneously.
