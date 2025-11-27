@@ -15,14 +15,16 @@ import { CanvasElement, ElementType, ShapeType } from '../../lib/canvas-types';
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const TemplateEditorPage: React.FC = () => {
-  const [elements, setElements] = useState<CanvasElement[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [history, setHistory] = useState<CanvasElement[][]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
-  const [fileName, setFileName] = useState('Untitled Design');
-  const [zoom, setZoom] = useState(1);
-  const [cropMode, setCropMode] = useState(false);
-  const [ocrMode, setOcrMode] = useState(false);
+   const [elements, setElements] = useState<CanvasElement[]>([]);
+   const [selectedId, setSelectedId] = useState<string | null>(null);
+   const [history, setHistory] = useState<CanvasElement[][]>([]);
+   const [historyIndex, setHistoryIndex] = useState(-1);
+   const [fileName, setFileName] = useState('Untitled Design');
+   const [zoom, setZoom] = useState(1);
+   const [cropMode, setCropMode] = useState(false);
+   const [ocrMode, setOcrMode] = useState(false);
+   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+   const [canvasDimensions, setCanvasDimensions] = useState<{ width: number, height: number } | null>(null);
 
   // Undo/Redo Logic
   const addToHistory = useCallback((newElements: CanvasElement[]) => {
@@ -53,13 +55,31 @@ const TemplateEditorPage: React.FC = () => {
     }
   }, [historyIndex, history]);
 
+  // Handle background image upload
+  const handleBackgroundImageUpload = (imageSrc: string, width: number, height: number) => {
+    setBackgroundImage(imageSrc);
+    setCanvasDimensions({ width, height });
+    setFileName('Image Template');
+
+    // Clear any existing elements
+    setElements([]);
+    setSelectedId(null);
+    addToHistory([]);
+  };
+
   // Element Management
   const addElement = (type: ElementType, payload: Partial<CanvasElement> = {}) => {
+    // Don't allow adding elements if no background image
+    if (!backgroundImage) {
+      alert('Please upload a background image first.');
+      return;
+    }
+
     const newElement: CanvasElement = {
       id: generateId(),
       type,
-      x: 200, // Default center-ish
-      y: 200,
+      x: canvasDimensions ? canvasDimensions.width / 2 - 150 : 200, // Center horizontally
+      y: canvasDimensions ? canvasDimensions.height / 2 - 50 : 200, // Center vertically
       width: type === ElementType.TEXT ? 300 : 200,
       height: type === ElementType.TEXT ? 100 : 200,
       rotation: 0,
@@ -445,31 +465,47 @@ const TemplateEditorPage: React.FC = () => {
           />
 
           <div className="flex flex-1 overflow-hidden relative">
-            <Sidebar onAddElement={addElement} />
+            <Sidebar
+              onAddElement={addElement}
+              onBackgroundImageUpload={handleBackgroundImageUpload}
+              hasBackgroundImage={!!backgroundImage}
+            />
 
             {/* Canvas Area */}
             <div className="flex-1 bg-gray-200 overflow-auto flex items-center justify-center p-4 relative">
-              {/* Zoom Controls Overlay */}
-              <div className="absolute bottom-4 left-8 z-10 bg-white rounded-full shadow px-3 py-1 flex items-center gap-2 text-sm">
-                <button onClick={() => setZoom(z => Math.max(0.2, z - 0.1))} className="hover:bg-gray-100 px-2 rounded">-</button>
-                <span>{Math.round(zoom * 100)}%</span>
-                <button onClick={() => setZoom(z => Math.min(3, z + 0.1))} className="hover:bg-gray-100 px-2 rounded">+</button>
-              </div>
+              {/* Zoom Controls Overlay - Only show when we have a background image */}
+              {backgroundImage && (
+                <div className="absolute bottom-4 left-8 z-10 bg-white rounded-full shadow px-3 py-1 flex items-center gap-2 text-sm">
+                  <button onClick={() => setZoom(z => Math.max(0.2, z - 0.1))} className="hover:bg-gray-100 px-2 rounded">-</button>
+                  <span>{Math.round(zoom * 100)}%</span>
+                  <button onClick={() => setZoom(z => Math.min(3, z + 0.1))} className="hover:bg-gray-100 px-2 rounded">+</button>
+                </div>
+              )}
 
-              <Canvas
-                elements={elements}
-                selectedId={selectedId}
-                onSelect={setSelectedId}
-                onUpdateElement={updateElement}
-                onDelete={deleteElement}
-                onDuplicate={duplicateElement}
-                zoom={zoom}
-                cropMode={cropMode}
-                ocrMode={ocrMode}
-                onToggleCropMode={handleToggleCropMode}
-                onToggleOcrMode={handleToggleOcrMode}
-                onAddElement={addElement}
-              />
+              {backgroundImage ? (
+                <Canvas
+                  elements={elements}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                  onUpdateElement={updateElement}
+                  onDelete={deleteElement}
+                  onDuplicate={duplicateElement}
+                  zoom={zoom}
+                  cropMode={cropMode}
+                  ocrMode={ocrMode}
+                  backgroundImage={backgroundImage}
+                  canvasDimensions={canvasDimensions}
+                  onToggleCropMode={handleToggleCropMode}
+                  onToggleOcrMode={handleToggleOcrMode}
+                  onAddElement={addElement}
+                />
+              ) : (
+                <div className="text-center text-gray-500">
+                  <div className="text-6xl mb-4">🖼️</div>
+                  <h3 className="text-xl font-semibold mb-2">Upload an Image to Get Started</h3>
+                  <p className="text-sm">Choose an image from the sidebar to begin editing</p>
+                </div>
+              )}
             </div>
 
             <PropertiesPanel

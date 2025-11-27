@@ -20,6 +20,8 @@ interface CanvasProps {
    zoom: number;
    cropMode?: boolean;
    ocrMode?: boolean;
+   backgroundImage?: string | null;
+   canvasDimensions?: { width: number, height: number } | null;
    onToggleCropMode?: () => void;
    onToggleOcrMode?: () => void;
    onAddElement?: (type: ElementType, payload?: Partial<CanvasElement>) => void;
@@ -35,14 +37,21 @@ const Canvas: React.FC<CanvasProps> = ({
    zoom,
    cropMode = false,
    ocrMode = false,
+   backgroundImage,
+   canvasDimensions: providedCanvasDimensions,
    onToggleCropMode,
    onToggleOcrMode,
    onAddElement
 }) => {
-   // Calculate dynamic canvas dimensions based on content
+   // Use provided canvas dimensions or calculate dynamic ones
    const getCanvasDimensions = () => {
+     // If we have provided dimensions (from background image), use them
+     if (providedCanvasDimensions) {
+       return providedCanvasDimensions;
+     }
+
+     // Otherwise calculate based on content
      if (elements.length === 0) {
-       // Default dimensions for empty canvas
        return { width: 800, height: 600 };
      }
 
@@ -542,8 +551,12 @@ const Canvas: React.FC<CanvasProps> = ({
                 width: canvasDimensions.width,
                 height: canvasDimensions.height,
                 transform: `scale(${zoom})`,
-                backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
-                backgroundSize: '20px 20px'
+                backgroundImage: backgroundImage
+                    ? `url(${backgroundImage})`
+                    : 'radial-gradient(#e5e7eb 1px, transparent 1px)',
+                backgroundSize: backgroundImage ? 'contain' : '20px 20px',
+                backgroundRepeat: backgroundImage ? 'no-repeat' : 'repeat',
+                backgroundPosition: 'center'
             }}
             onMouseDown={(e) => {
                 if (ocrMode) {
