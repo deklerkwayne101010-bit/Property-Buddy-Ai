@@ -314,8 +314,8 @@ const Canvas: React.FC<CanvasProps> = ({
             ref={canvasRef}
             className="canvas-container relative bg-white shadow-lg overflow-hidden transition-transform transform origin-center"
             style={{
-                width: 1080,
-                height: 1080,
+                width: 1200,
+                height: 896,
                 transform: `scale(${zoom})`,
                 backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
                 backgroundSize: '20px 20px'
