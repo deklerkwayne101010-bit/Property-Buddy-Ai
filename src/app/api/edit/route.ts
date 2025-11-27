@@ -84,7 +84,10 @@ export async function POST(request: NextRequest) {
         input: {
           image: [imagePublicUrl],
           prompt: enhancedPrompt,
-          go_fast: true
+          go_fast: true,
+          aspect_ratio: "match_input_image",
+          output_format: "jpg",
+          output_quality: 95
         }
       };
       console.log('Using Qwen Image Edit Plus for enhancement');
