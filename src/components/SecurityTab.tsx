@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LoginHistory {
   id: string;
@@ -20,6 +21,7 @@ interface SecuritySettings {
 }
 
 export default function SecurityTab() {
+  const { user } = useAuth();
   const [securitySettings, setSecuritySettings] = useState<SecuritySettings>({
     twoFactorEnabled: false,
     loginAlerts: true,
@@ -41,8 +43,10 @@ export default function SecurityTab() {
   }, []);
 
   const loadSecurityData = async () => {
+    if (!user?.id) return;
+
     try {
-      const response = await fetch('/api/security');
+      const response = await fetch(`/api/security?userId=${user.id}`);
       const data = await response.json();
 
       setSecuritySettings({
@@ -59,6 +63,11 @@ export default function SecurityTab() {
   };
 
   const handlePasswordChange = async () => {
+    if (!user?.id) {
+      alert('User not authenticated');
+      return;
+    }
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       alert('New passwords do not match');
       return;
@@ -78,6 +87,7 @@ export default function SecurityTab() {
         },
         body: JSON.stringify({
           action: 'changePassword',
+          userId: user.id,
           currentPassword: passwordData.currentPassword,
           newPassword: passwordData.newPassword
         }),
@@ -109,6 +119,11 @@ export default function SecurityTab() {
   };
 
   const handleToggle2FA = async () => {
+    if (!user?.id) {
+      alert('User not authenticated');
+      return;
+    }
+
     setIsEnabling2FA(true);
     try {
       const response = await fetch('/api/security', {
@@ -118,6 +133,7 @@ export default function SecurityTab() {
         },
         body: JSON.stringify({
           action: 'toggle2FA',
+          userId: user.id,
           enabled: !securitySettings.twoFactorEnabled
         }),
       });
@@ -142,6 +158,11 @@ export default function SecurityTab() {
   };
 
   const handleSaveSecuritySettings = async () => {
+    if (!user?.id) {
+      alert('User not authenticated');
+      return;
+    }
+
     try {
       const response = await fetch('/api/security', {
         method: 'POST',
@@ -150,6 +171,7 @@ export default function SecurityTab() {
         },
         body: JSON.stringify({
           action: 'updateSecuritySettings',
+          userId: user.id,
           loginAlerts: securitySettings.loginAlerts,
           sessionTimeout: securitySettings.sessionTimeout
         }),

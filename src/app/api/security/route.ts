@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../../../lib/supabase';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
     // Mock security data - in a real app, this would come from your database
@@ -60,13 +61,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { action, userId, ...data } = await request.json();
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
-
-    const { action, ...data } = await request.json();
 
     switch (action) {
       case 'changePassword':
