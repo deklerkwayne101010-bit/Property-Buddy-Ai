@@ -46,8 +46,7 @@ export async function POST(request: NextRequest) {
         image_input: imageUrls || [],
         aspect_ratio: "4:3",
         output_format: "png",
-        safety_filter_level: "block_only_high",
-        go_fast: true
+        safety_filter_level: "block_only_high"
       }
     };
 

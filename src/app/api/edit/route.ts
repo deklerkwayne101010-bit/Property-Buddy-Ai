@@ -83,7 +83,8 @@ export async function POST(request: NextRequest) {
       requestBody = {
         input: {
           image: [imagePublicUrl],
-          prompt: enhancedPrompt
+          prompt: enhancedPrompt,
+          go_fast: true
         }
       };
       console.log('Using Qwen Image Edit Plus for enhancement');
