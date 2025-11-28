@@ -428,21 +428,13 @@ const Canvas: React.FC<CanvasProps> = ({
       setIsProcessingOcr(true);
 
       try {
-          // Find the image element that contains this rectangle
-          const imageElement = elements.find(el =>
-              el.type === ElementType.IMAGE &&
-              ocrRect.x >= el.x &&
-              ocrRect.y >= el.y &&
-              ocrRect.x + ocrRect.width <= el.x + el.width &&
-              ocrRect.y + ocrRect.height <= el.y + el.height
-          );
-
-          if (!imageElement || !imageElement.src) {
-              alert('Please select a text area within an image.');
+          // Check if there's a background image to work with
+          if (!backgroundImage) {
+              alert('Please upload a background image first before using OCR.');
               return;
           }
 
-          // Create a canvas to extract the selected region
+          // Create a canvas to extract the selected region from the background image
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           const img = new Image();
@@ -450,22 +442,52 @@ const Canvas: React.FC<CanvasProps> = ({
           await new Promise((resolve, reject) => {
               img.onload = resolve;
               img.onerror = reject;
-              img.src = imageElement.src!;
+              img.src = backgroundImage;
           });
 
-          // Calculate the region coordinates relative to the image
-          const imageX = (ocrRect.x - imageElement.x) / imageElement.width * img.width;
-          const imageY = (ocrRect.y - imageElement.y) / imageElement.height * img.height;
-          const imageWidth = ocrRect.width / imageElement.width * img.width;
-          const imageHeight = ocrRect.height / imageElement.height * img.height;
+          // Calculate the region coordinates relative to the background image
+          // The background image is scaled to fit (contain) within the canvas dimensions
+          const canvasAspectRatio = canvasDimensions.width / canvasDimensions.height;
+          const imgAspectRatio = img.width / img.height;
 
-          canvas.width = imageWidth;
-          canvas.height = imageHeight;
+          let drawWidth, drawHeight, offsetX, offsetY;
+
+          if (imgAspectRatio > canvasAspectRatio) {
+              // Image is wider than canvas - fit by width
+              drawWidth = canvasDimensions.width;
+              drawHeight = canvasDimensions.width / imgAspectRatio;
+              offsetX = 0;
+              offsetY = (canvasDimensions.height - drawHeight) / 2;
+          } else {
+              // Image is taller than canvas - fit by height
+              drawHeight = canvasDimensions.height;
+              drawWidth = canvasDimensions.height * imgAspectRatio;
+              offsetX = (canvasDimensions.width - drawWidth) / 2;
+              offsetY = 0;
+          }
+
+          // Calculate the selected region relative to the scaled background image
+          const scaleX = img.width / drawWidth;
+          const scaleY = img.height / drawHeight;
+
+          const imageX = (ocrRect.x - offsetX) * scaleX;
+          const imageY = (ocrRect.y - offsetY) * scaleY;
+          const imageWidth = ocrRect.width * scaleX;
+          const imageHeight = ocrRect.height * scaleY;
+
+          // Ensure we don't go outside image bounds
+          const clampedImageX = Math.max(0, Math.min(imageX, img.width - imageWidth));
+          const clampedImageY = Math.max(0, Math.min(imageY, img.height - imageHeight));
+          const clampedImageWidth = Math.min(imageWidth, img.width - clampedImageX);
+          const clampedImageHeight = Math.min(imageHeight, img.height - clampedImageY);
+
+          canvas.width = clampedImageWidth;
+          canvas.height = clampedImageHeight;
 
           ctx?.drawImage(
               img,
-              imageX, imageY, imageWidth, imageHeight,
-              0, 0, imageWidth, imageHeight
+              clampedImageX, clampedImageY, clampedImageWidth, clampedImageHeight,
+              0, 0, clampedImageWidth, clampedImageHeight
           );
 
           // Extract text using Tesseract.js
