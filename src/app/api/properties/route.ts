@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
+interface PropertyImage {
+  id: string;
+  filename: string;
+  original_filename: string;
+  url: string;
+  uploaded_at: string;
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Get user from JWT token in Authorization header
@@ -52,10 +60,10 @@ export async function GET(request: NextRequest) {
             .eq('property_id', property.id)
             .order('uploaded_at', { ascending: false });
 
-          (property as typeof property & { property_images: any[] }).property_images = images || [];
+          (property as typeof property & { property_images: PropertyImage[] }).property_images = images || [];
         } catch {
           console.log(`No images found for property ${property.id}, setting empty array`);
-          (property as typeof property & { property_images: any[] }).property_images = [];
+          (property as typeof property & { property_images: PropertyImage[] }).property_images = [];
         }
       }
     }
