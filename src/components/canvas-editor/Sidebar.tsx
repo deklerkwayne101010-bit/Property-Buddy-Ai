@@ -166,7 +166,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                      <option value="">Choose a property...</option>
                      {properties.map((property) => (
                        <option key={property.id} value={property.id}>
-                         {property.title} ({property.property_images.length} photos)
+                         {property.title} ({(property.property_images || []).length} photos)
                        </option>
                      ))}
                    </select>
@@ -177,9 +177,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                    <div>
                      <h4 className="font-medium text-gray-700 mb-2">Property Images</h4>
                      <div className="grid grid-cols-2 gap-2 max-h-96 overflow-y-auto">
-                       {properties
+                       {(properties
                          .find(p => p.id === selectedPropertyId)
-                         ?.property_images.map((image) => (
+                         ?.property_images || []).map((image) => (
                          <div
                            key={image.id}
                            className="relative cursor-pointer group"

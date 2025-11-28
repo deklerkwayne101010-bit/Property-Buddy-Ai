@@ -210,7 +210,7 @@ const PropertiesPage: React.FC = () => {
                       </button>
                     </div>
                     <p className="text-sm text-gray-500 mt-1">
-                      {property.property_images.length} photo{property.property_images.length !== 1 ? 's' : ''}
+                      {(property.property_images || []).length} photo{(property.property_images || []).length !== 1 ? 's' : ''}
                     </p>
                   </div>
 
@@ -218,17 +218,17 @@ const PropertiesPage: React.FC = () => {
                   <div className="p-4">
                     {property.property_images.length > 0 ? (
                       <div className="grid grid-cols-2 gap-2 mb-4">
-                        {property.property_images.slice(0, 4).map((image, index) => (
+                        {(property.property_images || []).slice(0, 4).map((image, index) => (
                           <div key={image.id} className="relative">
                             <img
                               src={image.url}
                               alt={image.original_filename}
                               className="w-full h-16 object-cover rounded border"
                             />
-                            {index === 3 && property.property_images.length > 4 && (
+                            {index === 3 && (property.property_images || []).length > 4 && (
                               <div className="absolute inset-0 bg-black bg-opacity-50 rounded flex items-center justify-center">
                                 <span className="text-white text-sm font-medium">
-                                  +{property.property_images.length - 4}
+                                  +{(property.property_images || []).length - 4}
                                 </span>
                               </div>
                             )}
