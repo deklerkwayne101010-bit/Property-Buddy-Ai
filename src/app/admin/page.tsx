@@ -33,7 +33,7 @@ export default function AdminDashboard() {
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState<string | null>(null);
    const [isAdmin, setIsAdmin] = useState(false);
-   const [activeTab, setActiveTab] = useState<'users' | 'marketing' | 'cleanup'>('users');
+   const [activeTab, setActiveTab] = useState<'users' | 'marketing' | 'orders' | 'cleanup'>('users');
 
   useEffect(() => {
     checkAdminAccess();
@@ -201,6 +201,16 @@ export default function AdminDashboard() {
                   }`}
                 >
                   Marketing Materials
+                </button>
+                <button
+                  onClick={() => setActiveTab('orders')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'orders'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  Orders
                 </button>
                 <button
                   onClick={() => setActiveTab('cleanup')}
@@ -424,6 +434,38 @@ export default function AdminDashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 <span>Manage Marketing Materials</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'orders' && (
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200">
+            <h2 className="text-xl font-semibold text-slate-900">Order Management</h2>
+            <p className="text-slate-600 text-sm">Track and manage customer orders from the marketing materials shop</p>
+          </div>
+          <div className="p-6">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Order Tracking System</h3>
+              <p className="text-slate-600 mb-6">
+                View all customer orders, track fulfillment status, and manage the complete order lifecycle.
+                Monitor sales performance and customer satisfaction.
+              </p>
+              <a
+                href="/admin/orders"
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-flex items-center space-x-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>View All Orders</span>
               </a>
             </div>
           </div>
