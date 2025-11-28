@@ -1,20 +1,63 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ElementType, CanvasElement } from '../../lib/canvas-types';
 import { IconType, IconImage } from './Icons';
 
-interface SidebarProps {
-   onAddElement: (type: ElementType, payload?: Partial<CanvasElement>) => void;
-   onBackgroundImageUpload?: (imageSrc: string, width: number, height: number) => void;
-   hasBackgroundImage?: boolean;
+interface Property {
+  id: string;
+  name: string;
+  property_images: Array<{
+    id: string;
+    filename: string;
+    original_filename: string;
+    url: string;
+  }>;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onAddElement, onBackgroundImageUpload, hasBackgroundImage = false }) => {
-  const [activeTab, setActiveTab] = useState('text');
+interface SidebarProps {
+    onAddElement: (type: ElementType, payload?: Partial<CanvasElement>) => void;
+    onBackgroundImageUpload?: (imageSrc: string, width: number, height: number) => void;
+    hasBackgroundImage?: boolean;
+    selectedPropertyId?: string;
+    onPropertySelect?: (propertyId: string | null) => void;
+    onImageSelect?: (imageUrl: string, width: number, height: number) => void;
+}
 
-  const tabs = [
+const Sidebar: React.FC<SidebarProps> = ({
+   onAddElement,
+   onBackgroundImageUpload,
+   hasBackgroundImage = false,
+   selectedPropertyId,
+   onPropertySelect,
+   onImageSelect
+}) => {
+   const [activeTab, setActiveTab] = useState('properties');
+   const [properties, setProperties] = useState<Property[]>([]);
+   const [loadingProperties, setLoadingProperties] = useState(false);
+
+   // Fetch properties on component mount
+   useEffect(() => {
+     fetchProperties();
+   }, []);
+
+   const fetchProperties = async () => {
+     setLoadingProperties(true);
+     try {
+       const response = await fetch('/api/properties');
+       if (response.ok) {
+         const data = await response.json();
+         setProperties(data.properties);
+       }
+     } catch (error) {
+       console.error('Error fetching properties:', error);
+     } finally {
+       setLoadingProperties(false);
+     }
+   };
+
+   const tabs = [
+    { id: 'properties', label: 'Properties', icon: IconImage },
     { id: 'text', label: 'Text', icon: IconType },
-    { id: 'images', label: 'Images', icon: IconImage },
   ];
 
   const handleDragStart = (e: React.DragEvent, type: ElementType, payload?: Partial<CanvasElement>) => {
@@ -76,7 +119,95 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddElement, onBackgroundImageUpload
 
     // If background image exists, show regular content
     switch (activeTab) {
-      case 'text':
+       case 'properties':
+         return (
+           <div className="space-y-4">
+             <h3 className="font-bold text-gray-700">My Properties</h3>
+
+             {loadingProperties ? (
+               <div className="text-center py-4">
+                 <div className="text-gray-500">Loading properties...</div>
+               </div>
+             ) : properties.length === 0 ? (
+               <div className="text-center py-8">
+                 <div className="text-4xl mb-4">🏠</div>
+                 <p className="text-sm text-gray-500 mb-4">No properties yet</p>
+                 <button
+                   onClick={() => window.location.href = '/properties'}
+                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition"
+                 >
+                   Create Property
+                 </button>
+               </div>
+             ) : (
+               <div className="space-y-3">
+                 {/* Property Selector */}
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-2">
+                     Select Property
+                   </label>
+                   <select
+                     value={selectedPropertyId || ''}
+                     onChange={(e) => onPropertySelect?.(e.target.value || null)}
+                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                   >
+                     <option value="">Choose a property...</option>
+                     {properties.map((property) => (
+                       <option key={property.id} value={property.id}>
+                         {property.name} ({property.property_images.length} photos)
+                       </option>
+                     ))}
+                   </select>
+                 </div>
+
+                 {/* Selected Property Images */}
+                 {selectedPropertyId && (
+                   <div>
+                     <h4 className="font-medium text-gray-700 mb-2">Property Images</h4>
+                     <div className="grid grid-cols-2 gap-2 max-h-96 overflow-y-auto">
+                       {properties
+                         .find(p => p.id === selectedPropertyId)
+                         ?.property_images.map((image) => (
+                         <div
+                           key={image.id}
+                           className="relative cursor-pointer group"
+                           onClick={() => {
+                             // Load image dimensions first
+                             const img = new window.Image();
+                             img.onload = () => {
+                               onImageSelect?.(image.url, img.width, img.height);
+                             };
+                             img.src = image.url;
+                           }}
+                         >
+                           <img
+                             src={image.url}
+                             alt={image.original_filename}
+                             className="w-full h-16 object-cover rounded border hover:border-blue-500 transition"
+                           />
+                           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 rounded flex items-center justify-center">
+                             <span className="text-white text-xs opacity-0 group-hover:opacity-100">Edit</span>
+                           </div>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+                 )}
+
+                 {/* Manage Properties Link */}
+                 <div className="pt-4 border-t">
+                   <button
+                     onClick={() => window.location.href = '/properties'}
+                     className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded text-sm font-medium transition"
+                   >
+                     Manage Properties
+                   </button>
+                 </div>
+               </div>
+             )}
+           </div>
+         );
+       case 'text':
         return (
           <div className="space-y-4">
             <h3 className="font-bold text-gray-700">Add Text</h3>
