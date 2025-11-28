@@ -3,6 +3,10 @@ import Image from 'next/image';
 import { ElementType, CanvasElement } from '../../lib/canvas-types';
 import { IconType, IconImage } from './Icons';
 import { supabase } from '../../lib/supabase';
+import Tooltip from '../Tooltip';
+import HelpGuide from '../HelpGuide';
+import TutorialModal from '../TutorialModal';
+import { photoEditorTips, photoEditorTutorial } from '../../lib/agentTips';
 
 interface Property {
   id: string;
@@ -25,16 +29,18 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
-   onAddElement,
-   onBackgroundImageUpload,
-   hasBackgroundImage = false,
-   selectedPropertyId,
-   onPropertySelect,
-   onImageSelect
+    onAddElement,
+    onBackgroundImageUpload,
+    hasBackgroundImage = false,
+    selectedPropertyId,
+    onPropertySelect,
+    onImageSelect
 }) => {
-   const [activeTab, setActiveTab] = useState('properties');
-   const [properties, setProperties] = useState<Property[]>([]);
-   const [loadingProperties, setLoadingProperties] = useState(false);
+    const [activeTab, setActiveTab] = useState('properties');
+    const [properties, setProperties] = useState<Property[]>([]);
+    const [loadingProperties, setLoadingProperties] = useState(false);
+    const [showTutorial, setShowTutorial] = useState(false);
+    const [showHelpGuide, setShowHelpGuide] = useState(false);
 
    // Fetch properties on component mount
    useEffect(() => {
@@ -70,6 +76,7 @@ const Sidebar: React.FC<SidebarProps> = ({
    const tabs = [
     { id: 'properties', label: 'Properties', icon: IconImage },
     { id: 'text', label: 'Text', icon: IconType },
+    { id: 'help', label: 'Help', icon: () => <span>🆘</span> },
   ];
 
   const handleDragStart = (e: React.DragEvent, type: ElementType, payload?: Partial<CanvasElement>) => {
@@ -155,9 +162,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                <div className="space-y-3">
                  {/* Property Selector */}
                  <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                     Select Property
-                   </label>
+                   <Tooltip content="Select a property to access its organized photo collection">
+                     <label className="block text-sm font-medium text-gray-700 mb-2">
+                       Select Property
+                     </label>
+                   </Tooltip>
                    <select
                      value={selectedPropertyId || ''}
                      onChange={(e) => onPropertySelect?.(e.target.value || null)}
@@ -223,32 +232,84 @@ const Sidebar: React.FC<SidebarProps> = ({
         return (
           <div className="space-y-4">
             <h3 className="font-bold text-gray-700">Add Text</h3>
-            <div
-              className="p-4 bg-gray-100 rounded cursor-pointer hover:bg-gray-200 border border-gray-300"
-              draggable
-              onDragStart={(e) => handleDragStart(e, ElementType.TEXT, { fontSize: 32, fontWeight: 'bold', content: 'Heading' })}
-              onClick={() => onAddElement(ElementType.TEXT, { fontSize: 32, fontWeight: 'bold', content: 'Heading' })}
-            >
-              <h1 className="text-2xl font-bold">Add a Heading</h1>
-            </div>
-            <div
-              className="p-3 bg-gray-100 rounded cursor-pointer hover:bg-gray-200 border border-gray-300"
-              draggable
-              onDragStart={(e) => handleDragStart(e, ElementType.TEXT, { fontSize: 24, fontWeight: 'normal', content: 'Subheading' })}
-               onClick={() => onAddElement(ElementType.TEXT, { fontSize: 24, fontWeight: 'normal', content: 'Subheading' })}
-            >
-              <h2 className="text-xl">Add a Subheading</h2>
-            </div>
-            <div
-              className="p-2 bg-gray-100 rounded cursor-pointer hover:bg-gray-200 border border-gray-300"
-              draggable
-              onDragStart={(e) => handleDragStart(e, ElementType.TEXT, { fontSize: 16, content: 'Little bit of body text' })}
-               onClick={() => onAddElement(ElementType.TEXT, { fontSize: 16, content: 'Little bit of body text' })}
-            >
-              <p className="text-sm">Add a little bit of body text</p>
-            </div>
+            <Tooltip content="Add a large, bold heading to your design">
+              <div
+                className="p-4 bg-gray-100 rounded cursor-pointer hover:bg-gray-200 border border-gray-300"
+                draggable
+                onDragStart={(e) => handleDragStart(e, ElementType.TEXT, { fontSize: 32, fontWeight: 'bold', content: 'Heading' })}
+                onClick={() => onAddElement(ElementType.TEXT, { fontSize: 32, fontWeight: 'bold', content: 'Heading' })}
+              >
+                <h1 className="text-2xl font-bold">Add a Heading</h1>
+              </div>
+            </Tooltip>
+            <Tooltip content="Add a medium-sized subheading">
+              <div
+                className="p-3 bg-gray-100 rounded cursor-pointer hover:bg-gray-200 border border-gray-300"
+                draggable
+                onDragStart={(e) => handleDragStart(e, ElementType.TEXT, { fontSize: 24, fontWeight: 'normal', content: 'Subheading' })}
+                 onClick={() => onAddElement(ElementType.TEXT, { fontSize: 24, fontWeight: 'normal', content: 'Subheading' })}
+              >
+                <h2 className="text-xl">Add a Subheading</h2>
+              </div>
+            </Tooltip>
+            <Tooltip content="Add regular body text to your design">
+              <div
+                className="p-2 bg-gray-100 rounded cursor-pointer hover:bg-gray-200 border border-gray-300"
+                draggable
+                onDragStart={(e) => handleDragStart(e, ElementType.TEXT, { fontSize: 16, content: 'Little bit of body text' })}
+                 onClick={() => onAddElement(ElementType.TEXT, { fontSize: 16, content: 'Little bit of body text' })}
+              >
+                <p className="text-sm">Add a little bit of body text</p>
+              </div>
+            </Tooltip>
           </div>
         );
+       case 'help':
+         return (
+           <div className="space-y-4">
+             <h3 className="font-bold text-gray-700">Help & Tutorials</h3>
+
+             <div className="space-y-3">
+               <Tooltip content="Step-by-step guide to professional photo editing">
+                 <button
+                   onClick={() => setShowTutorial(true)}
+                   className="w-full p-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-left transition-colors"
+                 >
+                   <div className="flex items-center space-x-2">
+                     <span className="text-blue-600">📚</span>
+                     <div>
+                       <div className="font-medium text-blue-900">Photo Editor Tutorial</div>
+                       <div className="text-sm text-blue-700">Learn professional editing techniques</div>
+                     </div>
+                   </div>
+                 </button>
+               </Tooltip>
+
+               <Tooltip content="Quick tips and best practices for real estate photography">
+                 <button
+                   onClick={() => setShowHelpGuide(!showHelpGuide)}
+                   className="w-full p-3 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg text-left transition-colors"
+                 >
+                   <div className="flex items-center space-x-2">
+                     <span className="text-green-600">💡</span>
+                     <div>
+                       <div className="font-medium text-green-900">Quick Tips</div>
+                       <div className="text-sm text-green-700">Best practices for thoughtful editing</div>
+                     </div>
+                   </div>
+                 </button>
+               </Tooltip>
+             </div>
+
+             {showHelpGuide && (
+               <HelpGuide
+                 tips={photoEditorTips}
+                 title="Photo Editing Tips"
+                 className="mt-4"
+               />
+             )}
+           </div>
+         );
       case 'images':
           return (
               <div className="space-y-4">
@@ -321,25 +382,38 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <div className="flex h-full bg-white border-r shadow-xl z-20">
-      <div className="w-20 flex flex-col items-center py-4 bg-slate-900 text-slate-400 gap-6">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex flex-col items-center gap-1 p-2 rounded w-full transition-colors ${activeTab === tab.id ? 'text-white bg-slate-800' : 'hover:text-white'}`}
-          >
-            <tab.icon className="w-6 h-6" />
-            <span className="text-[10px] font-medium">{tab.label}</span>
-          </button>
-        ))}
+    <>
+      <div className="flex h-full bg-white border-r shadow-xl z-20">
+        <div className="w-20 flex flex-col items-center py-4 bg-slate-900 text-slate-400 gap-6">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex flex-col items-center gap-1 p-2 rounded w-full transition-colors ${activeTab === tab.id ? 'text-white bg-slate-800' : 'hover:text-white'}`}
+            >
+              <tab.icon className="w-6 h-6" />
+              <span className="text-[10px] font-medium">{tab.label}</span>
+            </button>
+          ))}
+        </div>
+        <div className="w-72 bg-gray-50 flex flex-col h-full border-r">
+            <div className="p-4 overflow-y-auto h-full scrollbar-thin">
+              {renderContent()}
+            </div>
+        </div>
       </div>
-      <div className="w-72 bg-gray-50 flex flex-col h-full border-r">
-          <div className="p-4 overflow-y-auto h-full scrollbar-thin">
-            {renderContent()}
-          </div>
-      </div>
-    </div>
+
+      <TutorialModal
+        isOpen={showTutorial}
+        onClose={() => setShowTutorial(false)}
+        title="Photo Editor Tutorial"
+        steps={photoEditorTutorial}
+        onComplete={() => {
+          // Mark tutorial as completed for this user
+          localStorage.setItem('photo-editor-tutorial-completed', 'true');
+        }}
+      />
+    </>
   );
 };
 
