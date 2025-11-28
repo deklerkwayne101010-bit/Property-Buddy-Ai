@@ -34,32 +34,36 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddElement, onBackgroundImageUpload
             <p className="text-sm text-gray-500 mb-4">Start by uploading an image to edit</p>
           </div>
 
-          <div className="p-6 border-2 border-dashed border-blue-300 rounded-lg text-center text-blue-600 hover:bg-blue-50 cursor-pointer transition-colors">
+          <div className="p-6 border-2 border-dashed border-blue-300 rounded-lg text-center text-blue-600 hover:bg-blue-50 transition-colors">
             <svg className="w-12 h-12 mx-auto mb-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
-            <label className="cursor-pointer block">
+            <input
+              type="file"
+              id="background-image-upload"
+              className="hidden"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                    const img = new window.Image();
+                    img.onload = () => {
+                      onBackgroundImageUpload?.(ev.target?.result as string, img.width, img.height);
+                    };
+                    img.src = ev.target?.result as string;
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
+            />
+            <label
+              htmlFor="background-image-upload"
+              className="cursor-pointer block"
+            >
               <span className="font-medium">Choose an image</span>
               <span className="block text-sm text-blue-500 mt-1">PNG, JPG, GIF up to 10MB</span>
-              <input
-                type="file"
-                className="hidden"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      const img = new window.Image();
-                      img.onload = () => {
-                        onBackgroundImageUpload?.(ev.target?.result as string, img.width, img.height);
-                      };
-                      img.src = ev.target?.result as string;
-                    };
-                    reader.readAsDataURL(file);
-                  }
-                }}
-              />
             </label>
           </div>
 
