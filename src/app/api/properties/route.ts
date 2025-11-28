@@ -52,10 +52,10 @@ export async function GET(request: NextRequest) {
             .eq('property_id', property.id)
             .order('uploaded_at', { ascending: false });
 
-          (property as any).property_images = images || [];
-        } catch (imageError) {
+          (property as typeof property & { property_images: any[] }).property_images = images || [];
+        } catch {
           console.log(`No images found for property ${property.id}, setting empty array`);
-          (property as any).property_images = [];
+          (property as typeof property & { property_images: any[] }).property_images = [];
         }
       }
     }
