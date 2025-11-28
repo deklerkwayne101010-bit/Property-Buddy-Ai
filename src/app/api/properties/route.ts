@@ -37,17 +37,28 @@ export async function GET(request: NextRequest) {
         id,
         title,
         created_at,
-        updated_at,
-        property_images (
-          id,
-          filename,
-          original_filename,
-          url,
-          uploaded_at
-        )
+        updated_at
       `)
       .eq('agent_id', user.id)
       .order('updated_at', { ascending: false });
+
+    // If properties exist, get their images separately
+    if (properties && properties.length > 0) {
+      for (const property of properties) {
+        try {
+          const { data: images } = await supabaseAdmin
+            .from('property_images')
+            .select('id, filename, original_filename, url, uploaded_at')
+            .eq('property_id', property.id)
+            .order('uploaded_at', { ascending: false });
+
+          (property as any).property_images = images || [];
+        } catch (imageError) {
+          console.log(`No images found for property ${property.id}, setting empty array`);
+          (property as any).property_images = [];
+        }
+      }
+    }
 
     if (error) {
       console.error('Error fetching properties:', error);
