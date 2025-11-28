@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase';
 
 interface Property {
   id: string;
-  name: string;
+  title: string;
   property_images: Array<{
     id: string;
     filename: string;
@@ -166,7 +166,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                      <option value="">Choose a property...</option>
                      {properties.map((property) => (
                        <option key={property.id} value={property.id}>
-                         {property.name} ({property.property_images.length} photos)
+                         {property.title} ({property.property_images.length} photos)
                        </option>
                      ))}
                    </select>

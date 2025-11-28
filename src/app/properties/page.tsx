@@ -7,7 +7,7 @@ import { supabase } from '../../lib/supabase';
 
 interface Property {
   id: string;
-  name: string;
+  title: string;
   created_at: string;
   updated_at: string;
   property_images: Array<{
@@ -198,7 +198,7 @@ const PropertiesPage: React.FC = () => {
                   {/* Property Header */}
                   <div className="p-4 border-b">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-gray-900">{property.name}</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">{property.title}</h3>
                       <button
                         onClick={() => deleteProperty(property.id)}
                         className="text-red-500 hover:text-red-700 p-1"

@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       .from('properties')
       .select(`
         id,
-        name,
+        title,
         created_at,
         updated_at,
         property_images (
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       .from('properties')
       .select('id')
       .eq('agent_id', user.id)
-      .eq('name', name.trim())
+      .eq('title', name.trim())
       .single();
 
     console.log('Existing property check:', { existingProperty, checkError });
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     const { data: property, error } = await supabaseAdmin
       .from('properties')
       .insert({
-        name: name.trim(),
+        title: name.trim(),
         agent_id: user.id
       })
       .select()
