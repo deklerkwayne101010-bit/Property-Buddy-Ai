@@ -50,9 +50,12 @@ export async function GET(request: NextRequest) {
       .eq('agent_id', user.id)
       .order('updated_at', { ascending: false });
 
-    // If properties exist, get their images separately
+    // Ensure all properties have property_images field
     if (properties && properties.length > 0) {
       for (const property of properties) {
+        // Initialize property_images as empty array
+        (property as typeof property & { property_images: PropertyImage[] }).property_images = [];
+
         try {
           const { data: images } = await supabaseAdmin
             .from('property_images')
@@ -61,9 +64,9 @@ export async function GET(request: NextRequest) {
             .order('uploaded_at', { ascending: false });
 
           (property as typeof property & { property_images: PropertyImage[] }).property_images = images || [];
-        } catch {
-          console.log(`No images found for property ${property.id}, setting empty array`);
-          (property as typeof property & { property_images: PropertyImage[] }).property_images = [];
+        } catch (error) {
+          console.log(`Error loading images for property ${property.id}:`, error);
+          // Keep empty array
         }
       }
     }
