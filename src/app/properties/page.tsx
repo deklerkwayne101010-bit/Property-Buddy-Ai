@@ -216,7 +216,7 @@ const PropertiesPage: React.FC = () => {
 
                   {/* Property Images Preview */}
                   <div className="p-4">
-                    {property.property_images.length > 0 ? (
+                    {(property.property_images || []).length > 0 ? (
                       <div className="grid grid-cols-2 gap-2 mb-4">
                         {(property.property_images || []).slice(0, 4).map((image, index) => (
                           <div key={image.id} className="relative">
