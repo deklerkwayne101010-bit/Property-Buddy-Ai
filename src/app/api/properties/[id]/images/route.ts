@@ -3,11 +3,12 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = supabaseAdmin;
-    const propertyId = params.id;
+    const resolvedParams = await params;
+    const propertyId = resolvedParams.id;
 
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -48,11 +49,12 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = supabaseAdmin;
-    const propertyId = params.id;
+    const resolvedParams = await params;
+    const propertyId = resolvedParams.id;
 
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
