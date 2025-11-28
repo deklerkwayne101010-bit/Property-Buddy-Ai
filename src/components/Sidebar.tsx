@@ -52,6 +52,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
         { href: '/ai-chat', label: 'AI Chat Assistant', icon: '💬' },
       ]
     },
+    { href: '/properties', label: 'My Properties', icon: '🏠' },
     { href: '/template-editor', label: 'Template Editor', icon: '🎭' },
     { href: '/marketing-materials', label: 'Marketing Materials', icon: '📢' },
     { href: '/buyer-pack-maker', label: 'Viewing Pack', icon: '📄' },
