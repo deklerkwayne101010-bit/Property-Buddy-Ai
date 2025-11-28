@@ -194,9 +194,52 @@ const TemplateEditorPage: React.FC = () => {
       // Scale context for high DPI
       ctx.scale(scale, scale);
 
-      // Fill white background
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 1080, 1080);
+      // First, draw the background image if it exists
+      if (backgroundImage) {
+        try {
+          const bgImg = new Image();
+          bgImg.crossOrigin = 'anonymous';
+
+          // Wait for background image to load
+          await new Promise((resolve, reject) => {
+            bgImg.onload = resolve;
+            bgImg.onerror = reject;
+            bgImg.src = backgroundImage;
+          });
+
+          // Calculate scaling to fit the export canvas while maintaining aspect ratio
+          const imgAspectRatio = bgImg.width / bgImg.height;
+          const canvasAspectRatio = 1080 / 1080; // Square canvas
+
+          let drawWidth, drawHeight, offsetX, offsetY;
+
+          if (imgAspectRatio > canvasAspectRatio) {
+            // Image is wider than canvas
+            drawWidth = 1080;
+            drawHeight = 1080 / imgAspectRatio;
+            offsetX = 0;
+            offsetY = (1080 - drawHeight) / 2;
+          } else {
+            // Image is taller than canvas
+            drawHeight = 1080;
+            drawWidth = 1080 * imgAspectRatio;
+            offsetX = (1080 - drawWidth) / 2;
+            offsetY = 0;
+          }
+
+          // Draw background image centered and scaled to fit
+          ctx.drawImage(bgImg, offsetX, offsetY, drawWidth, drawHeight);
+        } catch (bgError) {
+          console.warn('Failed to load background image for export:', bgError);
+          // Fall back to white background
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, 1080, 1080);
+        }
+      } else {
+        // Fill white background if no background image
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, 1080, 1080);
+      }
 
       // Sort elements by z-index for proper layering
       const sortedElements = [...elements].sort((a, b) => a.zIndex - b.zIndex);

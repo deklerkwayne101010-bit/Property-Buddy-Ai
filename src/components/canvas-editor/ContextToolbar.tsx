@@ -53,20 +53,41 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({
       onUpdateElement(selectedElement.id, { zIndex: newZ });
   };
 
-  // If no element selected, show quick insert
+  // If no element selected, show quick insert and OCR tools
   if (!selectedElement) {
     return (
-      <div className="h-12 bg-white border-b flex items-center px-4 gap-4 shadow-sm z-10">
+      <div className="h-12 bg-white border-b flex items-center px-4 gap-4 shadow-sm z-10 overflow-x-auto">
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tools:</span>
+        <div className="h-6 w-px bg-gray-300"></div>
+
+        {/* OCR Button - Always available */}
+        <button
+          onClick={onToggleOcrMode}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition ${
+            ocrMode
+              ? 'bg-green-600 text-white shadow-md'
+              : 'bg-green-500 hover:bg-green-600 text-white'
+          }`}
+          title="Extract and edit text from background image"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span>{ocrMode ? 'Exit OCR' : 'OCR Text'}</span>
+        </button>
+
+        <div className="h-6 w-px bg-gray-300"></div>
+
         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Quick Insert:</span>
         <div className="h-6 w-px bg-gray-300"></div>
-        <button 
+        <button
           onClick={() => onAddElement(ElementType.TEXT, { fontSize: 32, fontWeight: 'bold', content: 'Heading' })}
           className="flex items-center gap-2 hover:bg-purple-50 px-2 py-1 rounded text-sm text-gray-700 hover:text-purple-700 transition"
         >
           <IconType className="w-4 h-4" />
           <span>Heading</span>
         </button>
-        <button 
+        <button
           onClick={() => onAddElement(ElementType.TEXT, { fontSize: 16, content: 'Body Text' })}
           className="flex items-center gap-2 hover:bg-purple-50 px-2 py-1 rounded text-sm text-gray-700 hover:text-purple-700 transition"
         >
@@ -226,23 +247,6 @@ const ContextToolbar: React.FC<ContextToolbarProps> = ({
                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" />
                  </svg>
                  <span>{cropMode ? 'Exit Crop' : 'Crop'}</span>
-               </button>
-
-               <div className="h-6 w-px bg-gray-300"></div>
-
-               <button
-                 onClick={onToggleOcrMode}
-                 className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition ${
-                   ocrMode
-                     ? 'bg-green-600 text-white shadow-md'
-                     : 'bg-green-500 hover:bg-green-600 text-white'
-                 }`}
-                 title="Extract and edit text from image"
-               >
-                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                 </svg>
-                 <span>{ocrMode ? 'Exit OCR' : 'OCR Text'}</span>
                </button>
 
                <div className="h-6 w-px bg-gray-300"></div>
