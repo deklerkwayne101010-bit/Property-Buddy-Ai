@@ -63,19 +63,27 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('=== Properties POST request started ===');
+
     const { name } = await request.json();
+    console.log('Request body:', { name });
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      console.log('Validation failed: Property name is required');
       return NextResponse.json({ error: 'Property name is required' }, { status: 400 });
     }
 
     // Get user from JWT token in Authorization header
     const authHeader = request.headers.get('authorization');
+    console.log('Auth header present:', !!authHeader);
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('Authentication failed: No authorization header');
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    console.log('Token extracted, length:', token.length);
 
     // Create a Supabase client with the user's token
     const { createClient } = await import('@supabase/supabase-js');
@@ -91,24 +99,35 @@ export async function POST(request: NextRequest) {
       }
     );
 
+    console.log('Supabase client created, getting user...');
     const { data: { user }, error: userError } = await userSupabase.auth.getUser();
+    console.log('User auth result:', { user: user?.id, error: userError });
+
     if (userError || !user) {
+      console.log('Authentication failed:', userError);
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
+    console.log('User authenticated:', user.id);
+
     // Check if property name already exists for this agent
-    const { data: existingProperty } = await supabaseAdmin
+    console.log('Checking for existing property...');
+    const { data: existingProperty, error: checkError } = await supabaseAdmin
       .from('properties')
       .select('id')
       .eq('agent_id', user.id)
       .eq('name', name.trim())
       .single();
 
+    console.log('Existing property check:', { existingProperty, checkError });
+
     if (existingProperty) {
+      console.log('Property already exists');
       return NextResponse.json({ error: 'A property with this name already exists' }, { status: 409 });
     }
 
     // Create new property
+    console.log('Creating new property...');
     const { data: property, error } = await supabaseAdmin
       .from('properties')
       .insert({
@@ -118,14 +137,20 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
+    console.log('Property creation result:', { property, error });
+
     if (error) {
       console.error('Error creating property:', error);
-      return NextResponse.json({ error: 'Failed to create property' }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to create property', details: error.message }, { status: 500 });
     }
 
+    console.log('Property created successfully:', property);
     return NextResponse.json({ property }, { status: 201 });
   } catch (error) {
     console.error('Properties POST error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
