@@ -126,12 +126,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'A property with this name already exists' }, { status: 409 });
     }
 
-    // Create new property
+    // Create new property with default values for required fields
     console.log('Creating new property...');
     const { data: property, error } = await supabaseAdmin
       .from('properties')
       .insert({
         title: name.trim(),
+        address: '',
+        description: '',
+        price: 0,
+        bedrooms: 0,
+        bathrooms: 0,
         agent_id: user.id
       })
       .select()
