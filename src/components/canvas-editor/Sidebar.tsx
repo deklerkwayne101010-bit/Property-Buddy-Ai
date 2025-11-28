@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ElementType, CanvasElement } from '../../lib/canvas-types';
 import { IconType, IconImage } from './Icons';
+import { supabase } from '../../lib/supabase';
 
 interface Property {
   id: string;
@@ -43,7 +44,18 @@ const Sidebar: React.FC<SidebarProps> = ({
    const fetchProperties = async () => {
      setLoadingProperties(true);
      try {
-       const response = await fetch('/api/properties');
+       const { data: { session } } = await supabase.auth.getSession();
+       if (!session) {
+         console.error('No session found');
+         setLoadingProperties(false);
+         return;
+       }
+
+       const response = await fetch('/api/properties', {
+         headers: {
+           'Authorization': `Bearer ${session.access_token}`,
+         },
+       });
        if (response.ok) {
          const data = await response.json();
          setProperties(data.properties);

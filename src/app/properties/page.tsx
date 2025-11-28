@@ -32,7 +32,18 @@ const PropertiesPage: React.FC = () => {
 
   const fetchProperties = async () => {
     try {
-      const response = await fetch('/api/properties');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('No session found');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch('/api/properties', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
       if (response.ok) {
         const data = await response.json();
         setProperties(data.properties);
@@ -50,10 +61,18 @@ const PropertiesPage: React.FC = () => {
 
     setCreating(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert('Authentication required');
+        setCreating(false);
+        return;
+      }
+
       const response = await fetch('/api/properties', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ name: newPropertyName.trim() }),
       });

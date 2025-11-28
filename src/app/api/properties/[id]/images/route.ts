@@ -6,18 +6,38 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = supabaseAdmin;
     const resolvedParams = await params;
     const propertyId = resolvedParams.id;
 
-    // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Get user from JWT token in Authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    // Create a Supabase client with the user's token
+    const { createClient } = await import('@supabase/supabase-js');
+    const userSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    );
+
+    const { data: { user }, error: userError } = await userSupabase.auth.getUser();
     if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     // Verify property belongs to user
-    const { data: property, error: propertyError } = await supabase
+    const { data: property, error: propertyError } = await supabaseAdmin
       .from('properties')
       .select('id')
       .eq('id', propertyId)
@@ -29,7 +49,7 @@ export async function GET(
     }
 
     // Get all images for this property
-    const { data: images, error } = await supabase
+    const { data: images, error } = await supabaseAdmin
       .from('property_images')
       .select('*')
       .eq('property_id', propertyId)
@@ -52,18 +72,38 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = supabaseAdmin;
     const resolvedParams = await params;
     const propertyId = resolvedParams.id;
 
-    // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Get user from JWT token in Authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    // Create a Supabase client with the user's token
+    const { createClient } = await import('@supabase/supabase-js');
+    const userSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    );
+
+    const { data: { user }, error: userError } = await userSupabase.auth.getUser();
     if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     // Verify property belongs to user
-    const { data: property, error: propertyError } = await supabase
+    const { data: property, error: propertyError } = await supabaseAdmin
       .from('properties')
       .select('id')
       .eq('id', propertyId)
@@ -97,7 +137,7 @@ export async function POST(
     const fileName = `${propertyId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
     // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from('property-images')
       .upload(fileName, file, {
         cacheControl: '3600',
@@ -110,12 +150,12 @@ export async function POST(
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
+    const { data: { publicUrl } } = supabaseAdmin.storage
       .from('property-images')
       .getPublicUrl(fileName);
 
     // Save to database
-    const { data: image, error: dbError } = await supabase
+    const { data: image, error: dbError } = await supabaseAdmin
       .from('property_images')
       .insert({
         property_id: propertyId,
@@ -130,7 +170,7 @@ export async function POST(
     if (dbError) {
       console.error('Error saving image to database:', dbError);
       // Try to clean up uploaded file
-      await supabase.storage.from('property-images').remove([fileName]);
+      await supabaseAdmin.storage.from('property-images').remove([fileName]);
       return NextResponse.json({ error: 'Failed to save image' }, { status: 500 });
     }
 

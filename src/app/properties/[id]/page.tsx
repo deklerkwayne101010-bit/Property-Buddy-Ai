@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import DashboardLayout from '../../../components/DashboardLayout';
 import ProtectedRoute from '../../../components/ProtectedRoute';
+import { supabase } from '../../../lib/supabase';
 
 interface PropertyImage {
   id: string;
@@ -38,8 +39,19 @@ const PropertyDetailPage: React.FC = () => {
 
   const fetchPropertyData = async () => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('No session found');
+        setLoading(false);
+        return;
+      }
+
       // Fetch property details
-      const propertyResponse = await fetch('/api/properties');
+      const propertyResponse = await fetch('/api/properties', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
       if (propertyResponse.ok) {
         const propertyData = await propertyResponse.json();
         const foundProperty = propertyData.properties.find((p: Property) => p.id === propertyId);
@@ -49,7 +61,11 @@ const PropertyDetailPage: React.FC = () => {
       }
 
       // Fetch property images
-      const imagesResponse = await fetch(`/api/properties/${propertyId}/images`);
+      const imagesResponse = await fetch(`/api/properties/${propertyId}/images`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
       if (imagesResponse.ok) {
         const imagesData = await imagesResponse.json();
         setImages(imagesData.images);
@@ -65,41 +81,56 @@ const PropertyDetailPage: React.FC = () => {
     if (!files || files.length === 0) return;
 
     setUploading(true);
-    const uploadPromises = Array.from(files).map(async (file) => {
-      const formData = new FormData();
-      formData.append('image', file);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert('Authentication required');
+        setUploading(false);
+        return;
+      }
 
-      try {
-        const response = await fetch(`/api/properties/${propertyId}/images`, {
-          method: 'POST',
-          body: formData,
-        });
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const formData = new FormData();
+        formData.append('image', file);
 
-        if (response.ok) {
-          const data = await response.json();
-          return data.image;
-        } else {
-          const error = await response.json();
-          console.error('Upload failed:', error.error);
+        try {
+          const response = await fetch(`/api/properties/${propertyId}/images`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: formData,
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            return data.image;
+          } else {
+            const error = await response.json();
+            console.error('Upload failed:', error.error);
+            return null;
+          }
+        } catch (error) {
+          console.error('Upload error:', error);
           return null;
         }
-      } catch (error) {
-        console.error('Upload error:', error);
-        return null;
+      });
+
+      const results = await Promise.all(uploadPromises);
+      const successfulUploads = results.filter(result => result !== null);
+
+      if (successfulUploads.length > 0) {
+        setImages(prev => [...successfulUploads, ...prev]);
       }
-    });
 
-    const results = await Promise.all(uploadPromises);
-    const successfulUploads = results.filter(result => result !== null);
-
-    if (successfulUploads.length > 0) {
-      setImages(prev => [...successfulUploads, ...prev]);
-    }
-
-    setUploading(false);
-
-    if (successfulUploads.length !== files.length) {
-      alert(`${successfulUploads.length} of ${files.length} images uploaded successfully.`);
+      if (successfulUploads.length !== files.length) {
+        alert(`${successfulUploads.length} of ${files.length} images uploaded successfully.`);
+      }
+    } catch (error) {
+      console.error('Error during upload:', error);
+      alert('Failed to upload images');
+    } finally {
+      setUploading(false);
     }
   };
 
