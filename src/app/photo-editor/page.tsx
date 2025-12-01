@@ -50,6 +50,20 @@ interface UploadedImage {
   uploadedAt: string;
 }
 
+interface Property {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  property_images: Array<{
+    id: string;
+    filename: string;
+    original_filename: string;
+    url: string;
+    uploaded_at: string;
+  }>;
+}
+
 export default function PhotoEditor() {
   const { user } = useAuth();
   const { sliderPosition, isDragging, sliderRef, handleMouseDown } = useImageSlider();
@@ -70,6 +84,9 @@ export default function PhotoEditor() {
   const [showSavePromptDialog, setShowSavePromptDialog] = useState(false);
   const [promptName, setPromptName] = useState('');
   const [windowPullingEnabled, setWindowPullingEnabled] = useState(false);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [loadingProperties, setLoadingProperties] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   interface SavedPrompt {
@@ -80,9 +97,10 @@ export default function PhotoEditor() {
     createdAt: string;
   }
 
-  // Load uploaded images and saved prompts on component mount
+  // Load uploaded images, properties, and saved prompts on component mount
   useEffect(() => {
     loadUploadedImages();
+    loadProperties();
     loadSavedPrompts();
   }, []);
 
@@ -136,6 +154,42 @@ export default function PhotoEditor() {
     } catch (error) {
       console.error('Error loading saved prompts:', error);
     }
+  };
+
+  const loadProperties = async () => {
+    setLoadingProperties(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('No session found');
+        setLoadingProperties(false);
+        return;
+      }
+
+      const response = await fetch('/api/properties', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setProperties(data.properties || []);
+      } else {
+        console.error('Failed to load properties');
+      }
+    } catch (error) {
+      console.error('Error loading properties:', error);
+    } finally {
+      setLoadingProperties(false);
+    }
+  };
+
+  const handlePropertySelect = (propertyId: string | null) => {
+    setSelectedPropertyId(propertyId);
+    // Clear current selections when switching properties
+    setSelectedImageUrl(null);
+    setSelectedReferenceImages([]);
   };
 
   const savePrompt = async () => {
@@ -421,45 +475,69 @@ Keep interior reflections intact except the glare being removed.`
 
     setIsDeleting(image.id);
     try {
-      console.log('Attempting to delete image:', image.id, 'for user:', user.id);
+      if (selectedPropertyId) {
+        // Deleting from property images
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          throw new Error('Authentication required');
+        }
 
-      // First, get the file path from user_media to delete from storage
-      const { data: mediaRecord, error: fetchError } = await supabase
-        .from('user_media')
-        .select('file_name')
-        .eq('id', image.id)
-        .eq('user_id', user.id)
-        .single();
+        const response = await fetch(`/api/properties/${selectedPropertyId}/images/${image.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        });
 
-      if (fetchError) {
-        console.error('Error fetching media record:', fetchError);
-        throw new Error('Failed to find image record');
+        if (!response.ok) {
+          throw new Error('Failed to delete property image');
+        }
+
+        // Refresh properties to update the image count
+        await loadProperties();
+      } else {
+        // Deleting from uploaded images
+        console.log('Attempting to delete image:', image.id, 'for user:', user.id);
+
+        // First, get the file path from user_media to delete from storage
+        const { data: mediaRecord, error: fetchError } = await supabase
+          .from('user_media')
+          .select('file_name')
+          .eq('id', image.id)
+          .eq('user_id', user.id)
+          .single();
+
+        if (fetchError) {
+          console.error('Error fetching media record:', fetchError);
+          throw new Error('Failed to find image record');
+        }
+
+        // Delete from Supabase storage
+        const { error: storageError } = await supabase.storage
+          .from('images')
+          .remove([mediaRecord.file_name]);
+
+        if (storageError) {
+          console.error('Storage delete error:', storageError);
+          // Continue with database deletion even if storage deletion fails
+        }
+
+        // Delete from user_media table
+        const { error: mediaError } = await supabase
+          .from('user_media')
+          .delete()
+          .eq('id', image.id)
+          .eq('user_id', user.id); // Extra security check
+
+        if (mediaError) {
+          console.error('Media delete error:', mediaError);
+          throw mediaError;
+        }
+
+        // Refresh the uploaded images list
+        await loadUploadedImages();
       }
 
-      // Delete from Supabase storage
-      const { error: storageError } = await supabase.storage
-        .from('images')
-        .remove([mediaRecord.file_name]);
-
-      if (storageError) {
-        console.error('Storage delete error:', storageError);
-        // Continue with database deletion even if storage deletion fails
-      }
-
-      // Delete from user_media table
-      const { error: mediaError } = await supabase
-        .from('user_media')
-        .delete()
-        .eq('id', image.id)
-        .eq('user_id', user.id); // Extra security check
-
-      if (mediaError) {
-        console.error('Media delete error:', mediaError);
-        throw mediaError;
-      }
-
-      // Refresh the uploaded images list
-      await loadUploadedImages();
       alert('Image deleted successfully!');
     } catch (error) {
       console.error('Error deleting image:', error);
@@ -620,8 +698,69 @@ Keep interior reflections intact except the glare being removed.`
             </div>
           </div>
 
+          {/* Property Selector */}
+          <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+            <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-800 flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    Select Property
+                  </h2>
+                  <p className="text-sm text-slate-600 mt-0.5">Choose a property to work with its images</p>
+                </div>
+                <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+                  Step 1
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {loadingProperties ? (
+                <div className="text-center py-4">
+                  <div className="text-gray-500">Loading properties...</div>
+                </div>
+              ) : properties.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-4xl mb-4">🏠</div>
+                  <p className="text-sm text-gray-500 mb-4">No properties yet</p>
+                  <button
+                    onClick={() => window.location.href = '/properties'}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition"
+                  >
+                    Create Property
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <select
+                    value={selectedPropertyId || ''}
+                    onChange={(e) => handlePropertySelect(e.target.value || null)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  >
+                    <option value="">Select a property...</option>
+                    {properties.map((property) => (
+                      <option key={property.id} value={property.id}>
+                        {property.name} ({property.property_images?.length || 0} photos)
+                      </option>
+                    ))}
+                  </select>
+
+                  {selectedPropertyId && (
+                    <div className="text-sm text-gray-600">
+                      <p>Selected: <span className="font-medium">{properties.find(p => p.id === selectedPropertyId)?.name}</span></p>
+                      <p>{properties.find(p => p.id === selectedPropertyId)?.property_images?.length || 0} images available</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Image Gallery Section Card */}
-          {uploadedImages.length > 0 && (
+          {((selectedPropertyId && properties.find(p => p.id === selectedPropertyId)?.property_images?.length) || (!selectedPropertyId && uploadedImages.length > 0)) && (
             <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
               <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
                 <div className="flex items-center justify-between">
@@ -630,9 +769,11 @@ Keep interior reflections intact except the glare being removed.`
                       <svg className="w-5 h-5 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                       </svg>
-                      Your Images
+                      {selectedPropertyId ? 'Property Images' : 'Your Images'}
                     </h2>
-                    <p className="text-sm text-slate-600 mt-0.5">Select images from your personal gallery</p>
+                    <p className="text-sm text-slate-600 mt-0.5">
+                      {selectedPropertyId ? 'Select images from this property' : 'Select images from your personal gallery'}
+                    </p>
                   </div>
                   <div className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
                     Step 1
@@ -655,12 +796,20 @@ Keep interior reflections intact except the glare being removed.`
                     </span>
                   </div>
                   <p className="text-xs text-blue-700 mt-1">
-                    Select up to 2 images from your gallery to use as reference for the AI editing process.
+                    Select up to 2 images from {selectedPropertyId ? 'this property' : 'your gallery'} to use as reference for the AI editing process.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {uploadedImages.map((image) => (
+                  {(selectedPropertyId
+                    ? properties.find(p => p.id === selectedPropertyId)?.property_images?.map(img => ({
+                        id: img.id,
+                        url: img.url,
+                        filename: img.original_filename,
+                        uploadedAt: img.uploaded_at
+                      })) || []
+                    : uploadedImages
+                  ).map((image) => (
                     <div
                       key={image.id}
                       className={`relative group cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-300 hover:scale-105 ${
