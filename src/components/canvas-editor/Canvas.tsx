@@ -8,6 +8,7 @@ import {
     IconLayerForward,
     IconLayerBackward
 } from './Icons';
+import { supabase } from '../../lib/supabase';
 
 
 interface CanvasProps {
@@ -434,6 +435,13 @@ const Canvas: React.FC<CanvasProps> = ({
               return;
           }
 
+          console.log('Starting OCR processing...');
+          console.log('OCR Rectangle:', ocrRect);
+          console.log('Background image:', backgroundImage);
+
+          // Try using the existing OCR API endpoint instead of Tesseract.js
+          const formData = new FormData();
+
           // Create a canvas to extract the selected region from the background image
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
@@ -444,6 +452,8 @@ const Canvas: React.FC<CanvasProps> = ({
               img.onerror = reject;
               img.src = backgroundImage;
           });
+
+          console.log('Background image loaded, dimensions:', img.width, 'x', img.height);
 
           // Calculate the region coordinates relative to the background image
           // The background image is scaled to fit (contain) within the canvas dimensions
@@ -466,6 +476,8 @@ const Canvas: React.FC<CanvasProps> = ({
               offsetY = 0;
           }
 
+          console.log('Canvas scaling - drawWidth:', drawWidth, 'drawHeight:', drawHeight, 'offsetX:', offsetX, 'offsetY:', offsetY);
+
           // Calculate the selected region relative to the scaled background image
           const scaleX = img.width / drawWidth;
           const scaleY = img.height / drawHeight;
@@ -475,11 +487,15 @@ const Canvas: React.FC<CanvasProps> = ({
           const imageWidth = ocrRect.width * scaleX;
           const imageHeight = ocrRect.height * scaleY;
 
+          console.log('Image region - x:', imageX, 'y:', imageY, 'width:', imageWidth, 'height:', imageHeight);
+
           // Ensure we don't go outside image bounds
           const clampedImageX = Math.max(0, Math.min(imageX, img.width - imageWidth));
           const clampedImageY = Math.max(0, Math.min(imageY, img.height - imageHeight));
           const clampedImageWidth = Math.min(imageWidth, img.width - clampedImageX);
           const clampedImageHeight = Math.min(imageHeight, img.height - clampedImageY);
+
+          console.log('Clamped region - x:', clampedImageX, 'y:', clampedImageY, 'width:', clampedImageWidth, 'height:', clampedImageHeight);
 
           canvas.width = clampedImageWidth;
           canvas.height = clampedImageHeight;
@@ -490,17 +506,53 @@ const Canvas: React.FC<CanvasProps> = ({
               0, 0, clampedImageWidth, clampedImageHeight
           );
 
-          // Extract text using Tesseract.js
-          const worker = await createWorker('eng');
-          const { data: { text } } = await worker.recognize(canvas.toDataURL());
-          await worker.terminate();
+          // Convert canvas to blob and send to OCR API
+          const blob = await new Promise<Blob>((resolve) => {
+              canvas.toBlob((blob) => resolve(blob!), 'image/png');
+          });
 
-          if (text.trim()) {
+          formData.append('image', blob);
+          formData.append('region', JSON.stringify({
+              x: clampedImageX,
+              y: clampedImageY,
+              width: clampedImageWidth,
+              height: clampedImageHeight
+          }));
+
+          console.log('Sending OCR request to API...');
+
+          // Get authentication token
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+              throw new Error('Authentication required');
+          }
+
+          const response = await fetch('/api/ocr', {
+              method: 'POST',
+              headers: {
+                  'Authorization': `Bearer ${session.access_token}`,
+              },
+              body: formData,
+          });
+
+          if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'OCR API request failed');
+          }
+
+          const result = await response.json();
+          console.log('OCR API response:', result);
+
+          const extractedText = result.text || result.extracted_text || '';
+
+          if (extractedText.trim()) {
+              console.log('Text extracted successfully:', extractedText);
+
               // Add extracted text as a new text element
               const newTextId = `ocr-text-${Date.now()}`;
               setExtractedTexts(prev => [...prev, {
                   id: newTextId,
-                  content: text.trim(),
+                  content: extractedText.trim(),
                   x: ocrRect.x,
                   y: ocrRect.y,
                   width: ocrRect.width,
@@ -508,14 +560,15 @@ const Canvas: React.FC<CanvasProps> = ({
                   isEditing: false
               }]);
 
-              alert(`Text extracted: "${text.trim()}"\nClick on the text to edit it.`);
+              alert(`Text extracted: "${extractedText.trim()}"\nClick on the green overlay to edit and apply the text.`);
           } else {
-              alert('No text found in the selected area. Try selecting a different region.');
+              console.log('No text found in OCR response');
+              alert('No text found in the selected area. Try selecting a different region or ensure the text is clear and well-lit.');
           }
 
       } catch (error) {
           console.error('OCR processing failed:', error);
-          alert('Failed to extract text. Please try again.');
+          alert(`Failed to extract text: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
       } finally {
           setIsProcessingOcr(false);
           setIsOcrSelecting(false);
@@ -786,7 +839,7 @@ const Canvas: React.FC<CanvasProps> = ({
                         pointerEvents: 'none'
                     }}
                 >
-                    Click and drag to select text areas for OCR
+                    Click and drag to select text areas for OCR extraction
                 </div>
             )}
 
