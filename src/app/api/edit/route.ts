@@ -13,10 +13,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { imageUrl, prompt, editType, userId, referenceImages } = body;
 
-    // Check credits and deduct for photo editing (1 credit per edit)
+    // Check credits and deduct for photo editing (1 credit per edit, regardless of number of images)
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
+
+    const totalImages = 1 + (referenceImages ? referenceImages.length : 0);
+    console.log(`Processing ${totalImages} image(s) for user ${userId}`);
 
     const creditResult = await checkCreditsAndDeduct(userId, 1); // 1 credit per photo edit
     if (!creditResult.success) {
@@ -63,10 +66,19 @@ export async function POST(request: NextRequest) {
       console.log('Enhanced prompt with reference images:', enhancedPrompt);
     }
 
+    // Prepare all image URLs to send to Replicate
+    const allImageUrls = [imagePublicUrl];
+    if (referenceImages && referenceImages.length > 0) {
+      allImageUrls.push(...referenceImages);
+    }
+
+    console.log('Sending images to Replicate:', allImageUrls);
+
     // Prepare Replicate API request body based on model
     let requestBody;
     if (isObjectRemover) {
-      // FLUX Pro for object removal
+      // FLUX Pro for object removal - currently only supports one image
+      // Send the main image and mention reference images in prompt
       requestBody = {
         input: {
           prompt: enhancedPrompt,
@@ -77,12 +89,12 @@ export async function POST(request: NextRequest) {
           prompt_upsampling: true
         }
       };
-      console.log('Using FLUX Pro model for object removal');
+      console.log('Using FLUX Pro model for object removal with main image only');
     } else {
-      // Qwen Image Edit Plus for image enhancement
+      // Qwen Image Edit Plus for image enhancement - supports multiple images
       requestBody = {
         input: {
-          image: [imagePublicUrl],
+          image: allImageUrls, // Send all selected images
           prompt: enhancedPrompt,
           go_fast: true,
           aspect_ratio: "match_input_image",
@@ -90,7 +102,7 @@ export async function POST(request: NextRequest) {
           output_quality: 95
         }
       };
-      console.log('Using Qwen Image Edit Plus for enhancement');
+      console.log('Using Qwen Image Edit Plus for enhancement with multiple images:', allImageUrls.length);
     }
 
     console.log('Using model:', isObjectRemover ? 'FLUX Pro (Object Removal)' : 'Qwen Image Edit Plus (Enhancement)');

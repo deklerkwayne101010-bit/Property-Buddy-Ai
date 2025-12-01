@@ -317,8 +317,13 @@ export default function PhotoEditor() {
     setLoadingStep('Sending to AI for processing...');
 
     try {
+      const totalImages = 1 + selectedReferenceImages.length;
       setLoadingProgress(30);
-      setLoadingStep(selectedEditType === 'image-enhancer' ? 'AI is enhancing your photo...' : 'AI is removing objects...');
+      setLoadingStep(
+        selectedEditType === 'image-enhancer'
+          ? `AI is enhancing ${totalImages} photo${totalImages > 1 ? 's' : ''}...`
+          : `AI is removing objects from your photo...`
+      );
 
       // Combine user instruction with window pulling if enabled
       const finalPrompt = windowPullingEnabled
@@ -1129,7 +1134,8 @@ Keep interior reflections intact except the glare being removed.`
                       </svg>
                       <span>
                         {selectedEditType === 'object-remover' ? 'Remove Objects with AI' :
-                         selectedEditType === 'image-enhancer' ? 'Enhance Image with AI' :
+                         selectedEditType === 'image-enhancer' ?
+                           (selectedReferenceImages.length > 0 ? `Enhance ${1 + selectedReferenceImages.length} Images with AI` : 'Enhance Image with AI') :
                          'Process with AI'}
                       </span>
                     </div>
