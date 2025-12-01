@@ -96,7 +96,10 @@ const Sidebar: React.FC<SidebarProps> = ({
             <p className="text-sm text-gray-500 mb-4">Start by uploading an image to edit</p>
           </div>
 
-          <div className="p-6 border-2 border-dashed border-blue-300 rounded-lg text-center text-blue-600 hover:bg-blue-50 transition-colors">
+          <div
+            className="p-6 border-2 border-dashed border-blue-300 rounded-lg text-center text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+            onClick={() => document.getElementById('background-image-upload')?.click()}
+          >
             <svg className="w-12 h-12 mx-auto mb-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
@@ -105,28 +108,42 @@ const Sidebar: React.FC<SidebarProps> = ({
               id="background-image-upload"
               className="hidden"
               accept="image/*"
+              onClick={(e) => {
+                // Reset the input value so the same file can be selected again
+                (e.target as HTMLInputElement).value = '';
+              }}
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) {
+                  console.log('File selected:', file.name, file.size, file.type);
                   const reader = new FileReader();
                   reader.onload = (ev) => {
+                    console.log('FileReader loaded, creating image...');
                     const img = new window.Image();
                     img.onload = () => {
+                      console.log('Image loaded, dimensions:', img.width, 'x', img.height);
                       onBackgroundImageUpload?.(ev.target?.result as string, img.width, img.height);
+                    };
+                    img.onerror = () => {
+                      console.error('Failed to load image');
+                      alert('Failed to load the selected image. Please try a different image file.');
                     };
                     img.src = ev.target?.result as string;
                   };
+                  reader.onerror = () => {
+                    console.error('Failed to read file');
+                    alert('Failed to read the selected file. Please try again.');
+                  };
                   reader.readAsDataURL(file);
+                } else {
+                  console.log('No file selected');
                 }
               }}
             />
-            <label
-              htmlFor="background-image-upload"
-              className="cursor-pointer block"
-            >
+            <div className="cursor-pointer">
               <span className="font-medium">Choose an image</span>
               <span className="block text-sm text-blue-500 mt-1">PNG, JPG, GIF up to 10MB</span>
-            </label>
+            </div>
           </div>
 
           <div className="text-center text-xs text-gray-400">

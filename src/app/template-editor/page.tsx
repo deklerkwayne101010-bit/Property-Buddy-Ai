@@ -57,6 +57,7 @@ const TemplateEditorPage: React.FC = () => {
 
   // Handle background image upload
   const handleBackgroundImageUpload = (imageSrc: string, width: number, height: number) => {
+    console.log('Background image upload called with dimensions:', width, 'x', height);
     setBackgroundImage(imageSrc);
     setCanvasDimensions({ width, height });
     setFileName('Image Template');
