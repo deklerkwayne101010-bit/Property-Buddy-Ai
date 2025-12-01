@@ -52,7 +52,7 @@ interface UploadedImage {
 
 interface Property {
   id: string;
-  name: string;
+  title: string;
   created_at: string;
   updated_at: string;
   property_images: Array<{
@@ -743,14 +743,14 @@ Keep interior reflections intact except the glare being removed.`
                     <option value="">Select a property...</option>
                     {properties.map((property) => (
                       <option key={property.id} value={property.id}>
-                        {property.name} ({property.property_images?.length || 0} photos)
+                        {property.title} ({property.property_images?.length || 0} photos)
                       </option>
                     ))}
                   </select>
 
                   {selectedPropertyId && (
                     <div className="text-sm text-gray-600">
-                      <p>Selected: <span className="font-medium">{properties.find(p => p.id === selectedPropertyId)?.name}</span></p>
+                      <p>Selected: <span className="font-medium">{properties.find(p => p.id === selectedPropertyId)?.title}</span></p>
                       <p>{properties.find(p => p.id === selectedPropertyId)?.property_images?.length || 0} images available</p>
                     </div>
                   )}
