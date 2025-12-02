@@ -2,10 +2,63 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { imageUrl } = await request.json();
+    let imageUrl: string;
 
-    if (!imageUrl) {
-      return NextResponse.json({ error: 'imageUrl is required' }, { status: 400 });
+    // Check if the request is FormData (from canvas) or JSON (legacy)
+    const contentType = request.headers.get('content-type') || '';
+
+    if (contentType.includes('multipart/form-data')) {
+      // Handle FormData from canvas
+      const formData = await request.formData();
+      const imageFile = formData.get('image') as File;
+
+      if (!imageFile) {
+        return NextResponse.json({ error: 'image file is required' }, { status: 400 });
+      }
+
+      // Upload to Supabase Storage temporarily
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+
+      const fileName = `ocr-temp/ocr-temp-${Date.now()}-${Math.random().toString(36).substring(2)}.png`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('property-images')
+        .upload(fileName, imageFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Error uploading temp image:', uploadError);
+        return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 });
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('property-images')
+        .getPublicUrl(fileName);
+
+      imageUrl = publicUrl;
+
+      // Schedule cleanup after 5 minutes
+      setTimeout(async () => {
+        try {
+          await supabase.storage.from('property-images').remove([fileName]);
+        } catch (error) {
+          console.warn('Failed to cleanup temp file:', error);
+        }
+      }, 5 * 60 * 1000);
+
+    } else {
+      // Handle JSON request (legacy)
+      const { imageUrl: url } = await request.json();
+      if (!url) {
+        return NextResponse.json({ error: 'imageUrl is required' }, { status: 400 });
+      }
+      imageUrl = url;
     }
 
     const replicateToken = process.env.REPLICATE_API_TOKEN;
@@ -47,7 +100,8 @@ export async function POST(request: NextRequest) {
     // Check if prediction succeeded immediately (due to 'Prefer: wait' header)
     if (prediction.status === 'succeeded') {
       console.log('Prediction succeeded immediately, output:', prediction.output);
-      return NextResponse.json({ textData: prediction.output });
+      const extractedText = prediction.output?.text || prediction.output?.[0]?.text || '';
+      return NextResponse.json({ text: extractedText });
     } else if (prediction.status === 'failed') {
       console.error('Prediction failed, error details:', prediction.error);
       throw new Error(`OCR failed: ${prediction.error || 'Unknown error'}`);
@@ -94,7 +148,8 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('=== OCR operation completed successfully ===');
-    return NextResponse.json({ textData: result.output });
+    const extractedText = result.output?.text || result.output?.[0]?.text || '';
+    return NextResponse.json({ text: extractedText });
   } catch (error) {
     console.error('=== Error performing OCR ===');
     console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error);
