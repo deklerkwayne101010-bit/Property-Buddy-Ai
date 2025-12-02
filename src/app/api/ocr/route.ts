@@ -1,23 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
-    let imageUrl: string;
-
-    // Check if the request is FormData (from canvas) or JSON (legacy)
-    const contentType = request.headers.get('content-type') || '';
-
     // Handle JSON request with imageUrl (can be data URL or regular URL)
-    const { imageUrl: url } = await request.json();
-    if (!url) {
+    const { imageUrl } = await request.json();
+    if (!imageUrl) {
       return NextResponse.json({ error: 'imageUrl is required' }, { status: 400 });
-    }
-    imageUrl = url;
-
-    const replicateToken = process.env.REPLICATE_API_TOKEN;
-    if (!replicateToken) {
-      return NextResponse.json({ error: 'Replicate API token not configured' }, { status: 500 });
     }
 
     console.log('=== OCR API Request ===');
