@@ -506,18 +506,8 @@ const Canvas: React.FC<CanvasProps> = ({
               0, 0, clampedImageWidth, clampedImageHeight
           );
 
-          // Convert canvas to blob and send to OCR API
-          const blob = await new Promise<Blob>((resolve) => {
-              canvas.toBlob((blob) => resolve(blob!), 'image/png');
-          });
-
-          formData.append('image', blob);
-          formData.append('region', JSON.stringify({
-              x: clampedImageX,
-              y: clampedImageY,
-              width: clampedImageWidth,
-              height: clampedImageHeight
-          }));
+          // Convert canvas to base64 data URL and send to OCR API
+          const dataUrl = canvas.toDataURL('image/png');
 
           console.log('Sending OCR request to API...');
 
@@ -530,9 +520,18 @@ const Canvas: React.FC<CanvasProps> = ({
           const response = await fetch('/api/ocr', {
               method: 'POST',
               headers: {
+                  'Content-Type': 'application/json',
                   'Authorization': `Bearer ${session.access_token}`,
               },
-              body: formData,
+              body: JSON.stringify({
+                  imageUrl: dataUrl,
+                  region: {
+                      x: clampedImageX,
+                      y: clampedImageY,
+                      width: clampedImageWidth,
+                      height: clampedImageHeight
+                  }
+              }),
           });
 
           if (!response.ok) {
