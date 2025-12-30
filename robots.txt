@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+
+# Block admin areas from search engines
+Disallow: /admin
+Disallow: /api/admin
+
+# Allow important API endpoints for SEO
+Allow: /api/templates
+Allow: /sitemap.xml
+
+# Crawl delay for API endpoints
+Crawl-delay: 1
+
+# Sitemap
+Sitemap: https://propertybuddy.ai/sitemap.xml
