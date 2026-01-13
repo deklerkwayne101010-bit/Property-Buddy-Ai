@@ -1161,21 +1161,27 @@ Keep interior reflections intact except the glare being removed.`
                   <p className="text-sm font-medium text-slate-700">Quick suggestions:</p>
                   <div className="flex flex-wrap gap-2">
                     {(selectedEditType === 'object-remover' ? [
-                      "Remove microwave",
-                      "Remove person",
-                      "Remove car",
-                      "Remove furniture",
-                      "Remove background clutter",
-                      "Remove unwanted objects"
+                      "Remove For Sale sign",
+                      "Remove real estate agent",
+                      "Remove furniture from empty room",
+                      "Remove construction equipment",
+                      "Remove parked cars from driveway",
+                      "Remove trash cans and bins",
+                      "Remove extension cords and tools",
+                      "Remove personal items and clutter"
                     ] : [
-                      "Add golden hour lighting",
-                      "Convert to black & white",
-                      "Enhance colors",
-                      "Add cinematic look",
-                      "Fix perspective",
-                      "Add vintage filter",
-                      "Boost contrast",
-                      "Add sunset background"
+                      "Enhance curb appeal lighting",
+                      "Brighten interior natural light",
+                      "Add warm sunset glow to exterior",
+                      "Boost kitchen counter appeal",
+                      "Enhance bathroom tile colors",
+                      "Add dramatic living room lighting",
+                      "Improve garden greenery vibrancy",
+                      "Highlight hardwood floor shine",
+                      "Add cozy fireplace ambiance",
+                      "Enhance pool water clarity",
+                      "Brighten basement lighting",
+                      "Add luxury bedroom atmosphere"
                     ]).map((example, index) => (
                       <button
                         key={index}
