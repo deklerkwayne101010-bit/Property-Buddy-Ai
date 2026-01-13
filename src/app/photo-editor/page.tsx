@@ -84,6 +84,7 @@ export default function PhotoEditor() {
   const [showSavePromptDialog, setShowSavePromptDialog] = useState(false);
   const [promptName, setPromptName] = useState('');
   const [windowPullingEnabled, setWindowPullingEnabled] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [loadingProperties, setLoadingProperties] = useState(false);
@@ -302,15 +303,17 @@ export default function PhotoEditor() {
       // Refresh the uploaded images list
       await loadUploadedImages();
 
-      // Set the uploaded image as preview
+      // Set the uploaded image as preview and auto-select it
       const reader = new FileReader();
       reader.onload = (e) => {
-        setOriginalImage(e.target?.result as string);
+        const imageUrl = e.target?.result as string;
+        setOriginalImage(imageUrl);
+        setSelectedImageUrl(publicUrl); // Auto-select the uploaded image
       };
       reader.readAsDataURL(file);
 
       setIsUploading(false);
-      alert('Image uploaded successfully! You can now select it from your personal gallery below.');
+      alert('Image uploaded successfully! It has been automatically selected for editing.');
     } catch (error) {
       console.error('Error uploading image:', error);
       alert('Failed to upload image. Please try again.');
@@ -823,7 +826,8 @@ Keep interior reflections intact except the glare being removed.`
                       <img
                         src={image.url}
                         alt={image.filename}
-                        className="w-full h-24 sm:h-32 object-cover"
+                        className="w-full h-24 sm:h-32 object-contain cursor-pointer"
+                        onClick={() => setFullscreenImage(image.url)}
                       />
 
                       {/* Selection indicators */}
@@ -1533,6 +1537,34 @@ Keep interior reflections intact except the glare being removed.`
                 Save Prompt
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Image Modal */}
+      {fullscreenImage && (
+        <div
+          className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 cursor-pointer"
+          onClick={() => setFullscreenImage(null)}
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh]">
+            <img
+              src={fullscreenImage}
+              alt="Fullscreen view"
+              className="max-w-full max-h-full object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setFullscreenImage(null);
+              }}
+              className="absolute top-4 right-4 bg-black/70 text-white rounded-full p-2 hover:bg-black/90 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         </div>
       )}
