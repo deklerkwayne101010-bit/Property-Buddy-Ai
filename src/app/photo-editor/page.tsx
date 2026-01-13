@@ -70,6 +70,8 @@ export default function PhotoEditor() {
   const [showSavePromptDialog, setShowSavePromptDialog] = useState(false);
   const [promptName, setPromptName] = useState('');
   const [windowPullingEnabled, setWindowPullingEnabled] = useState(false);
+  const [showFullscreenModal, setShowFullscreenModal] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   interface SavedPrompt {
@@ -248,15 +250,12 @@ export default function PhotoEditor() {
       // Refresh the uploaded images list
       await loadUploadedImages();
 
-      // Set the uploaded image as preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setOriginalImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      // Auto-select the uploaded image as the first image for editing
+      setSelectedImageUrl(publicUrl);
+      setOriginalImage(publicUrl);
 
       setIsUploading(false);
-      alert('Image uploaded successfully! You can now select it from your personal gallery below.');
+      alert('Image uploaded successfully! It has been automatically selected for editing.');
     } catch (error) {
       console.error('Error uploading image:', error);
       alert('Failed to upload image. Please try again.');
@@ -402,6 +401,16 @@ Keep interior reflections intact except the glare being removed.`
       // Fallback to opening in new tab if download fails
       window.open(url, '_blank');
     }
+  };
+
+  const openFullscreenModal = (imageUrl: string) => {
+    setFullscreenImage(imageUrl);
+    setShowFullscreenModal(true);
+  };
+
+  const closeFullscreenModal = () => {
+    setShowFullscreenModal(false);
+    setFullscreenImage(null);
   };
 
   const deleteImage = async (image: UploadedImage) => {
@@ -584,7 +593,8 @@ Keep interior reflections intact except the glare being removed.`
                     <img
                       src={originalImage}
                       alt="Selected"
-                      className="max-w-full max-h-64 sm:max-h-80 rounded-2xl shadow-lg border-4 border-white transition-all duration-300 group-hover:shadow-xl group-hover:scale-105"
+                      className="max-w-full max-h-64 sm:max-h-80 rounded-2xl shadow-lg border-4 border-white transition-all duration-300 group-hover:shadow-xl group-hover:scale-105 cursor-pointer"
+                      onClick={() => openFullscreenModal(originalImage)}
                     />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-2xl transition-all duration-300 flex items-center justify-center">
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 backdrop-blur-sm rounded-full p-3">
@@ -672,7 +682,8 @@ Keep interior reflections intact except the glare being removed.`
                       <img
                         src={image.url}
                         alt={image.filename}
-                        className="w-full h-24 sm:h-32 object-cover"
+                        className="w-full h-24 sm:h-32 object-contain cursor-pointer"
+                        onClick={() => openFullscreenModal(image.url)}
                       />
 
                       {/* Selection indicators */}
@@ -1172,7 +1183,8 @@ Keep interior reflections intact except the glare being removed.`
                         <img
                           src={originalImage}
                           alt="Original"
-                          className="w-full h-64 sm:h-80 object-cover rounded-xl border-2 border-slate-200"
+                          className="w-full h-64 sm:h-80 object-contain rounded-xl border-2 border-slate-200 cursor-pointer"
+                          onClick={() => openFullscreenModal(originalImage)}
                         />
                         <div className="absolute top-3 left-3 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">
                           Original
@@ -1186,7 +1198,8 @@ Keep interior reflections intact except the glare being removed.`
                         <img
                           src={editedImage}
                           alt="Edited"
-                          className="w-full h-64 sm:h-80 object-cover rounded-xl border-2 border-emerald-200"
+                          className="w-full h-64 sm:h-80 object-contain rounded-xl border-2 border-emerald-200 cursor-pointer"
+                          onClick={() => openFullscreenModal(editedImage)}
                         />
                         <div className="absolute top-3 right-3 bg-emerald-600 text-white px-3 py-1 rounded-full text-sm font-medium">
                           AI {selectedEditType === 'object-remover' ? 'Removed' : 'Enhanced'}
@@ -1318,6 +1331,28 @@ Keep interior reflections intact except the glare being removed.`
           )}
         </div>
       </div>
+
+      {/* Fullscreen Image Modal */}
+      {showFullscreenModal && fullscreenImage && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50" onClick={closeFullscreenModal}>
+          <div className="relative max-w-7xl max-h-screen p-4">
+            <button
+              onClick={closeFullscreenModal}
+              className="absolute top-4 right-4 bg-black/50 text-white rounded-full p-2 hover:bg-black/70 transition-colors duration-200 z-10"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <img
+              src={fullscreenImage}
+              alt="Fullscreen view"
+              className="max-w-full max-h-full object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Save Prompt Dialog */}
       {showSavePromptDialog && (
