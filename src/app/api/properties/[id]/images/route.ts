@@ -136,9 +136,9 @@ export async function POST(
     const fileExt = file.name.split('.').pop();
     const fileName = `${propertyId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
-    // Upload to Supabase Storage
+    // Upload to Supabase Storage (using existing video-assets bucket)
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-      .from('property-images')
+      .from('video-assets')
       .upload(fileName, file, {
         cacheControl: '3600',
         upsert: false
@@ -151,7 +151,7 @@ export async function POST(
 
     // Get public URL
     const { data: { publicUrl } } = supabaseAdmin.storage
-      .from('property-images')
+      .from('video-assets')
       .getPublicUrl(fileName);
 
     // Save to database
@@ -170,7 +170,7 @@ export async function POST(
     if (dbError) {
       console.error('Error saving image to database:', dbError);
       // Try to clean up uploaded file
-      await supabaseAdmin.storage.from('property-images').remove([fileName]);
+      await supabaseAdmin.storage.from('video-assets').remove([fileName]);
       return NextResponse.json({ error: 'Failed to save image' }, { status: 500 });
     }
 
