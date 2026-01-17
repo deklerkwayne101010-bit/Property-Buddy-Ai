@@ -75,7 +75,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 lg:w-72 xl:w-80 2xl:w-96 flex flex-col transform transition-all duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 lg:w-64 xl:w-72 2xl:w-80 flex flex-col transform transition-all duration-300 ease-in-out lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -85,13 +85,13 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
         <div className="absolute inset-0 backdrop-blur-xl border-r border-white/10 shadow-2xl"></div>
 
         {/* Header */}
-        <div className="relative flex items-center justify-between p-4 sm:p-6 border-b border-white/10 flex-shrink-0">
-          <h2 className="text-lg sm:text-xl font-bold text-white bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-lg">
+        <div className="relative flex items-center justify-center p-4 sm:p-6 border-b border-white/10 flex-shrink-0">
+          <h2 className="text-xl sm:text-2xl font-bold text-white bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-lg">
             Stagefy
           </h2>
           <button
             onClick={onToggle}
-            className="lg:hidden p-2 rounded-lg hover:bg-white/10 transition-all duration-200 hover:scale-105 backdrop-blur-sm"
+            className="absolute right-4 lg:hidden p-2 rounded-lg hover:bg-white/10 transition-all duration-200 hover:scale-105 backdrop-blur-sm"
           >
             <svg className="w-5 sm:w-6 h-5 sm:h-6 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

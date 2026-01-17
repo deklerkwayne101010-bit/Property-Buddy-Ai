@@ -6,7 +6,7 @@ import {
   createSecurityHeaders,
   logSecurityEvent
 } from '../../../../lib/security';
-import { deductCredits } from '../../../../lib/creditUtils';
+import { deductCredits, addCredits } from '../../../../lib/creditUtils';
 
 // Rate limiting: 20 status checks per minute per IP (status checks are lightweight)
 const RATE_LIMIT_CONFIG = {
@@ -89,8 +89,9 @@ export async function GET(request: NextRequest) {
     // Check video status
     const statusResult = await checkVideoStatus(predictionId);
 
-    // If video generation succeeded, deduct 1 credit
+    // Handle different status results
     if (statusResult.status === 'succeeded' && statusResult.videoUrl) {
+      // Video generation succeeded, deduct 1 credit
       const creditResult = await deductCredits(userId, 1);
       if (creditResult.error) {
         console.error('Failed to deduct credits:', creditResult.error);
@@ -109,6 +110,26 @@ export async function GET(request: NextRequest) {
           videoUrl: statusResult.videoUrl,
           creditsDeducted: 1,
           newBalance: creditResult.newCredits
+        });
+      }
+    } else if (statusResult.status === 'failed') {
+      // Video generation failed, refund the credit that was reserved
+      const refundResult = await addCredits(userId, 1, 'refund_failed_video_generation');
+      if (refundResult.success) {
+        console.log(`Successfully refunded 1 credit to user ${userId} due to failed video generation`);
+        logSecurityEvent('VIDEO_GENERATION_FAILED_CREDIT_REFUNDED', {
+          userId,
+          predictionId,
+          error: statusResult.error,
+          creditsRefunded: 1,
+          newBalance: refundResult.newCredits
+        });
+      } else {
+        console.error(`Failed to refund credits to user ${userId}:`, refundResult.error);
+        logSecurityEvent('CREDIT_REFUND_FAILED', {
+          userId,
+          predictionId,
+          error: refundResult.error
         });
       }
     }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { checkCreditsAndDeduct } from '@/lib/creditUtils';
+import { checkCreditsAndDeduct, addCredits } from '@/lib/creditUtils';
 
 export const config = {
   api: {
@@ -188,6 +188,19 @@ export async function POST(request: NextRequest) {
     console.error('Error message:', error instanceof Error ? error.message : String(error));
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace available');
     console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+
+    // Refund credits since the operation failed
+    try {
+      const refundResult = await addCredits(userId, 1, 'refund_failed_edit');
+      if (refundResult.success) {
+        console.log(`Successfully refunded 1 credit to user ${userId} due to failed edit operation`);
+      } else {
+        console.error(`Failed to refund credits to user ${userId}:`, refundResult.error);
+      }
+    } catch (refundError) {
+      console.error('Error refunding credits:', refundError);
+    }
+
     return NextResponse.json({ error: 'Failed to edit image', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
