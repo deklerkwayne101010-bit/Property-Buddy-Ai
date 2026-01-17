@@ -9,9 +9,12 @@ export const config = {
 };
 
 export async function POST(request: NextRequest) {
+  let userId: string | undefined;
+
   try {
     const body = await request.json();
-    const { imageUrl, prompt, editType, userId, referenceImages } = body;
+    const { imageUrl, prompt, editType, userId: extractedUserId, referenceImages } = body;
+    userId = extractedUserId;
 
     // Check credits and deduct for photo editing (1 credit per edit, regardless of number of images)
     if (!userId) {
@@ -190,15 +193,19 @@ export async function POST(request: NextRequest) {
     console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
 
     // Refund credits since the operation failed
-    try {
-      const refundResult = await addCredits(userId, 1, 'refund_failed_edit');
-      if (refundResult.success) {
-        console.log(`Successfully refunded 1 credit to user ${userId} due to failed edit operation`);
-      } else {
-        console.error(`Failed to refund credits to user ${userId}:`, refundResult.error);
+    if (userId) {
+      try {
+        const refundResult = await addCredits(userId, 1, 'refund_failed_edit');
+        if (refundResult.success) {
+          console.log(`Successfully refunded 1 credit to user ${userId} due to failed edit operation`);
+        } else {
+          console.error(`Failed to refund credits to user ${userId}:`, refundResult.error);
+        }
+      } catch (refundError) {
+        console.error('Error refunding credits:', refundError);
       }
-    } catch (refundError) {
-      console.error('Error refunding credits:', refundError);
+    } else {
+      console.error('Cannot refund credits: userId not available');
     }
 
     return NextResponse.json({ error: 'Failed to edit image', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
