@@ -383,18 +383,8 @@ function PaymentPageContent() {
     <ProtectedRoute>
       <DashboardLayout>
         <div className="max-w-6xl mx-auto">
-          {/* Current Plan Indicator */}
-          {isLoadingSubscription ? (
-            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center">
-                <LoadingStates type="inline" message="Loading subscription..." size="sm" />
-                <div className="ml-3">
-                  <h3 className="text-blue-800 font-semibold">Loading subscription...</h3>
-                  <p className="text-blue-700 text-sm">Please wait while we load your plan details</p>
-                </div>
-              </div>
-            </div>
-          ) : (
+          {/* Current Plan Indicator - Only show if we have subscription data */}
+          {!isLoadingSubscription && currentSubscription && (
             <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-center">
                 <svg className="w-5 h-5 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -406,8 +396,8 @@ function PaymentPageContent() {
                     {currentSubscription === 'free' ? '5 credits included - AI Photo Editor only' :
                       currentSubscription === 'starter' ? '100 credits included - Basic features' :
                       currentSubscription === 'pro' ? '200 credits included - Full features' :
-                      currentSubscription === 'elite' ? '200 credits included - Premium features' :
-                      currentSubscription === 'agency' ? '400 credits included - Enterprise features' : 'Unknown plan'}
+                      currentSubscription === 'elite' ? '400 credits included - Premium features' :
+                      currentSubscription === 'agency' ? '800 credits included - Enterprise features' : 'Unknown plan'}
                   </p>
                 </div>
               </div>
@@ -460,88 +450,6 @@ function PaymentPageContent() {
           )}
 
 
-          {/* Subscription Management Section - Moved up for better visibility */}
-          {subscription && currentSubscription !== 'free' && (
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-100 mb-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-xl font-semibold text-slate-900">Subscription Management</h3>
-                  <p className="text-slate-600 mt-1">Manage your current subscription</p>
-                </div>
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                  subscription.status === 'active' ? 'text-green-600 bg-green-100' :
-                  subscription.status === 'pending_cancellation' ? 'text-yellow-600 bg-yellow-100' :
-                  subscription.status === 'cancelled' ? 'text-red-600 bg-red-100' :
-                  subscription.status === 'past_due' ? 'text-orange-600 bg-orange-100' :
-                  'text-slate-600 bg-slate-100'
-                }`}>
-                  {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1).replace('_', ' ')}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-medium text-slate-900">{subscription.plan}</h4>
-                    <p className="text-2xl font-bold text-blue-600">
-                      {subscription.currency === 'ZAR' ? 'R' : '$'}{subscription.price}/{subscription.interval}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Next billing date:</span>
-                      <span className="font-medium">{new Date(subscription.nextBillingDate).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Payment method:</span>
-                      <span className="font-medium">
-                        {subscription.paymentMethod.brand.charAt(0).toUpperCase() + subscription.paymentMethod.brand.slice(1)} •••• {subscription.paymentMethod.last4}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-medium text-slate-900">Plan Features</h4>
-                  <ul className="space-y-1">
-                    {subscription.features.map((feature: string, index: number) => (
-                      <li key={index} className="flex items-center text-sm text-slate-600">
-                        <span className="text-green-500 mr-2">✓</span>
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {subscription.status === 'active' && (
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => setShowCancelDialog(true)}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                  >
-                    Cancel Subscription
-                  </button>
-                </div>
-              )}
-
-              {subscription.status === 'pending_cancellation' && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <div className="flex items-center">
-                    <span className="text-yellow-600 mr-2">⚠️</span>
-                    <div>
-                      <p className="font-medium text-yellow-800">Cancellation Pending</p>
-                      <p className="text-sm text-yellow-700">
-                        Your subscription will end on {new Date(subscription.currentPeriodEnd).toLocaleDateString()}.
-                        You can still use all features until then.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Tab Navigation - Removed Billing & Credits tab */}
           <div className="mb-8">
