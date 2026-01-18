@@ -1,77 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
-import { ShopProduct, CartItem } from '@/types/shop';
-import { fadeInUp, staggerContainer, staggerItem } from '@/components/animations';
 import DashboardLayout from '@/components/DashboardLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function MarketingMaterialsPage() {
-  const [products, setProducts] = useState<ShopProduct[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [cart, setCart] = useState<CartItem[]>([]);
-
-  useEffect(() => {
-    fetchProducts();
-    loadCart();
-  }, []);
-
-  const fetchProducts = async () => {
-    try {
-      const response = await fetch('/api/shop/products');
-      const data = await response.json();
-      setProducts(data.products || []);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadCart = () => {
-    const savedCart = localStorage.getItem('shop_cart');
-    if (savedCart) {
-      setCart(JSON.parse(savedCart));
-    }
-  };
-
-  const saveCart = (newCart: CartItem[]) => {
-    localStorage.setItem('shop_cart', JSON.stringify(newCart));
-    setCart(newCart);
-  };
-
-  const addToCart = (product: ShopProduct) => {
-    const existingItem = cart.find(item => item.product.id === product.id);
-    if (existingItem) {
-      const newCart = cart.map(item =>
-        item.product.id === product.id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      );
-      saveCart(newCart);
-    } else {
-      saveCart([...cart, { product, quantity: 1 }]);
-    }
-  };
-
-  const getCartTotal = () => {
-    return cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
-  };
-
-  const getCartItemCount = () => {
-    return cart.reduce((total, item) => total + item.quantity, 0);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-slate-600"></div>
-      </div>
-    );
-  }
-
   return (
     <ProtectedRoute>
       <DashboardLayout>
@@ -81,110 +14,122 @@ export default function MarketingMaterialsPage() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
         >
-      {/* Header */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-slate-600 to-blue-600 text-white">
-        <div className="absolute inset-0 bg-black/10"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
-          <motion.div
-            className="text-center"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <h1 className="text-4xl sm:text-6xl font-bold mb-6">
-              Marketing Materials
-            </h1>
-            <p className="text-xl text-slate-100 max-w-2xl mx-auto">
-              Professional marketing materials to elevate your real estate business
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Cart Summary */}
-      {cart.length > 0 && (
-        <div className="bg-white shadow-lg border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-4">
-                <span className="text-lg font-semibold">
-                  Cart: {getCartItemCount()} items
-                </span>
-                <span className="text-slate-600">
-                  Total: R{getCartTotal().toFixed(2)}
-                </span>
-              </div>
-              <Link
-                href="/marketing-materials/checkout"
-                className="bg-slate-600 text-white px-6 py-2 rounded-lg hover:bg-slate-700 transition-colors"
+          {/* Header */}
+          <section className="relative overflow-hidden bg-gradient-to-r from-slate-600 to-blue-600 text-white">
+            <div className="absolute inset-0 bg-black/10"></div>
+            <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+              <motion.div
+                className="text-center"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
               >
-                View Cart & Checkout
-              </Link>
+                <h1 className="text-4xl sm:text-6xl font-bold mb-6">
+                  Marketing Materials
+                </h1>
+                <p className="text-xl text-slate-100 max-w-2xl mx-auto">
+                  Professional marketing materials to elevate your real estate business
+                </p>
+              </motion.div>
             </div>
-          </div>
-        </div>
-      )}
+          </section>
 
-      {/* Products Grid */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {products.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-xl text-slate-600">No products available at the moment.</p>
-            </div>
-          ) : (
-            <motion.div
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-              variants={staggerContainer}
-              initial="initial"
-              animate="animate"
-            >
-              {products.map((product) => (
-                <motion.div
-                  key={product.id}
-                  className="bg-white rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 border border-slate-100 overflow-hidden"
-                  variants={staggerItem}
-                >
-                  {product.image_url && (
-                    <div className="aspect-video bg-slate-100">
-                      <img
-                        src={product.image_url}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">
-                      {product.name}
-                    </h3>
-                    {product.description && (
-                      <p className="text-slate-600 mb-4 line-clamp-3">
-                        {product.description}
-                      </p>
-                    )}
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="text-2xl font-bold text-slate-900">
-                        R{product.price.toFixed(2)}
-                      </span>
-                      <span className="text-sm text-slate-500">
-                        {product.stock_quantity} in stock
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => addToCart(product)}
-                      disabled={product.stock_quantity === 0}
-                      className="w-full bg-slate-600 text-white py-3 px-4 rounded-lg hover:bg-slate-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {product.stock_quantity === 0 ? 'Out of Stock' : 'Add to Cart'}
-                    </button>
+          {/* Coming Soon Content */}
+          <section className="py-20">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="bg-white rounded-2xl shadow-xl p-12 border border-slate-100"
+              >
+                {/* Icon */}
+                <div className="mb-8">
+                  <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
                   </div>
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-        </div>
-      </section>
+                  <h2 className="text-3xl font-bold text-slate-900 mb-4">Coming Soon</h2>
+                  <p className="text-xl text-slate-600 mb-8">
+                    We're working hard to bring you an amazing collection of professional marketing materials
+                    tailored specifically for real estate agents.
+                  </p>
+                </div>
+
+                {/* Features Preview */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-slate-900 mb-2">Business Cards</h3>
+                    <p className="text-slate-600 text-sm">Professional business cards with your branding</p>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-slate-900 mb-2">Brochures</h3>
+                    <p className="text-slate-600 text-sm">Property brochures and flyers</p>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-slate-900 mb-2">Signage</h3>
+                    <p className="text-slate-600 text-sm">Open house and property signage</p>
+                  </div>
+                </div>
+
+                {/* Call to Action */}
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">Want to be notified when we launch?</h3>
+                  <p className="text-slate-600 mb-4">
+                    Be the first to know when our marketing materials shop goes live with exclusive early access.
+                  </p>
+                  <button
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium"
+                    onClick={() => alert('Thank you! We\'ll notify you when the marketing materials shop launches.')}
+                  >
+                    Notify Me When It Launches
+                  </button>
+                </div>
+
+                {/* Timeline */}
+                <div className="mt-8 pt-8 border-t border-slate-200">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Development Timeline</h3>
+                  <div className="flex items-center justify-center space-x-8 text-sm text-slate-600">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                      <span>Design Phase</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full mr-2 animate-pulse"></div>
+                      <span>Development</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-slate-300 rounded-full mr-2"></div>
+                      <span>Testing</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-slate-300 rounded-full mr-2"></div>
+                      <span>Launch</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </section>
         </motion.div>
       </DashboardLayout>
     </ProtectedRoute>
