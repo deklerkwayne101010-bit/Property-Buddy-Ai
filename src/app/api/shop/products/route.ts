@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = supabaseAdmin;
 
@@ -74,7 +74,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const adminClient = supabaseAdmin;
     const { data: product, error } = await supabaseAdmin
       .from('shop_products')
       .insert({

@@ -27,7 +27,7 @@ interface VideoGenerationRequest {
 }
 
 // Mock video generation for demonstration purposes
-async function startVideoGeneration(prompt: string, duration: number = 5, aspectRatio: string = '16:9', loop: boolean = false, startImage?: string, negativePrompt?: string): Promise<string> {
+async function startVideoGeneration(prompt: string): Promise<string> {
   // Generate a mock prediction ID
   const predictionId = `mock-video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -40,25 +40,6 @@ async function startVideoGeneration(prompt: string, duration: number = 5, aspect
   return predictionId;
 }
 
-// Mock video status checking for demonstration purposes
-async function checkVideoStatus(predictionId: string): Promise<{ status: string; videoUrl?: string; error?: string }> {
-  console.log('Checking mock video status for:', predictionId);
-
-  // Simulate different statuses based on time elapsed
-  const elapsed = Date.now() % 30000; // Cycle every 30 seconds
-
-  if (elapsed < 10000) {
-    return { status: 'starting' };
-  } else if (elapsed < 20000) {
-    return { status: 'processing' };
-  } else {
-    // Mock successful completion with a sample video URL
-    const mockVideoUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-    console.log('Mock video generation succeeded!');
-    console.log('Mock video URL:', mockVideoUrl);
-    return { status: 'succeeded', videoUrl: mockVideoUrl };
-  }
-}
 
 export async function POST(request: NextRequest) {
   const clientIP = getClientIP(request);
@@ -163,7 +144,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Start video generation (async)
-    const predictionId = await startVideoGeneration(prompt, duration, aspect_ratio, loop, start_image, negative_prompt);
+    const predictionId = await startVideoGeneration(prompt);
 
     // Log generation started
     logSecurityEvent('VIDEO_GENERATION_STARTED', {
