@@ -52,7 +52,7 @@ export default function MarketingMaterialsPage() {
                   </div>
                   <h2 className="text-3xl font-bold text-slate-900 mb-4">Coming Soon</h2>
                   <p className="text-xl text-slate-600 mb-8">
-                    We're working hard to bring you an amazing collection of professional marketing materials
+                    We&apos;re working hard to bring you an amazing collection of professional marketing materials
                     tailored specifically for real estate agents.
                   </p>
                 </div>
