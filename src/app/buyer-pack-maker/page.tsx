@@ -52,7 +52,7 @@ export default function BuyerPackMakerPage() {
                   </div>
                   <h2 className="text-3xl font-bold text-slate-900 mb-4">Coming Soon</h2>
                   <p className="text-xl text-slate-600 mb-8">
-                    We're developing an intelligent viewing pack maker that will automatically scrape property listings
+                    We&apos;re developing an intelligent viewing pack maker that will automatically scrape property listings
                     and create professional PDF documents for your client presentations.
                   </p>
                 </div>
