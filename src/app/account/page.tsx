@@ -10,15 +10,7 @@ import SecurityTab from '../../components/SecurityTab';
 
 export default function AccountPage() {
     const [activeTab, setActiveTab] = useState('profile');
-    const [isPurchasing, setIsPurchasing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    // const [userCredits, setUserCredits] = useState(1250);
-    const [usageStats, setUsageStats] = useState({
-      photoEdits: { used: 450, total: 1000 },
-      videoGeneration: { used: 200, total: 500 },
-      propertyDescriptions: { used: 100, total: 200 },
-      aiChat: { used: 50, total: 100 }
-    });
    const [profileData, setProfileData] = useState({
      firstName: '',
      lastName: '',
@@ -28,10 +20,6 @@ export default function AccountPage() {
      website: '',
      bio: ''
    });
-   const [apiKeys, setApiKeys] = useState([
-     { id: '1', name: 'Primary API Key', key: 'sk-••••••••••••••••••••••••••••••••', created: '2024-01-15', lastUsed: '2024-10-14', status: 'active' },
-     { id: '2', name: 'Development Key', key: 'sk-••••••••••••••••••••••••••••••••', created: '2024-03-20', lastUsed: '2024-10-10', status: 'active' }
-   ]);
    const [preferences, setPreferences] = useState({
      emailNotifications: {
        creditAlerts: true,
@@ -45,7 +33,6 @@ export default function AccountPage() {
      autoSave: true,
      dataRetention: '1year'
    });
-   const [userCredits, setUserCredits] = useState(0);
   useEffect(() => {
      // Load user profile data on component mount
      const loadUserProfile = async () => {
@@ -62,70 +49,12 @@ export default function AccountPage() {
              bio: user.user_metadata?.bio || 'Experienced real estate agent specializing in luxury properties.'
            });
          }
-       } catch (error) {
-         console.error('Error loading user profile:', error);
-       }
-     };
-
-     // Load user credits and usage stats
-     const loadCreditsAndUsage = async () => {
-       try {
-         const response = await fetch('/api/usage');
-         if (response.ok) {
-           const usageData = await response.json();
-           setUserCredits(usageData.credits || 0);
-           setUsageStats(prevStats => ({
-             ...prevStats,
-             ...usageData.usageStats
-           }));
-         } else {
-           // API failed, try credits API as fallback
-           console.warn('Usage API unavailable, trying credits API');
-           const creditsResponse = await fetch('/api/credits');
-           if (creditsResponse.ok) {
-             const creditsData = await creditsResponse.json();
-             setUserCredits(creditsData.credits || 0);
-           } else {
-             console.warn('Credits API also unavailable, using default values');
-           }
-         }
-       } catch (error) {
-         console.error('Error loading credits and usage:', error);
-         // Keep default values on error
-       }
-     };
-
-     // Load user credits
-     const loadUserCredits = async () => {
-       try {
-         const { data: { user } } = await supabase.auth.getUser();
-         if (user) {
-           const { data: profile } = await supabase
-             .from('profiles')
-             .select('credits_balance')
-             .eq('id', user.id)
-             .single();
-
-           if (profile) {
-             setUserCredits(profile.credits_balance || 0);
-           }
-         }
-       } catch (error) {
-         console.error('Error loading credits:', error);
+       } catch {
+         console.error('Error loading user profile');
        }
      };
 
      loadUserProfile();
-     loadCreditsAndUsage();
-     loadUserCredits();
-
-     // Set up a refresh interval to check for credit updates after payment
-     const refreshInterval = setInterval(() => {
-       loadCreditsAndUsage();
-       loadUserCredits();
-     }, 5000); // Check every 5 seconds
-
-     return () => clearInterval(refreshInterval);
    }, []);
 
   const tabs = [
@@ -135,157 +64,6 @@ export default function AccountPage() {
     { id: 'security', label: 'Security', icon: '🔒' },
   ];
 
-  const subscriptionTiers = [
-    {
-      id: 'starter',
-      name: 'Starter',
-      price: 'R150',
-      period: '/month',
-      description: 'Perfect for individual agents',
-      icon: '💼',
-      gradient: 'from-green-400 to-blue-500',
-      features: [
-        '35 credits included',
-        'Up to 25 photo edits per month',
-        'Generate 2 AI property videos (30 seconds each)',
-        'Access to basic property templates',
-        'Email support'
-      ],
-      limits: {
-        credits: '35/month',
-        photos: '25/month',
-        videos: '2/month',
-        templates: 'Basic'
-      },
-      popular: false,
-      current: false
-    },
-    {
-      id: 'pro',
-      name: 'Pro',
-      price: 'R299',
-      period: '/month',
-      description: 'Designed for about 3 listings per month',
-      icon: '🚀',
-      gradient: 'from-blue-500 to-purple-600',
-      features: [
-        '80 credits included',
-        '60+ photo edits',
-        'Generate 3–4 AI property videos',
-        'Access to premium templates',
-        'Priority email & chat support'
-      ],
-      limits: {
-        credits: '80/month',
-        photos: '60+/month',
-        videos: '3-4/month',
-        templates: 'Premium'
-      },
-      popular: true,
-      current: true
-    },
-    {
-      id: 'elite',
-      name: 'Elite',
-      price: 'R599',
-      period: '/month',
-      description: 'For high-volume real estate professionals',
-      icon: '🏡',
-      gradient: 'from-purple-600 to-pink-600',
-      features: [
-        '180 credits included',
-        '150+ photo edits',
-        'Generate 7–8 AI property videos',
-        'Unlimited premium templates',
-        'Team collaboration tools',
-        'Priority support'
-      ],
-      limits: {
-        credits: '180/month',
-        photos: '150+/month',
-        videos: '7-8/month',
-        templates: 'Unlimited'
-      },
-      popular: false,
-      current: false
-    },
-    {
-      id: 'agency',
-      name: 'Agency+',
-      price: 'R999',
-      period: '/month',
-      description: 'For agencies and large teams',
-      icon: '🏢',
-      gradient: 'from-orange-500 to-red-600',
-      features: [
-        '350 credits included',
-        '300+ photo edits',
-        'Generate 12+ AI videos',
-        'Team & multi-agent access',
-        'Custom branding & template setup',
-        'Dedicated support'
-      ],
-      limits: {
-        credits: '350/month',
-        photos: '300+/month',
-        videos: '12+/month',
-        templates: 'Custom'
-      },
-      popular: false,
-      current: false
-    }
-  ];
-
-  const handlePurchase = async (packageId: string) => {
-    setIsPurchasing(true);
-    try {
-      // Get current user or use guest checkout
-      const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id || 'guest';
-
-      // Get package details for YOCO payment
-      const packages = {
-        '100': { credits: 100, price: 19900, currency: 'ZAR' }, // R199.00 in cents
-        '500': { credits: 500, price: 79900, currency: 'ZAR' }, // R799.00 in cents
-        '1000': { credits: 1000, price: 139900, currency: 'ZAR' } // R1399.00 in cents
-      };
-
-      const selectedPackage = packages[packageId as keyof typeof packages];
-      if (!selectedPackage) {
-        alert('Invalid package selected');
-        return;
-      }
-
-      // Create YOCO checkout session
-      const checkoutResponse = await fetch('/api/yoco/checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: selectedPackage.price,
-          currency: selectedPackage.currency,
-          credits: selectedPackage.credits,
-          userId: userId,
-          description: `${selectedPackage.credits} AI Credits Purchase`
-        }),
-      });
-
-      const checkoutData = await checkoutResponse.json();
-
-      if (checkoutData.success && checkoutData.checkoutUrl) {
-        // Redirect to YOCO payment page
-        window.location.href = checkoutData.checkoutUrl;
-      } else {
-        alert('Failed to create payment session: ' + (checkoutData.error || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Purchase error:', error);
-      alert('An error occurred during purchase. Please try again.');
-    } finally {
-      setIsPurchasing(false);
-    }
-  };
 
   const handleSaveProfile = async () => {
     setIsSaving(true);
@@ -320,42 +98,6 @@ export default function AccountPage() {
     }
   };
 
-  const handleRegenerateApiKey = async (keyId: string) => {
-    try {
-      const newKey = `sk-${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
-      setApiKeys(prev => prev.map(key =>
-        key.id === keyId
-          ? { ...key, key: `sk-••••••••••••••••••••••••••••••••`, lastUsed: new Date().toISOString().split('T')[0] }
-          : key
-      ));
-      alert('API key regenerated successfully!');
-    } catch (error) {
-      alert('Failed to regenerate API key. Please try again.');
-    }
-  };
-
-  const handleDeleteApiKey = async (keyId: string) => {
-    if (confirm('Are you sure you want to delete this API key? This action cannot be undone.')) {
-      setApiKeys(prev => prev.filter(key => key.id !== keyId));
-      alert('API key deleted successfully!');
-    }
-  };
-
-  const handleCreateApiKey = async () => {
-    const name = prompt('Enter a name for the new API key:');
-    if (name) {
-      const newKey = {
-        id: Date.now().toString(),
-        name,
-        key: `sk-••••••••••••••••••••••••••••••••`,
-        created: new Date().toISOString().split('T')[0],
-        lastUsed: 'Never',
-        status: 'active' as const
-      };
-      setApiKeys(prev => [...prev, newKey]);
-      alert('API key created successfully!');
-    }
-  };
 
   const handleSavePreferences = async () => {
     setIsSaving(true);
@@ -363,7 +105,7 @@ export default function AccountPage() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       alert('Preferences updated successfully!');
-    } catch (error) {
+    } catch {
       alert('Failed to update preferences. Please try again.');
     } finally {
       setIsSaving(false);
