@@ -52,7 +52,7 @@ export default function TemplateEditorPage() {
                   </div>
                   <h2 className="text-3xl font-bold text-slate-900 mb-4">Coming Soon</h2>
                   <p className="text-xl text-slate-600 mb-8">
-                    We're building an advanced template editor that will allow you to create and customize
+                    We&apos;re building an advanced template editor that will allow you to create and customize
                     professional marketing materials with ease.
                   </p>
                 </div>
