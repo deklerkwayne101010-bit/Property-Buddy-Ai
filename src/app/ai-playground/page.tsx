@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, DragEvent, ChangeEvent, useEffect } from 'react';
+import { useState, useRef, DragEvent, ChangeEvent, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import DashboardLayout from '../../components/DashboardLayout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -22,7 +23,6 @@ interface UploadedImage {
 
 export default function AIPlayground() {
   const { user } = useAuth();
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -31,22 +31,13 @@ export default function AIPlayground() {
   const [referenceImages, setReferenceImages] = useState<UploadedImage[]>([]);
   const [assetImages, setAssetImages] = useState<UploadedImage[]>([]);
   const [selectedReferenceImages, setSelectedReferenceImages] = useState<string[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
   const [creditsRemaining, setCreditsRemaining] = useState<number | null>(null);
   const [templateResult, setTemplateResult] = useState<string | null>(null);
   const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const assetFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load images and generated images on component mount
-  useEffect(() => {
-    loadReferenceImages();
-    loadAssetImages();
-    loadGeneratedImages();
-    loadCredits();
-  }, []);
-
-  const loadCredits = async () => {
+  const loadCredits = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -65,9 +56,9 @@ export default function AIPlayground() {
     } catch (error) {
       console.error('Error loading credits:', error);
     }
-  };
+  }, [user]);
 
-  const loadReferenceImages = async () => {
+  const loadReferenceImages = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -95,9 +86,9 @@ export default function AIPlayground() {
     } catch (error) {
       console.error('Error loading reference images:', error);
     }
-  };
+  }, [user]);
 
-  const loadAssetImages = async () => {
+  const loadAssetImages = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -125,9 +116,9 @@ export default function AIPlayground() {
     } catch (error) {
       console.error('Error loading asset images:', error);
     }
-  };
+  }, [user]);
 
-  const loadGeneratedImages = async () => {
+  const loadGeneratedImages = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -148,7 +139,15 @@ export default function AIPlayground() {
     } catch (error) {
       console.error('Error loading generated images:', error);
     }
-  };
+  }, [user]);
+
+  // Load images and generated images on component mount
+  useEffect(() => {
+    loadReferenceImages();
+    loadAssetImages();
+    loadGeneratedImages();
+    loadCredits();
+  }, [loadReferenceImages, loadAssetImages, loadGeneratedImages, loadCredits]);
 
   const handleAssetUpload = async (file: File) => {
     if (!user) {
@@ -206,12 +205,11 @@ export default function AIPlayground() {
       return;
     }
 
-    setIsUploading(true);
     try {
       const timestamp = Date.now();
       const fileName = `playground-ref-${timestamp}-${file.name}`;
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('images')
         .upload(fileName, file, {
           contentType: file.type,
@@ -246,7 +244,6 @@ export default function AIPlayground() {
       console.error('Error uploading image:', error);
       alert('Failed to upload image. Please try again.');
     } finally {
-      setIsUploading(false);
     }
   };
 
@@ -696,9 +693,11 @@ export default function AIPlayground() {
                         }`}
                         onClick={() => toggleReferenceImage(image.url)}
                       >
-                        <img
+                        <Image
                           src={image.url}
                           alt={image.filename}
+                          width={128}
+                          height={96}
                           className="w-full h-24 sm:h-32 object-cover"
                         />
 
@@ -945,9 +944,11 @@ export default function AIPlayground() {
                         {generatedImages.map((image) => (
                           <div key={image.id} className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                             <div className="aspect-square mb-4">
-                              <img
+                              <Image
                                 src={image.url}
                                 alt={`Generated: ${image.prompt}`}
+                                width={200}
+                                height={200}
                                 className="w-full h-full object-cover rounded-lg"
                               />
                             </div>
@@ -1008,9 +1009,11 @@ export default function AIPlayground() {
                                 onClick={() => toggleReferenceImage(image.url)}
                               >
                                 <div className="aspect-square">
-                                  <img
+                                  <Image
                                     src={image.url}
                                     alt={image.filename}
+                                    width={64}
+                                    height={64}
                                     className="w-full h-full object-cover"
                                   />
                                 </div>
