@@ -1,568 +1,136 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import DashboardLayout from '../../components/DashboardLayout';
 import ProtectedRoute from '../../components/ProtectedRoute';
-import Canvas from '../../components/canvas-editor/Canvas';
-import PropertiesPanel from '../../components/canvas-editor/PropertiesPanel';
-import Toolbar from '../../components/canvas-editor/Toolbar';
-import ContextToolbar from '../../components/canvas-editor/ContextToolbar';
-import Sidebar from '../../components/canvas-editor/Sidebar';
-import { CanvasElement, ElementType, ShapeType } from '../../lib/canvas-types';
 
-
-// Simple UUID generator fallback
-const generateId = () => Math.random().toString(36).substr(2, 9);
-
-const TemplateEditorPage: React.FC = () => {
-   const [elements, setElements] = useState<CanvasElement[]>([]);
-   const [selectedId, setSelectedId] = useState<string | null>(null);
-   const [history, setHistory] = useState<CanvasElement[][]>([]);
-   const [historyIndex, setHistoryIndex] = useState(-1);
-   const [fileName, setFileName] = useState('Untitled Design');
-   const [zoom, setZoom] = useState(1);
-   const [cropMode, setCropMode] = useState(false);
-   const [ocrMode, setOcrMode] = useState(false);
-   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
-   const [canvasDimensions, setCanvasDimensions] = useState<{ width: number, height: number } | null>(null);
-
-  // Undo/Redo Logic
-  const addToHistory = useCallback((newElements: CanvasElement[]) => {
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(newElements);
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
-  }, [history, historyIndex]);
-
-  // Initial load
-  useEffect(() => {
-    if (history.length === 0) {
-      addToHistory([]);
-    }
-  }, [addToHistory, history.length]);
-
-  const handleUndo = useCallback(() => {
-    if (historyIndex > 0) {
-      setHistoryIndex(historyIndex - 1);
-      setElements(history[historyIndex - 1]);
-    }
-  }, [historyIndex, history]);
-
-  const handleRedo = useCallback(() => {
-    if (historyIndex < history.length - 1) {
-      setHistoryIndex(historyIndex + 1);
-      setElements(history[historyIndex + 1]);
-    }
-  }, [historyIndex, history]);
-
-  // Handle background image upload
-  const handleBackgroundImageUpload = (imageSrc: string, width: number, height: number) => {
-    console.log('Background image upload called with dimensions:', width, 'x', height);
-    setBackgroundImage(imageSrc);
-    setCanvasDimensions({ width, height });
-    setFileName('Image Template');
-
-    // Clear any existing elements
-    setElements([]);
-    setSelectedId(null);
-    addToHistory([]);
-  };
-
-  // Element Management
-  const addElement = (type: ElementType, payload: Partial<CanvasElement> = {}) => {
-    // Don't allow adding elements if no background image
-    if (!backgroundImage) {
-      alert('Please upload a background image first.');
-      return;
-    }
-
-    const newElement: CanvasElement = {
-      id: generateId(),
-      type,
-      x: canvasDimensions ? canvasDimensions.width / 2 - 150 : 200, // Center horizontally
-      y: canvasDimensions ? canvasDimensions.height / 2 - 50 : 200, // Center vertically
-      width: type === ElementType.TEXT ? 300 : 200,
-      height: type === ElementType.TEXT ? 100 : 200,
-      rotation: 0,
-      zIndex: elements.length + 1,
-      opacity: 1,
-      ...payload
-    };
-
-    // Defaults for specific types
-    if (type === ElementType.SHAPE && !payload.backgroundColor) {
-      newElement.backgroundColor = '#94a3b8'; // Slate 400
-      newElement.shapeType = ShapeType.RECTANGLE;
-    }
-    if (type === ElementType.TEXT && !payload.color) {
-      newElement.color = '#1e293b'; // Slate 800
-    }
-
-    const newElements = [...elements, newElement];
-    setElements(newElements);
-    addToHistory(newElements);
-    setSelectedId(newElement.id);
-  };
-
-  const updateElement = (id: string, updates: Partial<CanvasElement>) => {
-    const newElements = elements.map(el => el.id === id ? { ...el, ...updates } : el);
-    setElements(newElements);
-  };
-
-  const deleteElement = useCallback((id?: string) => {
-    const targetId = typeof id === 'string' ? id : selectedId;
-    if (targetId) {
-      const newElements = elements.filter(el => el.id !== targetId);
-      setElements(newElements);
-      addToHistory(newElements);
-      if (targetId === selectedId) setSelectedId(null);
-    }
-  }, [elements, selectedId, addToHistory]);
-
-  const duplicateElement = (id: string) => {
-    const elementToCopy = elements.find(el => el.id === id);
-    if (elementToCopy) {
-      const newElement = {
-        ...elementToCopy,
-        id: generateId(),
-        x: elementToCopy.x + 20,
-        y: elementToCopy.y + 20,
-        zIndex: elements.length + 1
-      };
-      const newElements = [...elements, newElement];
-      setElements(newElements);
-      addToHistory(newElements);
-      setSelectedId(newElement.id);
-    }
-  };
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
-        // Check if not editing text
-        const activeTag = document.activeElement?.tagName;
-        if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
-          deleteElement();
-        }
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-        e.preventDefault();
-        handleUndo();
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
-        e.preventDefault();
-        handleRedo();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedId, deleteElement, handleUndo, handleRedo]);
-
-  const handleDownload = async () => {
-    try {
-      // Show loading message
-      const loadingMsg = document.createElement('div');
-      loadingMsg.textContent = 'Generating image...';
-      loadingMsg.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(0,0,0,0.8);
-        color: white;
-        padding: 20px;
-        border-radius: 8px;
-        z-index: 9999;
-        font-family: Arial, sans-serif;
-        pointer-events: none;
-      `;
-      document.body.appendChild(loadingMsg);
-
-      // Create a new canvas element for manual rendering
-      const exportCanvas = document.createElement('canvas');
-      const ctx = exportCanvas.getContext('2d');
-
-      if (!ctx) {
-        throw new Error('Unable to create canvas context');
-      }
-
-      // Set canvas size to Instagram optimal dimensions (higher resolution for better quality)
-      const scale = 2; // 2x scale for high quality
-      exportCanvas.width = 1080 * scale;
-      exportCanvas.height = 1080 * scale;
-
-      // Scale context for high DPI
-      ctx.scale(scale, scale);
-
-      // First, draw the background image if it exists
-      if (backgroundImage) {
-        try {
-          const bgImg = new Image();
-          bgImg.crossOrigin = 'anonymous';
-
-          // Wait for background image to load
-          await new Promise((resolve, reject) => {
-            bgImg.onload = resolve;
-            bgImg.onerror = reject;
-            bgImg.src = backgroundImage;
-          });
-
-          // Calculate scaling to fit the export canvas while maintaining aspect ratio
-          const imgAspectRatio = bgImg.width / bgImg.height;
-          const canvasAspectRatio = 1080 / 1080; // Square canvas
-
-          let drawWidth, drawHeight, offsetX, offsetY;
-
-          if (imgAspectRatio > canvasAspectRatio) {
-            // Image is wider than canvas
-            drawWidth = 1080;
-            drawHeight = 1080 / imgAspectRatio;
-            offsetX = 0;
-            offsetY = (1080 - drawHeight) / 2;
-          } else {
-            // Image is taller than canvas
-            drawHeight = 1080;
-            drawWidth = 1080 * imgAspectRatio;
-            offsetX = (1080 - drawWidth) / 2;
-            offsetY = 0;
-          }
-
-          // Draw background image centered and scaled to fit
-          ctx.drawImage(bgImg, offsetX, offsetY, drawWidth, drawHeight);
-        } catch (bgError) {
-          console.warn('Failed to load background image for export:', bgError);
-          // Fall back to white background
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, 1080, 1080);
-        }
-      } else {
-        // Fill white background if no background image
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, 1080, 1080);
-      }
-
-      // Sort elements by z-index for proper layering
-      const sortedElements = [...elements].sort((a, b) => a.zIndex - b.zIndex);
-
-      // Render each element manually
-      for (const element of sortedElements) {
-        ctx.save();
-
-        // Apply transformations
-        ctx.translate(element.x, element.y);
-        if (element.rotation) {
-          ctx.rotate((element.rotation * Math.PI) / 180);
-        }
-        if (element.opacity !== undefined && element.opacity !== 1) {
-          ctx.globalAlpha = element.opacity;
-        }
-
-        if (element.type === ElementType.TEXT) {
-          // Render text element
-          if (!element.content) continue;
-
-          // Calculate optimal font size to fit text within the box
-          const text = element.content;
-          const maxWidth = element.width - 20; // Padding
-          const maxHeight = element.height - 20; // Padding
-          const lines = text.split('\n');
-
-          // Start with a reasonable font size and scale down if needed
-          const fontSize = Math.min(element.fontSize || 32, maxHeight / lines.length * 0.8);
-
-          // Binary search for optimal font size
-          let minSize = 8;
-          let maxSize = fontSize * 2;
-
-          while (maxSize - minSize > 1) {
-            const testSize = (minSize + maxSize) / 2;
-            ctx.font = `${element.fontStyle || 'normal'} ${element.fontWeight || 'normal'} ${testSize}px ${element.fontFamily || 'Arial, sans-serif'}`;
-
-            let totalHeight = 0;
-            let fitsWidth = true;
-
-            for (const line of lines) {
-              const metrics = ctx.measureText(line);
-              if (metrics.width > maxWidth) {
-                fitsWidth = false;
-                break;
-              }
-              totalHeight += testSize * 1.2; // Line height
-            }
-
-            if (fitsWidth && totalHeight <= maxHeight) {
-              minSize = testSize;
-            } else {
-              maxSize = testSize;
-            }
-          }
-
-          // Use the optimal font size
-          const optimalFontSize = Math.floor(minSize);
-          ctx.font = `${element.fontStyle || 'normal'} ${element.fontWeight || 'normal'} ${optimalFontSize}px ${element.fontFamily || 'Arial, sans-serif'}`;
-          ctx.fillStyle = element.color || '#000000';
-          ctx.textAlign = (element.textAlign as CanvasTextAlign) || 'left';
-
-          // Render text with calculated font size
-          const lineHeight = optimalFontSize * 1.2;
-          let y = 10; // Top padding
-
-          for (const line of lines) {
-            if (element.textAlign === 'center') {
-              ctx.fillText(line, element.width / 2, y);
-            } else if (element.textAlign === 'right') {
-              ctx.fillText(line, element.width - 10, y);
-            } else {
-              ctx.fillText(line, 10, y);
-            }
-            y += lineHeight;
-          }
-
-        } else if (element.type === ElementType.IMAGE && element.src) {
-          // Render image element
-          try {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-
-            // Wait for image to load
-            await new Promise((resolve, reject) => {
-              img.onload = resolve;
-              img.onerror = reject;
-              img.src = element.src!;
-            });
-
-            // Apply border radius if specified
-            if (element.borderRadius && element.borderRadius > 0) {
-              ctx.save();
-              ctx.beginPath();
-              ctx.roundRect(0, 0, element.width, element.height, element.borderRadius);
-              ctx.clip();
-            }
-
-            // Handle cropping if crop properties are set
-            if (element.cropX !== undefined && element.cropY !== undefined &&
-                element.cropWidth !== undefined && element.cropHeight !== undefined) {
-              // Draw the cropped portion of the image
-              const sourceX = element.cropX;
-              const sourceY = element.cropY;
-              const sourceWidth = element.cropWidth;
-              const sourceHeight = element.cropHeight;
-
-              ctx.drawImage(
-                img,
-                sourceX, sourceY, sourceWidth, sourceHeight, // Source rectangle
-                0, 0, element.width, element.height // Destination rectangle
-              );
-            } else {
-              // Draw the full image
-              ctx.drawImage(img, 0, 0, element.width, element.height);
-            }
-
-            if (element.borderRadius && element.borderRadius > 0) {
-              ctx.restore();
-            }
-
-          } catch (imageError) {
-            console.warn('Failed to load image for export:', element.src, imageError);
-            // Draw a placeholder rectangle for failed images
-            ctx.fillStyle = '#f3f4f6';
-            ctx.fillRect(0, 0, element.width, element.height);
-            ctx.strokeStyle = '#d1d5db';
-            ctx.strokeRect(0, 0, element.width, element.height);
-          }
-
-        } else if (element.type === ElementType.SHAPE) {
-          // Render shape element
-          ctx.fillStyle = element.backgroundColor || '#94a3b8';
-
-          if (element.shapeType === ShapeType.TRIANGLE) {
-            ctx.beginPath();
-            ctx.moveTo(element.width / 2, 0);
-            ctx.lineTo(0, element.height);
-            ctx.lineTo(element.width, element.height);
-            ctx.closePath();
-            ctx.fill();
-          } else {
-            // Rectangle (default)
-            if (element.borderRadius && element.borderRadius > 0) {
-              ctx.beginPath();
-              ctx.roundRect(0, 0, element.width, element.height, element.borderRadius);
-              ctx.fill();
-            } else {
-              ctx.fillRect(0, 0, element.width, element.height);
-            }
-          }
-        }
-
-        ctx.restore();
-      }
-
-      // Remove loading message
-      if (document.body.contains(loadingMsg)) {
-        document.body.removeChild(loadingMsg);
-      }
-
-      // Convert to blob and download
-      exportCanvas.toBlob((blob) => {
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `${fileName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-
-          // Show success message
-          const successMsg = document.createElement('div');
-          successMsg.textContent = 'Image exported successfully!';
-          successMsg.className = 'fade-out';
-          successMsg.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #10b981;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 6px;
-            z-index: 9999;
-            font-family: Arial, sans-serif;
-            pointer-events: none;
-          `;
-          document.body.appendChild(successMsg);
-          setTimeout(() => {
-            if (document.body.contains(successMsg)) {
-              document.body.removeChild(successMsg);
-            }
-          }, 3000);
-        } else {
-          alert('Failed to generate image. Please try again.');
-        }
-      }, 'image/png');
-
-    } catch (error) {
-      console.error('Export failed:', error);
-
-      // Remove loading message if it exists
-      const loadingMsg = document.querySelector('div[style*="Generating image"]');
-      if (loadingMsg && document.body.contains(loadingMsg)) {
-        document.body.removeChild(loadingMsg);
-      }
-
-      // Provide specific error messages for known issues
-      let errorMessage = 'Unknown error occurred';
-      if (error instanceof Error) {
-        if (error.message.includes('CORS') || error.message.includes('cross-origin')) {
-          errorMessage = 'Export failed due to image loading restrictions. Make sure all images are from trusted sources or try using images from the same domain.';
-        } else if (error.message.includes('canvas')) {
-          errorMessage = 'Export failed due to canvas rendering issues. Try refreshing the page or using a different browser.';
-        } else {
-          errorMessage = error.message;
-        }
-      }
-
-      alert(`Failed to export image: ${errorMessage}`);
-    }
-  };
-
-  const selectedElement = elements.find(el => el.id === selectedId) || null;
-
-  const handleToggleCropMode = () => {
-    setCropMode(prev => !prev);
-  };
-
-  const handleToggleOcrMode = () => {
-    setOcrMode(prev => !prev);
-    // Exit crop mode when entering OCR mode
-    if (!ocrMode) {
-      setCropMode(false);
-    }
-  };
-
+export default function TemplateEditorPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="h-screen flex flex-col bg-gray-100 text-gray-800 font-sans">
-          <Toolbar
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-            onDownload={handleDownload}
-            onDelete={() => deleteElement()}
-            canUndo={historyIndex > 0}
-            canRedo={historyIndex < history.length - 1}
-            hasSelection={!!selectedId}
-            fileName={fileName}
-            setFileName={setFileName}
-          />
-
-          <ContextToolbar
-            selectedElement={selectedElement}
-            elements={elements}
-            onUpdateElement={updateElement}
-            onAddElement={addElement}
-            cropMode={cropMode}
-            ocrMode={ocrMode}
-            onToggleCropMode={handleToggleCropMode}
-            onToggleOcrMode={handleToggleOcrMode}
-          />
-
-          <div className="flex flex-1 overflow-hidden relative">
-            <Sidebar
-              onAddElement={addElement}
-              onBackgroundImageUpload={handleBackgroundImageUpload}
-              hasBackgroundImage={!!backgroundImage}
-            />
-
-            {/* Canvas Area */}
-            <div className="flex-1 bg-gray-200 overflow-auto flex items-center justify-center p-4 relative">
-              {/* Zoom Controls Overlay - Only show when we have a background image */}
-              {backgroundImage && (
-                <div className="absolute bottom-4 left-8 z-10 bg-white rounded-full shadow px-3 py-1 flex items-center gap-2 text-sm">
-                  <button onClick={() => setZoom(z => Math.max(0.2, z - 0.1))} className="hover:bg-gray-100 px-2 rounded">-</button>
-                  <span>{Math.round(zoom * 100)}%</span>
-                  <button onClick={() => setZoom(z => Math.min(3, z + 0.1))} className="hover:bg-gray-100 px-2 rounded">+</button>
-                </div>
-              )}
-
-              {backgroundImage ? (
-                <Canvas
-                  elements={elements}
-                  selectedId={selectedId}
-                  onSelect={setSelectedId}
-                  onUpdateElement={updateElement}
-                  onDelete={deleteElement}
-                  onDuplicate={duplicateElement}
-                  zoom={zoom}
-                  cropMode={cropMode}
-                  ocrMode={ocrMode}
-                  backgroundImage={backgroundImage}
-                  canvasDimensions={canvasDimensions}
-                  onToggleCropMode={handleToggleCropMode}
-                  onToggleOcrMode={handleToggleOcrMode}
-                  onAddElement={addElement}
-                />
-              ) : (
-                <div className="text-center text-gray-500">
-                  <div className="text-6xl mb-4">🖼️</div>
-                  <h3 className="text-xl font-semibold mb-2">Upload an Image to Get Started</h3>
-                  <p className="text-sm">Choose an image from the sidebar to begin editing</p>
-                </div>
-              )}
+        <motion.div
+          className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8 }}
+        >
+          {/* Header */}
+          <section className="relative overflow-hidden bg-gradient-to-r from-slate-600 to-blue-600 text-white">
+            <div className="absolute inset-0 bg-black/10"></div>
+            <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+              <motion.div
+                className="text-center"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+              >
+                <h1 className="text-4xl sm:text-6xl font-bold mb-6">
+                  Template Editor
+                </h1>
+                <p className="text-xl text-slate-100 max-w-2xl mx-auto">
+                  Professional template editing tools for your real estate business
+                </p>
+              </motion.div>
             </div>
+          </section>
 
-            <PropertiesPanel
-              element={selectedElement}
-              onUpdate={(id, updates) => {
-                updateElement(id, updates);
-              }}
-            />
-          </div>
-        </div>
+          {/* Coming Soon Content */}
+          <section className="py-20">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="bg-white rounded-2xl shadow-xl p-12 border border-slate-100"
+              >
+                {/* Icon */}
+                <div className="mb-8">
+                  <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-3xl font-bold text-slate-900 mb-4">Coming Soon</h2>
+                  <p className="text-xl text-slate-600 mb-8">
+                    We're building an advanced template editor that will allow you to create and customize
+                    professional marketing materials with ease.
+                  </p>
+                </div>
+
+                {/* Features Preview */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-slate-900 mb-2">Image Editing</h3>
+                    <p className="text-slate-600 text-sm">Advanced image manipulation and enhancement tools</p>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 0h10m-9 0V1m10 3V1m0 3l1 1v16a2 2 0 01-2 2H6a2 2 0 01-2-2V5l1-1z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-slate-900 mb-2">Template Library</h3>
+                    <p className="text-slate-600 text-sm">Pre-designed templates for various marketing needs</p>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-slate-900 mb-2">Brand Customization</h3>
+                    <p className="text-slate-600 text-sm">Apply your branding consistently across all materials</p>
+                  </div>
+                </div>
+
+                {/* Call to Action */}
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">Want to be notified when we launch?</h3>
+                  <p className="text-slate-600 mb-4">
+                    Be the first to know when our template editor goes live with powerful design tools.
+                  </p>
+                  <button
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium"
+                    onClick={() => alert('Thank you! We'll notify you when the template editor launches.')}
+                  >
+                    Notify Me When It Launches
+                  </button>
+                </div>
+
+                {/* Timeline */}
+                <div className="mt-8 pt-8 border-t border-slate-200">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Development Timeline</h3>
+                  <div className="flex items-center justify-center space-x-8 text-sm text-slate-600">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                      <span>Planning Phase</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full mr-2 animate-pulse"></div>
+                      <span>Core Development</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-slate-300 rounded-full mr-2"></div>
+                      <span>Testing</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-slate-300 rounded-full mr-2"></div>
+                      <span>Launch</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </section>
+        </motion.div>
       </DashboardLayout>
     </ProtectedRoute>
   );
-};
-
-export default TemplateEditorPage;
+}
