@@ -1003,7 +1003,7 @@ Keep interior reflections intact except the glare being removed.`
 
             <div className="p-6 sm:p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Object Remover Option */}
+                {/* Window Pulling Option */}
                 <div
                   onClick={() => setSelectedEditType('object-remover')}
                   className={`relative p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 ${
@@ -1013,19 +1013,19 @@ Keep interior reflections intact except the glare being removed.`
                   }`}
                 >
                   <div className="flex items-start space-x-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                      selectedEditType === 'object-remover'
-                        ? 'bg-red-500 text-white'
-                        : 'bg-red-100 text-red-600'
-                    }`}>
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-slate-800 mb-2">Object Remover</h3>
-                      <p className="text-sm text-slate-600 mb-3">Remove unwanted objects, people, or elements from your image using AI</p>
-                    </div>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                    selectedEditType === 'object-remover'
+                      ? 'bg-red-500 text-white'
+                      : 'bg-red-100 text-red-600'
+                  }`}>
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-slate-800 mb-2">Window Pulling (Experimental)</h3>
+                    <p className="text-sm text-slate-600 mb-3">Remove unwanted objects, people, or elements from your image using AI</p>
+                  </div>
                   </div>
                   {selectedEditType === 'object-remover' && (
                     <div className="absolute top-4 right-4 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
@@ -1292,7 +1292,7 @@ Keep interior reflections intact except the glare being removed.`
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
                       <span>
-                        {selectedEditType === 'object-remover' ? 'Remove Objects with AI' :
+                        {selectedEditType === 'object-remover' ? 'Pull Windows with AI' :
                          selectedEditType === 'image-enhancer' ?
                            (selectedReferenceImages.length > 0 ? `Enhance ${1 + selectedReferenceImages.length} Images with AI` : 'Enhance Image with AI') :
                          'Process with AI'}
@@ -1326,7 +1326,7 @@ Keep interior reflections intact except the glare being removed.`
                       <svg className="w-5 h-5 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      AI {selectedEditType === 'object-remover' ? 'Object Removal' : 'Enhancement'} Complete
+                      AI {selectedEditType === 'object-remover' ? 'Window Pulling' : 'Enhancement'} Complete
                     </h2>
                     <p className="text-sm text-slate-600 mt-0.5">Compare your original image with the AI-processed version</p>
                   </div>
@@ -1372,7 +1372,7 @@ Keep interior reflections intact except the glare being removed.`
                           className="w-full h-64 sm:h-80 object-cover rounded-xl border-2 border-emerald-200"
                         />
                         <div className="absolute top-3 right-3 bg-emerald-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                          AI {selectedEditType === 'object-remover' ? 'Removed' : 'Enhanced'}
+                          AI {selectedEditType === 'object-remover' ? 'Window Pulled' : 'Enhanced'}
                         </div>
                       </div>
                     </div>
@@ -1400,13 +1400,13 @@ Keep interior reflections intact except the glare being removed.`
 
                   {/* Download Enhanced Button */}
                   <button
-                    onClick={() => downloadImage(editedImage, `ai-${selectedEditType === 'object-remover' ? 'removed' : 'enhanced'}-image.jpg`)}
+                    onClick={() => downloadImage(editedImage, `ai-${selectedEditType === 'object-remover' ? 'window-pulled' : 'enhanced'}-image.jpg`)}
                     className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center"
                   >
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    Download {selectedEditType === 'object-remover' ? 'Removed' : 'Enhanced'}
+                    Download {selectedEditType === 'object-remover' ? 'Window Pulled' : 'Enhanced'}
                   </button>
                 </div>
 
@@ -1438,7 +1438,7 @@ Keep interior reflections intact except the glare being removed.`
 
                           // Upload to Supabase storage
                           const timestamp = Date.now();
-                          const fileName = `saved-${timestamp}-ai-${selectedEditType === 'object-remover' ? 'removed' : 'enhanced'}.jpg`;
+                          const fileName = `saved-${timestamp}-ai-${selectedEditType === 'object-remover' ? 'window-pulled' : 'enhanced'}.jpg`;
 
                           const { data, error } = await supabase.storage
                             .from('images')
@@ -1492,7 +1492,7 @@ Keep interior reflections intact except the glare being removed.`
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span className="text-emerald-800 font-medium text-sm sm:text-base">
-                      Your image has been successfully {selectedEditType === 'object-remover' ? 'processed for object removal' : 'enhanced'} with AI!
+                      Your image has been successfully {selectedEditType === 'object-remover' ? 'processed for window pulling' : 'enhanced'} with AI!
                     </span>
                   </div>
                 </div>
@@ -1522,7 +1522,7 @@ Keep interior reflections intact except the glare being removed.`
                 />
               </div>
               <div className="text-sm text-slate-600">
-                <p><strong>Edit Type:</strong> {selectedEditType === 'object-remover' ? 'Object Remover' : 'Image Enhancer'}</p>
+                <p><strong>Edit Type:</strong> {selectedEditType === 'object-remover' ? 'Window Pulling (Experimental)' : 'Image Enhancer'}</p>
                 <p className="mt-1"><strong>Prompt:</strong> {agentInstruction}</p>
               </div>
             </div>

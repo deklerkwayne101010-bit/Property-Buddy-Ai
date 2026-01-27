@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     // Choose the appropriate model based on edit type
     const isObjectRemover = editType === 'object-remover';
     const modelUrl = isObjectRemover
-      ? 'https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions'
+      ? 'https://api.replicate.com/v1/models/qwen/qwen-image-edit-2511/predictions'
       : 'https://api.replicate.com/v1/models/qwen/qwen-image-edit-plus/predictions';
 
     console.log('Edit type:', editType, 'isObjectRemover:', isObjectRemover);
@@ -80,19 +80,18 @@ export async function POST(request: NextRequest) {
     // Prepare Replicate API request body based on model
     let requestBody;
     if (isObjectRemover) {
-      // FLUX Pro for object removal - currently only supports one image
-      // Send the main image and mention reference images in prompt
+      // Qwen Image Edit 2511 for window pulling - supports multiple images
       requestBody = {
         input: {
+          image: allImageUrls, // Send all selected images
           prompt: enhancedPrompt,
-          input_image: imagePublicUrl,
+          go_fast: true,
           aspect_ratio: "match_input_image",
           output_format: "jpg",
-          safety_tolerance: 2,
-          prompt_upsampling: true
+          output_quality: 95
         }
       };
-      console.log('Using FLUX Pro model for object removal with main image only');
+      console.log('Using Qwen Image Edit 2511 for window pulling with multiple images:', allImageUrls.length);
     } else {
       // Qwen Image Edit Plus for image enhancement - supports multiple images
       requestBody = {
@@ -108,7 +107,7 @@ export async function POST(request: NextRequest) {
       console.log('Using Qwen Image Edit Plus for enhancement with multiple images:', allImageUrls.length);
     }
 
-    console.log('Using model:', isObjectRemover ? 'FLUX Pro (Object Removal)' : 'Qwen Image Edit Plus (Enhancement)');
+    console.log('Using model:', isObjectRemover ? 'Qwen Image Edit 2511 (Window Pulling)' : 'Qwen Image Edit Plus (Enhancement)');
     console.log('Replicate API request body:', JSON.stringify(requestBody, null, 2));
 
     // Call Replicate API
