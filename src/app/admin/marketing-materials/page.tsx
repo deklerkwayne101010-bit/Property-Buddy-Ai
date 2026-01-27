@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { useAuth } from '../../../contexts/AuthContext';
 import DashboardLayout from '../../../components/DashboardLayout';
 import ProtectedRoute from '../../../components/ProtectedRoute';
@@ -32,17 +33,7 @@ export default function MarketingMaterialsAdminPage() {
     image_url: ''
   });
 
-  useEffect(() => {
-    checkAdminAccess();
-  }, [user]);
-
-  useEffect(() => {
-    if (isAdmin) {
-      loadProducts();
-    }
-  }, [isAdmin]);
-
-  const checkAdminAccess = async () => {
+  const checkAdminAccess = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -59,7 +50,17 @@ export default function MarketingMaterialsAdminPage() {
       setError('Failed to verify admin access');
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    checkAdminAccess();
+  }, [checkAdminAccess]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      loadProducts();
+    }
+  }, [isAdmin]);
 
   const loadProducts = async () => {
     try {
@@ -375,9 +376,11 @@ export default function MarketingMaterialsAdminPage() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             {product.image_url && (
-                              <img
+                              <Image
                                 src={product.image_url}
                                 alt={product.name}
+                                width={48}
+                                height={48}
                                 className="w-12 h-12 object-cover rounded-lg mr-3"
                               />
                             )}
