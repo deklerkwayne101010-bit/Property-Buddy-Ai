@@ -98,7 +98,7 @@ export default function BuyerPackMakerPage() {
                   </p>
                   <button
                     className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-medium"
-                    onClick={() => alert('Thank you! We'll notify you when the viewing pack maker launches.')}
+                    onClick={() => alert("Thank you! We'll notify you when the viewing pack maker launches.")}
                   >
                     Notify Me When It Launches
                   </button>
