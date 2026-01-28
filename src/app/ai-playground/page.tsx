@@ -25,6 +25,7 @@ export default function AIPlayground() {
   const { user } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingStep, setLoadingStep] = useState('');
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
