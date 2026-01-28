@@ -13,24 +13,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
-    // Check user credits
-    const { data: userCredits, error: creditsError } = await supabase
-      .from('profiles')
-      .select('credits_balance')
-      .eq('id', userId)
-      .single();
-
-    if (creditsError || !userCredits) {
-      return NextResponse.json({ error: 'Unable to verify credits. Please try again.' }, { status: 400 });
-    }
-
-    // Ensure credits_balance is treated as a number
-    const creditsBalance = typeof userCredits.credits_balance === 'string'
-      ? parseInt(userCredits.credits_balance, 10)
-      : Number(userCredits.credits_balance);
-
-    if (isNaN(creditsBalance) || creditsBalance < 5) {
-      return NextResponse.json({ error: 'Insufficient credits. AI Playground requires 5 credits per generation.' }, { status: 400 });
+    // Check user credits and deduct if sufficient
+    const creditResult = await checkCreditsAndDeduct(userId, 5);
+    if (!creditResult.success) {
+      return NextResponse.json({
+        error: creditResult.error || 'Unable to verify credits. Please try again.'
+      }, { status: 400 });
     }
 
     // Validate total images (up to 14 supported by Nano Banana Pro)
@@ -69,16 +57,6 @@ export async function POST(request: NextRequest) {
 
     const replicateData = await replicateResponse.json();
 
-    // Deduct credits
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ credits_balance: userCredits.credits_balance - 5 })
-      .eq('id', userId);
-
-    if (updateError) {
-      console.error('Error updating credits:', updateError);
-    }
-
     // Log usage
     await supabase
       .from('usage_tracking')
@@ -90,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       image_url: replicateData.output,
-      credits_remaining: userCredits.credits_balance - 5
+      credits_remaining: creditResult.newCredits
     });
 
   } catch (error) {
