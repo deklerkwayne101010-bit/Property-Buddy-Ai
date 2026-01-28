@@ -844,30 +844,6 @@ export default function AIPlayground() {
                     </div>
                   )}
 
-                  {/* Quick Examples */}
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium text-slate-700">Quick inspiration:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        "A serene mountain landscape at dawn",
-                        "Cyberpunk city street at night",
-                        "Abstract geometric art in vibrant colors",
-                        "Steampunk flying machine over Victorian London",
-                        "Surreal underwater city with bioluminescent creatures",
-                        "Minimalist portrait in the style of Picasso",
-                        "Cosmic nebula with swirling galaxies",
-                        "Vintage travel poster for Mars colony"
-                      ].map((example, index) => (
-                        <button
-                          key={index}
-                          onClick={() => setPrompt(example)}
-                          className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-gradient-to-r from-slate-100 to-slate-50 hover:from-purple-100 hover:to-purple-50 text-slate-700 hover:text-purple-700 rounded-full border border-slate-200 hover:border-purple-300 transition-all duration-200 hover:scale-105 hover:shadow-md"
-                        >
-                          {example}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
