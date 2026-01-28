@@ -16,23 +16,55 @@ const RATE_LIMIT_CONFIG = {
   rateLimitMax: 20,
 };
 
-// Mock video status checking for demonstration purposes
+// Check video status using Replicate API
 async function checkVideoStatus(predictionId: string): Promise<{ status: string; videoUrl?: string; error?: string }> {
-  console.log('Checking mock video status for:', predictionId);
+  const apiToken = process.env.REPLICATE_API_TOKEN;
+  
+  if (!apiToken) {
+    throw new Error('Replicate API token not configured');
+  }
 
-  // Simulate different statuses based on time elapsed
-  const elapsed = Date.now() % 30000; // Cycle every 30 seconds
+  console.log('Checking Replicate prediction status for:', predictionId);
 
-  if (elapsed < 10000) {
-    return { status: 'starting' };
-  } else if (elapsed < 20000) {
-    return { status: 'processing' };
-  } else {
-    // Mock successful completion with a sample video URL
-    const mockVideoUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-    console.log('Mock video generation succeeded!');
-    console.log('Mock video URL:', mockVideoUrl);
-    return { status: 'succeeded', videoUrl: mockVideoUrl };
+  // Call Replicate API to get prediction status
+  const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${apiToken}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    console.error('Replicate API error:', errorData);
+    throw new Error(`Failed to check prediction status: ${errorData.detail || errorData.error || 'Unknown error'}`);
+  }
+
+  const prediction = await response.json();
+  console.log('Prediction status:', prediction.status);
+
+  // Map Replicate status to our status
+  switch (prediction.status) {
+    case 'starting':
+      return { status: 'starting' };
+    case 'processing':
+      return { status: 'processing' };
+    case 'succeeded':
+      // The output is typically an array with the video URL
+      const videoUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+      console.log('Video generation succeeded! Video URL:', videoUrl);
+      return { status: 'succeeded', videoUrl };
+    case 'failed':
+      const errorMessage = prediction.error || 'Video generation failed';
+      console.error('Video generation failed:', errorMessage);
+      return { status: 'failed', error: errorMessage };
+    case 'canceled':
+      console.log('Video generation was canceled');
+      return { status: 'failed', error: 'Video generation was canceled' };
+    default:
+      // Handle any other status
+      return { status: 'processing' };
   }
 }
 
@@ -86,7 +118,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check video status
+    // Check video status using Replicate API
     const statusResult = await checkVideoStatus(predictionId);
 
     // Handle different status results

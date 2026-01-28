@@ -26,18 +26,62 @@ interface VideoGenerationRequest {
   userId?: string; // Add userId for credit checking
 }
 
-// Mock video generation for demonstration purposes
-async function startVideoGeneration(prompt: string): Promise<string> {
-  // Generate a mock prediction ID
-  const predictionId = `mock-video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+// Replicate API configuration for Kling v2.5 Turbo Pro
+const REPLICATE_MODEL = 'kwaivgi/kling-v2.5-turbo-pro';
 
-  console.log('Mock video generation started with prompt:', prompt.substring(0, 100) + '...');
-  console.log('Mock prediction ID:', predictionId);
+async function startVideoGeneration(
+  prompt: string,
+  startImage?: string,
+  duration: number = 5,
+  aspectRatio: string = '16:9'
+): Promise<string> {
+  const apiToken = process.env.REPLICATE_API_TOKEN;
+  
+  if (!apiToken) {
+    throw new Error('Replicate API token not configured. Please set REPLICATE_API_TOKEN in your environment variables.');
+  }
 
-  // Simulate async processing delay
-  await new Promise(resolve => setTimeout(resolve, 100));
+  // Prepare the input for Kling v2.5 Turbo Pro
+  const input: Record<string, any> = {
+    prompt: prompt,
+    duration: duration,
+    aspect_ratio: aspectRatio,
+    output_format: 'mp4',
+  };
 
-  return predictionId;
+  // Add start image if provided (image-to-video generation)
+  if (startImage) {
+    input.image = startImage;
+  }
+
+  console.log('Starting Kling v2.5 Turbo Pro video generation...');
+  console.log('Prompt:', prompt.substring(0, 200) + (prompt.length > 200 ? '...' : ''));
+  if (startImage) {
+    console.log('Using start image:', startImage);
+  }
+
+  // Call Replicate API to start video generation
+  const response = await fetch(`https://api.replicate.com/v1/models/${REPLICATE_MODEL}/predictions`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiToken}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'wait', // Wait for the prediction to complete
+    },
+    body: JSON.stringify({ input }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    console.error('Replicate API error:', errorData);
+    throw new Error(`Failed to start video generation: ${errorData.detail || errorData.error || 'Unknown error'}`);
+  }
+
+  const prediction = await response.json();
+  
+  console.log('Video generation started successfully. Prediction ID:', prediction.id);
+  
+  return prediction.id;
 }
 
 
@@ -143,8 +187,8 @@ export async function POST(request: NextRequest) {
       loop
     });
 
-    // Start video generation (async)
-    const predictionId = await startVideoGeneration(prompt);
+    // Start video generation using Kling v2.5 Turbo Pro via Replicate
+    const predictionId = await startVideoGeneration(prompt, start_image, duration, aspect_ratio);
 
     // Log generation started
     logSecurityEvent('VIDEO_GENERATION_STARTED', {
