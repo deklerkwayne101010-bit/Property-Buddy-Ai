@@ -1,5 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
+
+// Helper function to check and deduct credits
+async function checkCreditsAndDeduct(userId: string, amount: number) {
+  try {
+    // Get current credits
+    const { data: profile, error } = await supabaseAdmin
+      .from('profiles')
+      .select('credits_balance')
+      .eq('id', userId)
+      .single();
+
+    if (error || !profile) {
+      return { success: false, error: 'User profile not found' };
+    }
+
+    const currentCredits = profile.credits_balance || 0;
+
+    if (currentCredits < amount) {
+      return { success: false, error: 'Insufficient credits' };
+    }
+
+    // Deduct credits
+    const { error: updateError } = await supabaseAdmin
+      .from('profiles')
+      .update({ credits_balance: currentCredits - amount })
+      .eq('id', userId);
+
+    if (updateError) {
+      return { success: false, error: 'Failed to deduct credits' };
+    }
+
+    return { success: true, newCredits: currentCredits - amount };
+  } catch (error) {
+    console.error('Error checking/deducting credits:', error);
+    return { success: false, error: 'Credit verification failed' };
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
