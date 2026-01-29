@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
         resolution: "1K",
         image_input: imageUrls || [],
         aspect_ratio: "4:3",
-        output_format: "png",
+        output_format: "jpg",
         safety_filter_level: "block_only_high"
       }
     };

@@ -944,7 +944,7 @@ export default function AIPlayground() {
                               <p className="text-sm text-slate-700 line-clamp-2">{image.prompt}</p>
                               <div className="flex items-center justify-between">
                                 <span className="text-xs text-slate-500">
-                                  {new Date(image.createdAt).toLocaleDateString()}
+                                  {image.createdAt ? new Date(image.createdAt).toLocaleDateString() : 'Unknown date'}
                                 </span>
                                 <button
                                   onClick={() => downloadImage(image.url, `ai-playground-${image.id}.png`)}
