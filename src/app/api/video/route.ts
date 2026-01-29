@@ -42,7 +42,7 @@ async function startVideoGeneration(
   }
 
   // Prepare the input for Kling v2.5 Turbo Pro
-  const input: Record<string, any> = {
+  const input: Record<string, string | number | boolean> = {
     prompt: prompt,
     duration: duration,
     aspect_ratio: aspectRatio,
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
 
     const body: VideoGenerationRequest = await request.json();
 
-    const { prompt, duration = 5, aspect_ratio = '16:9', loop = false, start_image, negative_prompt, userId } = body;
+    const { prompt, duration = 5, aspect_ratio = '16:9', loop = false, start_image, userId } = body;
 
     // Validate user authentication for credit checking
     if (!userId) {
