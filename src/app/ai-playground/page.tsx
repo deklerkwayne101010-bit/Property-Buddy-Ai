@@ -1109,14 +1109,14 @@ export default function AIPlayground() {
                   </div>
                 </div>
 
-                {/* Quick Upload Widget */}
+                {/* Asset Upload Widget */}
                 <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
                   <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
                     <h3 className="text-sm font-semibold text-slate-800 flex items-center">
                       <svg className="w-4 h-4 mr-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                       </svg>
-                      Quick Upload
+                      Asset Upload
                     </h3>
                   </div>
 
