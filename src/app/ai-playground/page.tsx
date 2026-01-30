@@ -21,6 +21,29 @@ interface UploadedImage {
   uploadedAt: string;
 }
 
+// Tooltip component
+function Tooltip({ content, children }: { content: string; children: React.ReactNode }) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  return (
+    <div 
+      className="relative inline-block"
+      onMouseEnter={() => setIsVisible(true)}
+      onMouseLeave={() => setIsVisible(false)}
+    >
+      {children}
+      {isVisible && (
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-lg z-50"
+          style={{ pointerEvents: 'none' }}
+        >
+          {content}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AIPlayground() {
   const { user } = useAuth();
   const [prompt, setPrompt] = useState('');
@@ -624,7 +647,7 @@ export default function AIPlayground() {
                       </svg>
                       Reference Images (Optional)
                     </h2>
-                    <p className="text-sm text-slate-600 mt-0.5">Upload images to guide the AI&apos;s creative process</p>
+                    <p className="text-sm text-slate-600 mt-0.5">Upload images to guide the AI's creative process</p>
                   </div>
                 </div>
               </div>
@@ -768,61 +791,67 @@ export default function AIPlayground() {
                   <div className="space-y-3">
                     <p className="text-sm font-medium text-slate-700">Template Generators:</p>
                     <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={generateWackyTemplate}
-                        disabled={isGeneratingTemplate || !user}
-                        className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 disabled:from-slate-400 disabled:to-slate-400 text-white text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 disabled:cursor-not-allowed"
-                      >
-                        {isGeneratingTemplate ? (
-                          <>
-                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                            </svg>
-                            Wacky Template
-                          </>
-                        )}
-                      </button>
+                      <Tooltip content="Generates creative, fun, and unconventional marketing designs with bold colors, unique layouts, and eye-catching elements that stand out from traditional designs.">
+                        <button
+                          onClick={generateWackyTemplate}
+                          disabled={isGeneratingTemplate || !user}
+                          className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 disabled:from-slate-400 disabled:to-slate-400 text-white text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 disabled:cursor-not-allowed cursor-help"
+                        >
+                          {isGeneratingTemplate ? (
+                            <>
+                              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                              </svg>
+                              Wacky Template
+                            </>
+                          )}
+                        </button>
+                      </Tooltip>
 
-                      <button
-                        onClick={generateProfessionalTemplate}
-                        className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                        Professional Template
-                      </button>
+                      <Tooltip content="Creates polished, professional marketing designs suitable for corporate clients, luxury properties, and formal business communications with clean lines and sophisticated styling.">
+                        <button
+                          onClick={generateProfessionalTemplate}
+                          className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 cursor-help"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                          Professional Template
+                        </button>
+                      </Tooltip>
 
-                      <button
-                        onClick={generateMarketingMaterial}
-                        disabled={isGeneratingTemplate || !user}
-                        className="px-4 py-2 bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 disabled:from-slate-400 disabled:to-slate-400 text-white text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 disabled:cursor-not-allowed"
-                      >
-                        {isGeneratingTemplate ? (
-                          <>
-                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-                            </svg>
-                            Marketing Material
-                          </>
-                        )}
-                      </button>
+                      <Tooltip content="Generates marketing-focused designs for property listings, social media, brochures, and promotional materials with compelling visuals and call-to-action elements.">
+                        <button
+                          onClick={generateMarketingMaterial}
+                          disabled={isGeneratingTemplate || !user}
+                          className="px-4 py-2 bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 disabled:from-slate-400 disabled:to-slate-400 text-white text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 disabled:cursor-not-allowed cursor-help"
+                        >
+                          {isGeneratingTemplate ? (
+                            <>
+                              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                              </svg>
+                              Marketing Material
+                            </>
+                          )}
+                        </button>
+                      </Tooltip>
                     </div>
                   </div>
 
@@ -844,7 +873,7 @@ export default function AIPlayground() {
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
-                            I&apos;m Happy - Use This
+                            I'm Happy - Use This
                           </button>
                         </div>
                         <div className="bg-white rounded-lg p-4 border border-purple-100">
